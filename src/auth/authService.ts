@@ -3,11 +3,12 @@ import type { AuthenticatedUser, DemoUser } from "@/auth/authTypes";
 import { SESSION_STORAGE_KEY } from "@/auth/authConfig";
 
 const demoUsers = users as DemoUser[];
+const PROFILE_OVERRIDES_PREFIX = "bhuribhoj.profile.";
 const sessionListeners = new Set<() => void>();
 let cachedSession: AuthenticatedUser | null | undefined;
 
 const withoutPassword = (user: DemoUser): AuthenticatedUser => {
-  return {
+  const seedProfile = {
     id: user.id,
     name: user.name,
     email: user.email,
@@ -16,6 +17,14 @@ const withoutPassword = (user: DemoUser): AuthenticatedUser => {
     ...(user.mobile ? { mobile: user.mobile } : {}),
     ...(user.avatarUrl ? { avatarUrl: user.avatarUrl } : {}),
   };
+  if (typeof window === "undefined") return seedProfile;
+  const stored = window.localStorage.getItem(`${PROFILE_OVERRIDES_PREFIX}${user.email.toLowerCase()}`);
+  if (!stored) return seedProfile;
+  try {
+    return { ...seedProfile, ...(JSON.parse(stored) as Partial<AuthenticatedUser>) };
+  } catch {
+    return seedProfile;
+  }
 };
 
 export const subscribeToSession = (listener: () => void) => {
@@ -82,6 +91,12 @@ export const updateCurrentUserProfile = (input: Pick<AuthenticatedUser, "name" |
   const current = getCurrentUser();
   if (!current) return null;
   const updated = { ...current, ...input };
+  window.localStorage.setItem(`${PROFILE_OVERRIDES_PREFIX}${current.email.toLowerCase()}`, JSON.stringify({
+    name: updated.name,
+    email: updated.email,
+    mobile: updated.mobile,
+    avatarUrl: updated.avatarUrl,
+  }));
   window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updated));
   cachedSession = updated;
   notifySessionListeners();

@@ -24,6 +24,7 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 import { WorkspaceView } from "@/components/dashboard/WorkspaceViews";
 import { GoogleTranslateControl } from "@/components/layout/GoogleTranslateControl";
 import { formatCurrency } from "@/lib/formatters";
+import { getTodayDate } from "@/lib/dates";
 import { ProfileEditor } from "@/components/layout/ProfileEditor";
 import { ThemePicker } from "@/components/layout/ThemePicker";
 import { MessProfileEditor } from "@/components/layout/MessProfileEditor";
@@ -138,7 +139,7 @@ export function AppShell({ user, onSignOut }: AppShellProps) {
                 <section className="stats-grid">
                   <StatCard label={fullAccess ? "Total members" : "My meals logged"} value={fullAccess ? String(data.members.length) : String(data.meals.length)} detail={fullAccess ? "Registered members" : "Lunch & dinner"} icon={<Users size={19} />} />
                   <StatCard label={fullAccess ? "Active members" : "My guest meals"} value={fullAccess ? String(data.activeMembers) : String(data.guestMeals.length)} detail={fullAccess ? "Currently active" : "Confirmed this month"} icon={<Users size={19} />} />
-                  <StatCard label="Today's meals" value={String(fullAccess ? todayMeals : data.meals.filter((meal) => meal.date === "2026-09-27").length)} detail={`Lunch ${data.todayLunch} · Dinner ${data.todayDinner}`} icon={<CookingPot size={19} />} />
+                  <StatCard label="Today's meals" value={String(fullAccess ? todayMeals : data.meals.filter((meal) => meal.date === getTodayDate()).length)} detail={`Lunch ${data.todayLunch} · Dinner ${data.todayDinner}`} icon={<CookingPot size={19} />} />
                   <StatCard label="Guest meals" value={String(data.guestMeals.length)} detail="Confirmed this month" icon={<CalendarDays size={19} />} />
                   <StatCard label="Monthly expenses" value={formatCurrency(totalExpenses)} detail={`Fixed ${formatCurrency(data.fixedExpenses)} · Market ${formatCurrency(data.marketExpenses)}`} icon={<CircleDollarSign size={19} />} />
                 </section>

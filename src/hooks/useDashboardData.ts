@@ -9,6 +9,7 @@ import { getMess, getSettings } from "@/services/messService";
 import { getUsers } from "@/services/userService";
 import type { AuthenticatedUser } from "@/auth/authTypes";
 import { getPrototypeDataVersion, subscribeToPrototypeData } from "@/lib/prototypeStorage";
+import { getTodayDate } from "@/lib/dates";
 
 export const useDashboardData = (user: AuthenticatedUser) => {
   const dataVersion = useSyncExternalStore(
@@ -23,7 +24,7 @@ export const useDashboardData = (user: AuthenticatedUser) => {
     const memberId = user.memberId;
     const allMeals = getMeals();
     const allExpenses = getExpenses();
-    const today = "2026-09-27";
+    const today = getTodayDate();
     const todayMeals = allMeals.filter((meal) => meal.date === today && meal.status === "taken");
 
     return {
