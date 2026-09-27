@@ -22,8 +22,9 @@ import { addMember, deactivateMember, updateMember } from "@/services/memberServ
 import { addMeal, cancelMeal } from "@/services/mealService";
 import { addGuestMeal, cancelGuestMeal, updateGuestMeal } from "@/services/guestMealService";
 import { addExpense, deleteExpense, updateExpense } from "@/services/expenseService";
-import { updateMess } from "@/services/messService";
-import { resetPrototypeData } from "@/lib/prototypeStorage";
+// import { updateMess } from "@/services/messService";
+// import { resetPrototypeData } from "@/lib/prototypeStorage";
+
 import { formatCurrency } from "@/lib/formatters";
 import { ExpenseForm, FormModal, GuestMealForm, MealForm, MemberForm } from "@/components/dashboard/PrototypeForms";
 import { Pagination } from "@/components/ui/Pagination";
@@ -50,13 +51,14 @@ const roleClass = (role: string) => `role-badge role-${role}`;
 
 export function WorkspaceView({ view, data }: { view: string; data: ViewData }) {
   const fullAccess = hasFullAccess(data.user.role);
+
   if (view === "Members") return <MembersView data={data} fullAccess={fullAccess} />;
   if (view === "Meals") return <MealsView data={data} />;
   if (view === "Guest Meals") return <GuestMealsView data={data} />;
   if (view === "Expenses" || view === "Expense Summary") return <ExpensesView data={data} />;
   if (view === "My Details") return <MyDetailsView data={data} />;
   if (view === "Reports") return <ReportsView data={data} />;
-  if (view === "Settings") return <SettingsView data={data} fullAccess={fullAccess} />;
+
   return <PlaceholderView title={view} fullAccess={fullAccess} />;
 }
 
@@ -120,13 +122,13 @@ function ReportsView({ data }: { data: ViewData }) {
   return <div className="workspace-view"><section className="view-summary-grid"><SummaryCard label="Daily meals" value={String(data.todayLunch + data.todayDinner)} icon={<CookingPot size={18} />} /><SummaryCard label="Guest report" value={String(data.guestMeals.length)} icon={<CalendarDays size={18} />} /><SummaryCard label="Expense report" value={currency(data.fixedExpenses + data.marketExpenses)} icon={<CircleDollarSign size={18} />} /></section><DataPanel title="Member meal history" caption="Raw meal records · no settlement formula" icon={<Users size={19} />}><div className="table-scroll"><table className="data-table"><thead><tr><th>Member</th><th>Personal meals</th><th>Latest date</th></tr></thead><tbody>{mealByMember.slice((page - 1) * 10, page * 10).map(({ member, count }) => <tr key={member.id}><td>{member.name}</td><td>{count}</td><td>{data.meals.filter((meal) => meal.memberId === member.id).sort((a, b) => b.date.localeCompare(a.date))[0]?.date ?? "-"}</td></tr>)}</tbody></table></div><Pagination page={page} pageSize={10} total={mealByMember.length} onPageChange={setPage} /></DataPanel></div>;
 }
 
-function SettingsView({ data, fullAccess }: { data: ViewData; fullAccess: boolean }) {
-  const [messName, setMessName] = useState(data.mess.name);
-  const [message, setMessage] = useState("");
-  const save = () => { updateMess({ name: messName }, data.user.role); setMessage("Settings saved to this browser."); };
-  const reset = () => { if (window.confirm("Reset BhuriBhoj demo data to the original seed?")) { resetPrototypeData(); setMessage("Demo data restored."); } };
-  return <div className="settings-grid"><section className="content-panel settings-card"><div className="panel-header"><div><span className="panel-eyebrow">Mess profile</span><h3>Current workspace</h3></div><SettingsIcon /></div><label className="form-field">Mess name<input className="form-input" value={messName} onChange={(event) => setMessName(event.target.value)} disabled={!fullAccess} /></label><div className="setting-line"><span>Address</span><strong>{data.mess.address}</strong></div><div className="setting-line"><span>Contact</span><strong>{data.mess.contactEmail}</strong></div>{fullAccess && <button className="primary-button compact-button" onClick={save}>Save mess settings</button>}</section><section className="content-panel settings-card"><div className="panel-header"><div><span className="panel-eyebrow">Configuration</span><h3>Guest thali prices</h3></div><CircleDollarSign size={19} /></div>{Object.entries(data.settings.guestThaliPrices).map(([name, price]) => <div className="setting-line" key={name}><span className="title-case">{name.replace("-", " ")}</span><strong>{formatCurrency(price)}</strong></div>)}<p className="settings-note">Prices are centralized prototype settings. Billing rules are not implemented.</p></section><section className="content-panel settings-card"><div className="panel-header"><div><span className="panel-eyebrow">Prototype tools</span><h3>Data reset</h3></div><Sparkles size={19} /></div><p className="settings-note">Restore members, meals, guest meals, expenses, mess, and settings from the original JSON seed.</p><button className="secondary-button" onClick={reset}>Reset demo data</button>{message && <p className="success-message">{message}</p>}</section></div>;
-}
+// function SettingsView({ data, fullAccess }: { data: ViewData; fullAccess: boolean }) {
+//   const [messName, setMessName] = useState(data.mess.name);
+//   const [message, setMessage] = useState("");
+//   const save = () => { updateMess({ name: messName }, data.user.role); setMessage("Settings saved to this browser."); };
+//   const reset = () => { if (window.confirm("Reset BhuriBhoj demo data to the original seed?")) { resetPrototypeData(); setMessage("Demo data restored."); } };
+//   return <div className="settings-grid"><section className="content-panel settings-card"><div className="panel-header"><div><span className="panel-eyebrow">Mess profile</span><h3>Current workspace</h3></div><SettingsIcon /></div><label className="form-field">Mess name<input className="form-input" value={messName} onChange={(event) => setMessName(event.target.value)} disabled={!fullAccess} /></label><div className="setting-line"><span>Address</span><strong>{data.mess.address}</strong></div><div className="setting-line"><span>Contact</span><strong>{data.mess.contactEmail}</strong></div>{fullAccess && <button className="primary-button compact-button" onClick={save}>Save mess settings</button>}</section><section className="content-panel settings-card"><div className="panel-header"><div><span className="panel-eyebrow">Configuration</span><h3>Guest thali prices</h3></div><CircleDollarSign size={19} /></div>{Object.entries(data.settings.guestThaliPrices).map(([name, price]) => <div className="setting-line" key={name}><span className="title-case">{name.replace("-", " ")}</span><strong>{formatCurrency(price)}</strong></div>)}<p className="settings-note">Prices are centralized prototype settings. Billing rules are not implemented.</p></section><section className="content-panel settings-card"><div className="panel-header"><div><span className="panel-eyebrow">Prototype tools</span><h3>Data reset</h3></div><Sparkles size={19} /></div><p className="settings-note">Restore members, meals, guest meals, expenses, mess, and settings from the original JSON seed.</p><button className="secondary-button" onClick={reset}>Reset demo data</button>{message && <p className="success-message">{message}</p>}</section></div>;
+// }
 
 function SettingsIcon() { return <span className="placeholder-spark">⚙</span>; }
 
