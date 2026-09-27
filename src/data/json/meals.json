@@ -1,0 +1,12 @@
+[
+  { "id": "MEAL001", "memberId": "MEM001", "date": "2026-09-25", "mealType": "lunch", "status": "taken" },
+  { "id": "MEAL002", "memberId": "MEM001", "date": "2026-09-25", "mealType": "dinner", "status": "taken" },
+  { "id": "MEAL003", "memberId": "MEM001", "date": "2026-09-26", "mealType": "lunch", "status": "taken" },
+  { "id": "MEAL004", "memberId": "MEM001", "date": "2026-09-26", "mealType": "dinner", "status": "taken" },
+  { "id": "MEAL005", "memberId": "MEM002", "date": "2026-09-25", "mealType": "lunch", "status": "taken" },
+  { "id": "MEAL006", "memberId": "MEM002", "date": "2026-09-25", "mealType": "dinner", "status": "taken" },
+  { "id": "MEAL007", "memberId": "MEM003", "date": "2026-09-26", "mealType": "lunch", "status": "taken" },
+  { "id": "MEAL008", "memberId": "MEM004", "date": "2026-09-27", "mealType": "lunch", "status": "taken" },
+  { "id": "MEAL009", "memberId": "MEM005", "date": "2026-09-27", "mealType": "dinner", "status": "taken" },
+  { "id": "MEAL010", "memberId": "MEM006", "date": "2026-09-27", "mealType": "lunch", "status": "taken" }
+]

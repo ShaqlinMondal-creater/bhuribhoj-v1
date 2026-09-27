@@ -1,0 +1,6 @@
+[
+  { "id": "GMEAL001", "memberId": "MEM001", "guestName": "Guest One", "date": "2026-09-27", "thaliType": "fish-thali", "price": 70, "status": "confirmed" },
+  { "id": "GMEAL002", "memberId": "MEM002", "guestName": "Guest Two", "date": "2026-09-26", "thaliType": "chicken-thali", "price": 90, "status": "confirmed" },
+  { "id": "GMEAL003", "memberId": "MEM004", "guestName": "Guest Three", "date": "2026-09-25", "thaliType": "veg-thali", "price": 45, "status": "confirmed" },
+  { "id": "GMEAL004", "memberId": "MEM005", "guestName": "Guest Four", "date": "2026-09-27", "thaliType": "egg-thali", "price": 55, "status": "confirmed" }
+]

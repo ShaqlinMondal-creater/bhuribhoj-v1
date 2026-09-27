@@ -1,0 +1,14 @@
+[
+  { "id": "EXP001", "date": "2026-09-01", "category": "Cook Salary", "amount": 18000, "type": "fixed", "note": "September cook salary" },
+  { "id": "EXP002", "date": "2026-09-03", "category": "Gas", "amount": 2400, "type": "fixed", "note": "Kitchen gas refill" },
+  { "id": "EXP003", "date": "2026-09-07", "category": "Electricity", "amount": 3850, "type": "fixed", "note": "Monthly electricity bill" },
+  { "id": "EXP004", "date": "2026-09-08", "category": "Cleaning", "amount": 1200, "type": "fixed", "note": "Cleaning supplies" },
+  { "id": "EXP005", "date": "2026-09-10", "category": "Internet", "amount": 1000, "type": "fixed", "note": "Monthly connection" },
+  { "id": "EXP006", "date": "2026-09-02", "category": "Rice", "amount": 6200, "type": "market", "note": "Rice stock" },
+  { "id": "EXP007", "date": "2026-09-06", "category": "Vegetables", "amount": 3150, "type": "market", "note": "Weekly market" },
+  { "id": "EXP008", "date": "2026-09-12", "category": "Fish", "amount": 4800, "type": "market", "note": "Fresh fish" },
+  { "id": "EXP009", "date": "2026-09-16", "category": "Chicken", "amount": 3650, "type": "market", "note": "Chicken stock" },
+  { "id": "EXP010", "date": "2026-09-20", "category": "Egg", "amount": 1450, "type": "market", "note": "Eggs" },
+  { "id": "EXP011", "date": "2026-09-22", "category": "Oil", "amount": 2100, "type": "market", "note": "Cooking oil" },
+  { "id": "EXP012", "date": "2026-09-24", "category": "Grocery", "amount": 2700, "type": "market", "note": "Pantry restock" }
+]

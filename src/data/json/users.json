@@ -1,0 +1,6 @@
+[
+  { "id": "USR001", "name": "Afsana Rahman", "email": "admin@bhuribhoj.local", "password": "Admin@123", "role": "admin" },
+  { "id": "USR002", "name": "Sabbir Hossain", "email": "manager@bhuribhoj.local", "password": "Manager@123", "role": "manager" },
+  { "id": "USR003", "name": "Nusrat Jahan", "email": "president@bhuribhoj.local", "password": "President@123", "role": "president" },
+  { "id": "USR004", "name": "Rafi Ahmed", "email": "member@bhuribhoj.local", "password": "Member@123", "role": "member", "memberId": "MEM001" }
+]
