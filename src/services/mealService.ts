@@ -8,7 +8,9 @@ const seed = meals as Meal[];
 export const getMeals = (): Meal[] => readCollection(STORAGE_KEYS.meals, seed);
 
 const assertCanChange = (role: Role, actorMemberId: string | undefined, memberId: string) => {
-	if (!hasFullAccess(role) && actorMemberId !== memberId) throw new Error("Members can only manage their own meals.");
+	void actorMemberId;
+	void memberId;
+	if (!hasFullAccess(role)) throw new Error("Member accounts are view-only.");
 };
 
 export const addMeal = (input: Omit<Meal, "id" | "createdAt" | "updatedAt">, role: Role, actorMemberId?: string) => {

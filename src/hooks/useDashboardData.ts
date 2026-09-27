@@ -18,6 +18,7 @@ export const useDashboardData = (user: AuthenticatedUser) => {
   );
 
   return useMemo(() => {
+    void dataVersion;
     const allMembers = getMembers();
     const memberId = user.memberId;
     const allMeals = getMeals();

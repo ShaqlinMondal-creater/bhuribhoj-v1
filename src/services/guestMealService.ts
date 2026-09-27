@@ -10,7 +10,9 @@ const seed = guestMeals as GuestMeal[];
 export const getGuestMeals = (): GuestMeal[] => readCollection(STORAGE_KEYS.guestMeals, seed);
 
 const assertCanChange = (role: Role, actorMemberId: string | undefined, memberId: string) => {
-	if (!hasFullAccess(role) && actorMemberId !== memberId) throw new Error("Members can only manage their own guest meals.");
+	void actorMemberId;
+	void memberId;
+	if (!hasFullAccess(role)) throw new Error("Member accounts are view-only.");
 };
 
 export type GuestMealInput = Omit<GuestMeal, "id" | "price" | "createdAt" | "updatedAt">;

@@ -1,6 +1,6 @@
 import members from "@/data/json/members.json";
 import { hasFullAccess } from "@/auth/authConfig";
-import { makeId, nowIso, readCollection, STORAGE_KEYS, writeCollection } from "@/lib/prototypeStorage";
+import { makeId, readCollection, STORAGE_KEYS, writeCollection } from "@/lib/prototypeStorage";
 import type { Member } from "@/types/member";
 import type { Role } from "@/types/user";
 

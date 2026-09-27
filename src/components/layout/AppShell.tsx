@@ -102,12 +102,9 @@ export function AppShell({ user, onSignOut }: AppShellProps) {
         <header className="topbar">
           <button className="icon-button mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu size={21} /></button>
           <div className="breadcrumb"><span>Workspace</span><span>/</span><strong>{activeView}</strong></div>
-          <div className="topbar-tools">
-            <div className="language-switcher" aria-label="Language selector"><button className="language-active">EN</button><span>|</span><button>বাংলা</button></div>
-            <div className="topbar-profile">
-              <div className="profile-copy"><strong>{user.name}</strong><span>{roleLabels[user.role]}</span></div>
-              <div className="avatar">{user.name.charAt(0)}</div>
-            </div>
+          <div className="topbar-profile">
+            <div className="profile-copy"><strong>{user.name}</strong><span>{roleLabels[user.role]}</span></div>
+            <div className="avatar">{user.name.charAt(0)}</div>
           </div>
         </header>
 

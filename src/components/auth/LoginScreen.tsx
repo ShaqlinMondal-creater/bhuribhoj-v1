@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 
@@ -22,8 +23,10 @@ export function LoginScreen({ isSigningIn, error, onSignIn }: LoginScreenProps) 
 
   return (
     <main className="login-page">
-      <div className="login-orbit login-orbit-one" />
-      <div className="login-orbit login-orbit-two" />
+      <section className="login-visual" aria-label="BhuriBhoj shared meal illustration">
+        <Image src="/bhuribhoj-kitchen.svg" alt="A shared meal table at BhuriBhoj" fill sizes="(max-width: 800px) 100vw, 50vw" priority />
+        <div className="login-visual-copy"><p className="eyebrow">BHURIBHOJ / 01</p><h1>Better meals.<br />Clearer living.</h1><p>A calm shared table for the people who make a home together.</p></div>
+      </section>
       <motion.section
         className="login-card"
         initial={{ opacity: 0, y: 18 }}
@@ -32,13 +35,12 @@ export function LoginScreen({ isSigningIn, error, onSignIn }: LoginScreenProps) 
       >
         <div className="brand-mark" aria-hidden="true">B</div>
         <div className="login-heading">
-          <p className="eyebrow">BHURIBHOJ / 01</p>
           <h1>Good food starts with a clear table.</h1>
           <p>Sign in to coordinate your mess, your way.</p>
         </div>
 
         <form className="login-form" onSubmit={handleSubmit}>
-          <label htmlFor="email">Email address</label>
+            <label htmlFor="email">Email address</label>
           <div className="input-wrap">
             <Mail size={18} aria-hidden="true" />
             <input
