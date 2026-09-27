@@ -125,8 +125,10 @@ export function AppShell({ user, onSignOut }: AppShellProps) {
                         <div className="page-heading">
                             <div><p className="eyebrow">{data.mess.month}</p><h1>{activeView}</h1><p>{activeView === "Dashboard" ? "A clear view of what is happening around the mess." : `${activeView} is ready for the next layer of the BhuriBhoj workspace.`}</p></div>
                             <div className="heading-actions">
-                                {fullAccess && activeView !== "Dashboard" && <button className="secondary-button"><Sparkles size={16} /> Add {activeView === "Members" ? "member" : "entry"}</button>}
-                                <span className="access-pill"><ShieldCheck size={15} /> {fullAccess ? "Full access" : "View only"}</span>
+                                <span className="access-pill">
+                                    <ShieldCheck size={15} />
+                                    {fullAccess ? "Full access" : "View only"}
+                                </span>
                             </div>
                         </div>
 
@@ -156,7 +158,8 @@ export function AppShell({ user, onSignOut }: AppShellProps) {
                             </div>
                         ) : (
                             <WorkspaceView view={activeView} data={{ ...data, user }} />
-                        )}
+                        )
+                        }
                     </motion.div>
                 </main>
             </div>
