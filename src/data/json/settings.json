@@ -6,5 +6,6 @@
     "egg-thali": 55
   },
   "fixedExpenseCategories": ["Cook Salary", "Gas", "Electricity", "Cleaning", "Internet", "Other Fixed Charges"],
-  "marketExpenseCategories": ["Rice", "Vegetables", "Fish", "Chicken", "Egg", "Oil", "Spices", "Grocery", "Other Market Expense"]
+  "marketExpenseCategories": ["Rice", "Vegetables", "Fish", "Chicken", "Egg", "Oil", "Spices", "Grocery", "Other Market Expense"],
+  "theme": "bhuri-green"
 }

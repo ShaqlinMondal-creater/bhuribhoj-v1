@@ -13,6 +13,8 @@ const withoutPassword = (user: DemoUser): AuthenticatedUser => {
     email: user.email,
     role: user.role,
     ...(user.memberId ? { memberId: user.memberId } : {}),
+    ...(user.mobile ? { mobile: user.mobile } : {}),
+    ...(user.avatarUrl ? { avatarUrl: user.avatarUrl } : {}),
   };
 };
 
@@ -74,4 +76,14 @@ export const getCurrentUser = (): AuthenticatedUser | null => {
     signOut();
     return null;
   }
+};
+
+export const updateCurrentUserProfile = (input: Pick<AuthenticatedUser, "name" | "email" | "mobile" | "avatarUrl">) => {
+  const current = getCurrentUser();
+  if (!current) return null;
+  const updated = { ...current, ...input };
+  window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updated));
+  cachedSession = updated;
+  notifySessionListeners();
+  return updated;
 };

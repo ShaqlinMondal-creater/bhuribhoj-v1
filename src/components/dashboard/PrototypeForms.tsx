@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import type { Member } from "@/types/member";
@@ -14,7 +15,7 @@ const guestSchema = z.object({ memberId: z.string().min(1), guestName: z.string(
 const expenseSchema = z.object({ date: z.string().min(1), category: z.string().min(1), amount: z.coerce.number().positive(), type: z.enum(["fixed", "market"]), note: z.string().min(2) });
 
 type ModalProps = { title: string; onClose: () => void; children: React.ReactNode };
-export function FormModal({ title, onClose, children }: ModalProps) { return <div className="modal-backdrop" role="presentation"><section className="form-modal" role="dialog" aria-modal="true" aria-label={title}><div className="modal-header"><div><span className="panel-eyebrow">Prototype editor</span><h2>{title}</h2></div><button className="icon-button" onClick={onClose} aria-label="Close form"><X size={19} /></button></div>{children}</section></div>; }
+export function FormModal({ title, onClose, children }: ModalProps) { return <div className="modal-backdrop" role="presentation"><motion.section className="form-modal" role="dialog" aria-modal="true" aria-label={title} initial={{ opacity: 0, scale: .97, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: .18 }}><div className="modal-header"><div><span className="panel-eyebrow">Prototype editor</span><h2>{title}</h2></div><button className="icon-button" onClick={onClose} aria-label="Close form"><X size={19} /></button></div>{children}</motion.section></div>; }
 
 const Field = ({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) => <label className="form-field"><span>{label}</span>{children}{error && <small className="form-error">{error}</small>}</label>;
 const Input = (props: React.InputHTMLAttributes<HTMLInputElement>) => <input className="form-input" {...props} />;

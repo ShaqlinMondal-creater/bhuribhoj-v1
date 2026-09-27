@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import {
   BarChart3,
   CalendarDays,
@@ -21,6 +22,11 @@ import { hasFullAccess, roleLabels } from "@/auth/authConfig";
 import type { AuthenticatedUser } from "@/auth/authTypes";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { WorkspaceView } from "@/components/dashboard/WorkspaceViews";
+import { GoogleTranslateControl } from "@/components/layout/GoogleTranslateControl";
+import { formatCurrency } from "@/lib/formatters";
+import { ProfileEditor } from "@/components/layout/ProfileEditor";
+import { ThemePicker } from "@/components/layout/ThemePicker";
+import { MessProfileEditor } from "@/components/layout/MessProfileEditor";
 
 type AppShellProps = {
   user: AuthenticatedUser;
@@ -46,11 +52,10 @@ const memberNavigation = [
   { label: "Reports", icon: BarChart3 },
 ];
 
-const formatCurrency = (amount: number) => `৳${amount.toLocaleString("en-BD")}`;
-
 export function AppShell({ user, onSignOut }: AppShellProps) {
   const [activeView, setActiveView] = useState("Dashboard");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const data = useDashboardData(user);
   const fullAccess = hasFullAccess(user.role);
   const navigation = fullAccess ? allNavigation : memberNavigation;
@@ -103,8 +108,9 @@ export function AppShell({ user, onSignOut }: AppShellProps) {
           <button className="icon-button mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu size={21} /></button>
           <div className="breadcrumb"><span>Workspace</span><span>/</span><strong>{activeView}</strong></div>
           <div className="topbar-profile">
+            <GoogleTranslateControl />
             <div className="profile-copy"><strong>{user.name}</strong><span>{roleLabels[user.role]}</span></div>
-            <div className="avatar">{user.name.charAt(0)}</div>
+            <button className="avatar avatar-button" onClick={() => setProfileOpen(true)} aria-label="Edit profile">{user.avatarUrl ? <Image src={user.avatarUrl} alt="" width={34} height={34} unoptimized /> : user.name.charAt(0)}</button>
           </div>
         </header>
 
@@ -141,10 +147,11 @@ export function AppShell({ user, onSignOut }: AppShellProps) {
                   <div className="content-panel quiet-panel"><div className="panel-header"><div><span className="panel-eyebrow">Mess pulse</span><h3>At a glance</h3></div><BarChart3 size={19} /></div><div className="pulse-line"><span>Guest thalis</span><strong>{data.guestMeals.length}</strong></div><div className="pulse-line"><span>Fixed expenses</span><strong>{formatCurrency(data.fixedExpenses)}</strong></div><div className="pulse-line"><span>Market / bazar</span><strong>{formatCurrency(data.marketExpenses)}</strong></div><div className="permission-note"><ShieldCheck size={16} /><span>{fullAccess ? "You can manage this workspace." : "Your account has view-only access."}</span></div></div>
                 </section>
               </>
-            ) : <WorkspaceView view={activeView} data={{ ...data, user }} />}
+            ) : <>{activeView === "Settings" && <><ThemePicker role={user.role} /><MessProfileEditor mess={data.mess} role={user.role} /></>}<WorkspaceView view={activeView} data={{ ...data, user }} /></>}
           </motion.div>
         </main>
       </div>
+      {profileOpen && <ProfileEditor user={user} onClose={() => setProfileOpen(false)} />}
     </div>
   );
 }

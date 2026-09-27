@@ -7,6 +7,8 @@ export type DemoUser = {
   password: string;
   role: Role;
   memberId?: string;
+  mobile?: string;
+  avatarUrl?: string;
 };
 
 export type AuthenticatedUser = Omit<DemoUser, "password">;

@@ -29,7 +29,9 @@ const dataListeners = new Set<() => void>();
 
 export const subscribeToPrototypeData = (listener: () => void) => {
   dataListeners.add(listener);
-  return () => dataListeners.delete(listener);
+  return () => {
+    dataListeners.delete(listener);
+  };
 };
 
 export const getPrototypeDataVersion = () => dataVersion;
