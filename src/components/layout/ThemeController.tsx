@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { getSettings } from "@/services/messService";
-import { subscribeToPrototypeData } from "@/lib/prototypeStorage";
+import { subscribeToStore } from "@/data/memoryStore";
 
 export function ThemeController() {
   useEffect(() => {
@@ -10,7 +10,7 @@ export function ThemeController() {
       document.documentElement.dataset.theme = getSettings().theme ?? "bhuri-green";
     };
     applyTheme();
-    return subscribeToPrototypeData(applyTheme);
+    return subscribeToStore(applyTheme);
   }, []);
 
   return null;

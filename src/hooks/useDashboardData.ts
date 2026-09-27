@@ -8,13 +8,13 @@ import { getMembers } from "@/services/memberService";
 import { getMess, getSettings } from "@/services/messService";
 import { getUsers } from "@/services/userService";
 import type { AuthenticatedUser } from "@/auth/authTypes";
-import { getPrototypeDataVersion, subscribeToPrototypeData } from "@/lib/prototypeStorage";
+import { getStoreVersion, subscribeToStore } from "@/data/memoryStore";
 import { getTodayDate } from "@/lib/dates";
 
 export const useDashboardData = (user: AuthenticatedUser) => {
   const dataVersion = useSyncExternalStore(
-    subscribeToPrototypeData,
-    getPrototypeDataVersion,
+    subscribeToStore,
+    getStoreVersion,
     () => 0,
   );
 
@@ -25,13 +25,14 @@ export const useDashboardData = (user: AuthenticatedUser) => {
     const allMeals = getMeals();
     const allExpenses = getExpenses();
     const today = getTodayDate();
-    const todayMeals = allMeals.filter((meal) => meal.date === today && meal.status === "taken");
+    const scopedMeals = allMeals.filter((meal) => !memberId || meal.memberId === memberId);
+    const todayMeals = scopedMeals.filter((meal) => meal.date === today && meal.status === "taken");
 
     return {
       mess: getMess(),
       settings: getSettings(),
       members: allMembers,
-      meals: allMeals.filter((meal) => !memberId || meal.memberId === memberId),
+      meals: scopedMeals,
       guestMeals: getGuestMeals().filter(
         (meal) => !memberId || meal.memberId === memberId,
       ),

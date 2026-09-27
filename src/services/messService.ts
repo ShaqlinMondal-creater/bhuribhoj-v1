@@ -1,25 +1,26 @@
-import mess from "@/data/json/mess.json";
-import settings from "@/data/json/settings.json";
+import { getCollection, setCollection } from "@/data/memoryStore";
+import { updateRecordRequest } from "@/data/api";
+import { hasFullAccess } from "@/auth/authConfig";
 import type { Mess } from "@/types/mess";
 import type { Settings } from "@/types/settings";
-import { hasFullAccess } from "@/auth/authConfig";
-import { readCollection, STORAGE_KEYS, writeCollection } from "@/lib/prototypeStorage";
 import type { Role } from "@/types/user";
 
-export const getMess = (): Mess => readCollection(STORAGE_KEYS.mess, mess as Mess);
+// mess.json and settings.json each hold a single document, addressed in the API
+// by the collection name. Reads come from the cache; writes PATCH that document.
+export const getMess = (): Mess => getCollection<Mess>("mess");
 
-export const getSettings = (): Settings => readCollection(STORAGE_KEYS.settings, settings as Settings);
+export const getSettings = (): Settings => getCollection<Settings>("settings");
 
-export const updateMess = (input: Partial<Mess>, role: Role) => {
+export const updateMess = async (input: Partial<Mess>, role: Role) => {
 	if (!hasFullAccess(role)) throw new Error("Only full-access roles can update mess settings.");
-	const updated = { ...getMess(), ...input };
-	writeCollection(STORAGE_KEYS.mess, updated);
-	return updated;
+	const saved = await updateRecordRequest<Mess>("mess", "mess", input);
+	setCollection("mess", saved);
+	return saved;
 };
 
-export const updateSettings = (input: Partial<Settings>, role: Role) => {
+export const updateSettings = async (input: Partial<Settings>, role: Role) => {
 	if (!hasFullAccess(role)) throw new Error("Only full-access roles can update settings.");
-	const updated = { ...getSettings(), ...input };
-	writeCollection(STORAGE_KEYS.settings, updated);
-	return updated;
+	const saved = await updateRecordRequest<Settings>("settings", "settings", input);
+	setCollection("settings", saved);
+	return saved;
 };
