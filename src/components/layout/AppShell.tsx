@@ -150,16 +150,8 @@ export function AppShell({ user, onSignOut }: AppShellProps) {
                                     <div className="content-panel quiet-panel"><div className="panel-header"><div><span className="panel-eyebrow">Mess pulse</span><h3>At a glance</h3></div><BarChart3 size={19} /></div><div className="pulse-line"><span>Guest thalis</span><strong>{data.guestMeals.length}</strong></div><div className="pulse-line"><span>Fixed expenses</span><strong>{formatCurrency(data.fixedExpenses)}</strong></div><div className="pulse-line"><span>Market / bazar</span><strong>{formatCurrency(data.marketExpenses)}</strong></div><div className="permission-note"><ShieldCheck size={16} /><span>{fullAccess ? "You can manage this workspace." : "Your account has view-only access."}</span></div></div>
                                 </section>
                             </>
-                            // ) : <>{activeView === "Settings" && <><ThemePicker role={user.role} /><MessProfileEditor mess={data.mess} role={user.role} /></>}<WorkspaceView view={activeView} data={{ ...data, user }} /></>}
-                        ) : activeView === "Settings" ? (
-                            <div className="settings-page">
-                                <ThemePicker role={user.role} />
-                                <MessProfileEditor mess={data.mess} role={user.role} />
-                            </div>
-                        ) : (
-                            <WorkspaceView view={activeView} data={{ ...data, user }} />
-                        )
-                        }
+                            ) : <>{activeView === "Settings" && <><ThemePicker role={user.role} /><MessProfileEditor mess={data.mess} role={user.role} /></>}<WorkspaceView view={activeView} data={{ ...data, user }} /></>}
+                        
                     </motion.div>
                 </main>
             </div>
