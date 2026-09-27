@@ -25,7 +25,7 @@ export function LoginScreen({ isSigningIn, error, onSignIn }: LoginScreenProps) 
     <main className="login-page">
       <section className="login-visual" aria-label="BhuriBhoj shared meal illustration">
         <Image src="/no-bg.png" alt="A shared meal table at BhuriBhoj" fill sizes="(max-width: 800px) 100vw, 50vw" priority />
-        <div className="login-visual-copy"><p className="eyebrow">BHURIBHOJ / 01</p><h1>Better meals.<br />Clearer living.</h1><p>A calm shared table for the people who make a home together.</p></div>
+        {/* <div className="login-visual-copy"><p className="eyebrow">BHURIBHOJ / 01</p><h1>Better meals.<br />Clearer living.</h1><p>A calm shared table for the people who make a home together.</p></div> */}
       </section>
       <motion.section
         className="login-card"
