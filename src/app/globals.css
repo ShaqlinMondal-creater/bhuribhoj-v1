@@ -243,7 +243,7 @@ button:disabled { cursor: wait; opacity: 0.7; }
 .mess-profile-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .panel-actions { display: flex; align-items: center; gap: 13px; }
 .row-actions { display: flex; align-items: center; gap: 5px; }
-.row-actions .table-action { padding: 5px 7px; font-size: 10px; white-space: nowrap; }
+.row-actions .table-action { width: 26px; height: 26px; padding: 0; }
 .meal-summary { display: flex; gap: 9px; flex-wrap: wrap; margin: -3px 0 17px; }
 .meal-summary span { padding: 8px 10px; border-radius: 8px; background: #f2f5ef; color: #7b897f; font-size: 11px; }
 .meal-summary strong { margin-left: 6px; color: #49634e; }
