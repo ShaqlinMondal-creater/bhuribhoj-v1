@@ -1,12 +1,19 @@
 import { SESSION_STORAGE_KEY } from "@/auth/authConfig";
-import type { AuthenticatedUser, DemoUser } from "@/auth/authTypes";
+import type { AuthenticatedUser } from "@/auth/authTypes";
 import { getStoreVersion, subscribeToStore } from "@/data/memoryStore";
-import { findUserByEmail, findUserById, updateUser } from "@/services/userService";
+import { ApiError, signInRequest } from "@/data/api";
+import { findUserById, refreshUsers, updateUser } from "@/services/userService";
+import type { PublicUser } from "@/types/user";
 
 // This is the ONLY module in the app that is allowed to use localStorage, and
 // it stores nothing but the minimum needed to recognise a signed-in user on the
-// next page load: which user was signed in, and when. No name, email, role,
-// mobile or avatar, and no application dataset.
+// next page load: which user was signed in, and when. No name, email, role or
+// any other field, and no application dataset.
+//
+// A password is never handled here. signIn sends it to the server, which checks
+// it against the hash in users.json, and the user that comes back has no
+// password on it. Resolving the signed-in user afterwards is a lookup in the
+// already-loaded users.json mirror, not a credential check.
 
 type Session = {
 	userId: string;
@@ -15,16 +22,6 @@ type Session = {
 
 const sessionListeners = new Set<() => void>();
 let cache: { raw: string | null; version: number; user: AuthenticatedUser | null } | null = null;
-
-const toAuthenticatedUser = (user: DemoUser): AuthenticatedUser => ({
-	id: user.id,
-	name: user.name,
-	email: user.email,
-	role: user.role,
-	...(user.memberId ? { memberId: user.memberId } : {}),
-	...(user.mobile ? { mobile: user.mobile } : {}),
-	...(user.avatarUrl ? { avatarUrl: user.avatarUrl } : {}),
-});
 
 const readSession = (): Session | null => {
 	const raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
@@ -40,8 +37,7 @@ const readSession = (): Session | null => {
 const resolveUser = (): AuthenticatedUser | null => {
 	const session = readSession();
 	if (!session) return null;
-	const user = findUserById(session.userId);
-	return user ? toAuthenticatedUser(user) : null;
+	return findUserById(session.userId);
 };
 
 export const subscribeToSession = (listener: () => void) => {
@@ -77,21 +73,28 @@ export const signIn = async (
 	email: string,
 	password: string,
 ): Promise<{ user?: AuthenticatedUser; error?: string }> => {
-	const user = findUserByEmail(email);
-
-	if (!user || user.password !== password) {
-		return { error: "That email and password combination is not recognised." };
+	try {
+		const { user } = await signInRequest<{ user: PublicUser }>(email, password);
+		// The mirror the rest of the app reads is refreshed from the server, so a
+		// sign-in sees the same records the rest of the session will.
+		await refreshUsers();
+		window.localStorage.setItem(
+			SESSION_STORAGE_KEY,
+			JSON.stringify({ userId: user.id, signedInAt: new Date().toISOString() } satisfies Session),
+		);
+		cache = null;
+		notifySessionListeners();
+		return { user };
+	} catch (error) {
+		// The server's message is deliberately vague about which half was wrong,
+		// and it is safe to show as-is.
+		return {
+			error:
+				error instanceof ApiError
+					? error.message
+					: "Could not sign in right now. Please try again.",
+		};
 	}
-
-	window.localStorage.setItem(
-		SESSION_STORAGE_KEY,
-		JSON.stringify({ userId: user.id, signedInAt: new Date().toISOString() } satisfies Session),
-	);
-
-	const authenticatedUser = toAuthenticatedUser(user);
-	cache = null;
-	notifySessionListeners();
-	return { user: authenticatedUser };
 };
 
 export const signOut = () => {
@@ -101,7 +104,7 @@ export const signOut = () => {
 };
 
 export const updateCurrentUserProfile = async (
-	input: Pick<AuthenticatedUser, "name" | "email" | "mobile" | "avatarUrl">,
+	input: Pick<AuthenticatedUser, "name" | "email" | "mobile" | "image_url">,
 ) => {
 	const current = getCurrentUser();
 	if (!current) return null;
@@ -110,5 +113,5 @@ export const updateCurrentUserProfile = async (
 	if (!updated) return null;
 	// The store subscription above already invalidated the cache and notified
 	// subscribers, because updateUser writes the record back into the cache.
-	return toAuthenticatedUser(updated);
+	return updated;
 };

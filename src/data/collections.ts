@@ -1,7 +1,9 @@
 // Collection names shared by the server repository and the frontend cache.
 // Deliberately dependency-free so it is safe to import from client code.
+//
+// There is no "members" collection: everyone is a record in "users", and a
+// member is a user whose member_id is set.
 export const COLLECTION_NAMES = [
-  "members",
   "meals",
   "guestMeals",
   "expenses",
@@ -17,7 +19,6 @@ export const isCollectionName = (value: string): value is CollectionName =>
 
 /** Collections that hold a list of records rather than a single document. */
 export const LIST_COLLECTIONS = [
-  "members",
   "meals",
   "guestMeals",
   "expenses",

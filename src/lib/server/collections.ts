@@ -19,20 +19,44 @@ export type { CollectionName };
 export { COLLECTION_NAMES, LIST_COLLECTIONS, isCollectionName };
 
 const isoDate = z.string().min(1);
-const optionalTimestamp = z.string().min(1).optional();
+const optionalTimestamp = z.string().min(1).nullable();
+const nullableText = z.string().nullable();
+const nullableNumber = z.number().min(0).nullable();
 
-export const memberRecordSchema = z.object({
+/**
+ * THE UNIFIED USER RECORD.
+ *
+ * One collection holds every person. `id` is the immutable internal identifier
+ * and `member_id` is the business identifier that only a member carries, so
+ * meals and guest meals can keep pointing at the member identifier they already
+ * store. A field that does not apply is null rather than missing, which keeps
+ * every record the same shape.
+ *
+ * `password` is always a hash: it is hashed on the way in (see
+ * src/lib/server/passwords.ts) and stripped on the way out, so it never reaches
+ * a client.
+ */
+export const userRecordSchema = z.object({
   id: z.string().min(1),
+  member_id: nullableText,
   name: z.string().min(1),
   email: z.string().email(),
-  mobile: z.string(),
-  room: z.string(),
-  joiningDate: isoDate,
-  status: z.enum(["active", "inactive"]),
+  password: z.string().min(1),
+  mobile: nullableText,
+  address: nullableText,
+  room: nullableText,
+  joiningDate: nullableText,
+  status: z.boolean(),
   role: z.enum(["admin", "manager", "president", "member"]),
-  entryFee: z.number().min(0),
-  entryFeeStatus: z.enum(["paid", "pending"]),
-  entryFeePaidDate: z.string().nullable(),
+  wallet_id: z.number().int().positive().nullable(),
+  deposite_amount: nullableNumber,
+  entryFee: nullableNumber,
+  entryFeeStatus: z.enum(["paid", "pending"]).nullable(),
+  entryFeePaidDate: nullableText,
+  image_url: nullableText,
+  login_status: z.boolean(),
+  login_at: optionalTimestamp,
+  logout_at: optionalTimestamp,
 });
 
 export const mealRecordSchema = z.object({
@@ -90,17 +114,6 @@ export const settingsRecordSchema = z.object({
   theme: z.enum(["bhuri-green", "emerald", "midnight", "warm"]).optional(),
 });
 
-export const userRecordSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  email: z.string().email(),
-  password: z.string().min(1),
-  role: z.enum(["admin", "manager", "president", "member"]),
-  memberId: z.string().optional(),
-  mobile: z.string().optional(),
-  avatarUrl: z.string().optional(),
-});
-
 type RegistryEntry = {
   file: string;
   isList: boolean;
@@ -116,13 +129,6 @@ type RegistryEntry = {
 };
 
 export const COLLECTIONS: Record<CollectionName, RegistryEntry> = {
-  members: {
-    file: "members.json",
-    isList: true,
-    singletonId: "",
-    recordSchema: memberRecordSchema,
-    patchSchema: memberRecordSchema.omit({ id: true }).partial().strict(),
-  },
   meals: {
     file: "meals.json",
     isList: true,

@@ -45,6 +45,19 @@ const request = async <T,>(path: string, init?: RequestInit): Promise<T> => {
 export const fetchCollection = <T,>(collection: string): Promise<T> =>
   request<T>(`${base}/${collection}`);
 
+/**
+ * Asks the server to check a sign-in.
+ *
+ * The password goes to the server and the user comes back without one, so the
+ * browser never holds a credential to compare. The response is the same shape as
+ * the other calls, so the error handling above still reports a rejected sign-in.
+ */
+export const signInRequest = <T,>(email: string, password: string): Promise<T> =>
+  request<T>("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+
 export const fetchRecord = <T,>(collection: string, id: string): Promise<T> =>
   request<T>(`${base}/${collection}/${encodeURIComponent(id)}`);
 

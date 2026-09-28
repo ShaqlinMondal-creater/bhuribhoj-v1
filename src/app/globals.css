@@ -215,6 +215,10 @@ button:disabled { cursor: wait; opacity: 0.7; }
 .detail-row { display: flex; justify-content: space-between; gap: 15px; padding: 15px 0; border-bottom: 1px solid #edf0eb; color: #8b978e; font-size: 12px; }
 .detail-row:last-child { border-bottom: 0; }
 .detail-row strong { color: #43564a; font-weight: 800; text-align: right; text-transform: capitalize; }
+/* A record preview shows the stored field names, so they stay verbatim instead of
+   inheriting the sentence-case styling the profile detail list uses. */
+.user-preview-list .detail-row strong { text-transform: none; word-break: break-word; }
+.table-avatar img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
 .placeholder-spark { color: #668264; font-size: 24px; }
 .settings-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
 .settings-card { display: grid; align-content: start; gap: 15px; }

@@ -5,7 +5,6 @@ import { COLLECTIONS, type CollectionName } from "@/lib/server/collections";
 import expensesSeed from "@/data/initial/expenses.json";
 import guestMealsSeed from "@/data/initial/guestMeals.json";
 import mealsSeed from "@/data/initial/meals.json";
-import membersSeed from "@/data/initial/members.json";
 import messSeed from "@/data/initial/mess.json";
 import settingsSeed from "@/data/initial/settings.json";
 import usersSeed from "@/data/initial/users.json";
@@ -17,10 +16,12 @@ import usersSeed from "@/data/initial/users.json";
 // seed is always available, including on Vercel, where the working tree is not
 // a dependable source of files.
 //
+// users.json is the whole population: there is no members.json, because a
+// member is just a user with a member_id.
+//
 // These imports are server-only. Nothing here may reach a client bundle.
 
 const SEEDS: Record<CollectionName, unknown> = {
-  members: membersSeed,
   meals: mealsSeed,
   guestMeals: guestMealsSeed,
   expenses: expensesSeed,

@@ -1,14 +1,7 @@
-import type { Role } from "@/types/user";
+import type { PublicUser, Role } from "@/types/user";
 
-export type DemoUser = {
-  id: string;
-  name: string;
-  email: string;
-  password: string;
-  role: Role;
-  memberId?: string;
-  mobile?: string;
-  avatarUrl?: string;
-};
-
-export type AuthenticatedUser = Omit<DemoUser, "password">;
+// The signed-in user. It is the public half of the unified user record, so the
+// profile panel can show a member's real details and a staff member's, without
+// ever having a password in the browser.
+export type AuthenticatedUser = PublicUser;
+export type { Role };

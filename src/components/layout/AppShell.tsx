@@ -36,7 +36,7 @@ type AppShellProps = {
 
 const allNavigation = [
     { label: "Dashboard", icon: LayoutDashboard },
-    { label: "Members", icon: Users },
+    { label: "Users", icon: Users },
     { label: "Meals", icon: CookingPot },
     { label: "Guest Meals", icon: CalendarDays },
     { label: "Expenses", icon: CircleDollarSign },
@@ -111,7 +111,7 @@ export function AppShell({ user, onSignOut }: AppShellProps) {
                     <div className="topbar-profile">
                         <GoogleTranslateControl />
                         <div className="profile-copy"><strong>{user.name}</strong><span>{roleLabels[user.role]}</span></div>
-                        <button className="avatar avatar-button" onClick={() => setProfileOpen(true)} aria-label="Edit profile">{user.avatarUrl ? <Image src={user.avatarUrl} alt="" width={34} height={34} unoptimized /> : user.name.charAt(0)}</button>
+                        <button className="avatar avatar-button" onClick={() => setProfileOpen(true)} aria-label="Edit profile">{user.image_url ? <Image src={user.image_url} alt="" width={34} height={34} unoptimized /> : user.name.charAt(0)}</button>
                     </div>
                 </header>
 
@@ -139,14 +139,14 @@ export function AppShell({ user, onSignOut }: AppShellProps) {
                                     <div className="welcome-stamp"><span>{data.meals.length}</span><small>meals logged<br />in your view</small></div>
                                 </section>
                                 <section className="stats-grid">
-                                    <StatCard label={fullAccess ? "Total members" : "My meals logged"} value={fullAccess ? String(data.members.length) : String(data.meals.length)} detail={fullAccess ? "Registered members" : "Lunch & dinner"} icon={<Users size={19} />} />
-                                    <StatCard label={fullAccess ? "Active members" : "My guest meals"} value={fullAccess ? String(data.activeMembers) : String(data.guestMeals.length)} detail={fullAccess ? "Currently active" : "Confirmed this month"} icon={<Users size={19} />} />
-                                    <StatCard label="Today's meals" value={String(fullAccess ? todayMeals : data.meals.filter((meal) => meal.date === getTodayDate()).length)} detail={`Lunch ${data.todayLunch} · Dinner ${data.todayDinner}`} icon={<CookingPot size={19} />} />
+                                    <StatCard label={fullAccess ? "Total users" : "My meals logged"} value={fullAccess ? String(data.users.length) : String(data.meals.length)} detail={fullAccess ? "Every registered user" : "Lunch & dinner"} icon={<Users size={19} />} />
+                                    <StatCard label={fullAccess ? "Active users" : "My guest meals"} value={fullAccess ? String(data.activeUsers) : String(data.guestMeals.length)} detail={fullAccess ? "Currently active" : "Confirmed this month"} icon={<Users size={19} />} />
+                                    <StatCard label="Today's meals" value={String(fullAccess ? todayMeals : data.meals.filter((meal) => meal.date === getTodayDate()).length)} detail={`Lunch ${data.todayLunch} Ã‚Â· Dinner ${data.todayDinner}`} icon={<CookingPot size={19} />} />
                                     <StatCard label="Guest meals" value={String(data.guestMeals.length)} detail="Confirmed this month" icon={<CalendarDays size={19} />} />
-                                    <StatCard label="Monthly expenses" value={formatCurrency(totalExpenses)} detail={`Fixed ${formatCurrency(data.fixedExpenses)} · Market ${formatCurrency(data.marketExpenses)}`} icon={<CircleDollarSign size={19} />} />
+                                    <StatCard label="Monthly expenses" value={formatCurrency(totalExpenses)} detail={`Fixed ${formatCurrency(data.fixedExpenses)} Ã‚Â· Market ${formatCurrency(data.marketExpenses)}`} icon={<CircleDollarSign size={19} />} />
                                 </section>
                                 <section className="dashboard-grid">
-                                    <div className="content-panel"><div className="panel-header"><div><span className="panel-eyebrow">Recent activity</span><h3>Latest meal entries</h3></div><button className="text-button" onClick={() => setActiveView("Meals")}>View all</button></div><div className="activity-list">{data.meals.slice(-5).reverse().map((meal) => <div className="activity-row" key={meal.id}><div className={`activity-icon ${meal.mealType}`}><CookingPot size={17} /></div><div><strong>{meal.mealType === "lunch" ? "Lunch" : "Dinner"} marked as taken</strong><span>{meal.date} · {meal.memberId}</span></div><span className="row-status">Logged</span></div>)}</div></div>
+                                    <div className="content-panel"><div className="panel-header"><div><span className="panel-eyebrow">Recent activity</span><h3>Latest meal entries</h3></div><button className="text-button" onClick={() => setActiveView("Meals")}>View all</button></div><div className="activity-list">{data.meals.slice(-5).reverse().map((meal) => <div className="activity-row" key={meal.id}><div className={`activity-icon ${meal.mealType}`}><CookingPot size={17} /></div><div><strong>{meal.mealType === "lunch" ? "Lunch" : "Dinner"} marked as taken</strong><span>{meal.date} Ã‚Â· {meal.memberId}</span></div><span className="row-status">Logged</span></div>)}</div></div>
                                     <div className="content-panel quiet-panel"><div className="panel-header"><div><span className="panel-eyebrow">Mess pulse</span><h3>At a glance</h3></div><BarChart3 size={19} /></div><div className="pulse-line"><span>Guest thalis</span><strong>{data.guestMeals.length}</strong></div><div className="pulse-line"><span>Fixed expenses</span><strong>{formatCurrency(data.fixedExpenses)}</strong></div><div className="pulse-line"><span>Market / bazar</span><strong>{formatCurrency(data.marketExpenses)}</strong></div><div className="permission-note"><ShieldCheck size={16} /><span>{fullAccess ? "You can manage this workspace." : "Your account has view-only access."}</span></div></div>
                                 </section>
                             </>

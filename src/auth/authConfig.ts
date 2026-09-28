@@ -8,7 +8,8 @@ export const hasFullAccess = (role: Role) => FULL_ACCESS_ROLES.includes(role);
 
 export const isMember = (role: Role) => role === "member";
 
-export const canManageMembers = (role: Role) => hasFullAccess(role);
+/** Managing people means managing the one user collection, so it is the same test. */
+export const canManageUsers = (role: Role) => hasFullAccess(role);
 
 export const roleLabels: Record<Role, string> = {
   admin: "Administrator",

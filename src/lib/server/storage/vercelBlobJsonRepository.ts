@@ -14,7 +14,6 @@ import { DataStoreError, type JsonRepository } from "@/lib/server/storage/types"
 // structure the equivalent file in src/data/json holds.
 //
 //   bhuribhoj/users.json
-//   bhuribhoj/members.json
 //   bhuribhoj/meals.json
 //   bhuribhoj/guestMeals.json
 //   bhuribhoj/expenses.json

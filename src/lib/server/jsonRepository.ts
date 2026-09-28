@@ -7,6 +7,7 @@ import {
   type CollectionName,
 } from "@/lib/server/collections";
 import { getJsonRepository } from "@/lib/server/storage";
+import { hashPassword, verifyPassword } from "@/lib/server/passwords";
 import { DataStoreError } from "@/lib/server/storage/types";
 
 // COLLECTION-AWARE CRUD FACADE.
@@ -17,6 +18,11 @@ import { DataStoreError } from "@/lib/server/storage/types";
 // two overlapping writes to the same collection are kept apart. The actual read
 // and write is delegated to a JsonRepository, chosen per process in
 // src/lib/server/storage.
+//
+// It is also where the password boundary lives, so no route can forget it: a
+// user record is hashed on the way in and redacted on the way out. The one
+// function that still sees a stored hash is readUserCredentials, which is
+// server-only and exists so a sign-in can be checked on the server.
 //
 // The lock below deliberately covers the read as well as the write. Serializing
 // only the final write would still let two overlapping requests both read the
@@ -103,6 +109,25 @@ const withoutIdentifier = (patch: unknown): unknown => {
   return editable;
 };
 
+/**
+ * Removes the password from a user record on its way to a caller.
+ *
+ * The hash is kept on disk and is needed to check a sign-in, but it is never
+ * part of what a client receives. Doing it here means every read, create and
+ * update of the users collection is covered by one rule, so a new route cannot
+ * accidentally ship a credential.
+ */
+const withoutPassword = <T,>(collection: CollectionName, value: T): T => {
+  if (collection !== "users") return value;
+  if (Array.isArray(value)) {
+    return (value as unknown[]).map((row) => withoutPassword(collection, row)) as unknown as T;
+  }
+  if (!value || typeof value !== "object") return value;
+  const redacted = { ...(value as Record<string, unknown>) };
+  delete redacted.password;
+  return redacted as T;
+};
+
 export const findRecord = async <T,>(collection: string, id: string): Promise<T | null> => {
   const name = requireCollection(collection);
   const data = await readCollection<unknown>(name);
@@ -110,23 +135,102 @@ export const findRecord = async <T,>(collection: string, id: string): Promise<T 
     return id === COLLECTIONS[name].singletonId ? (data as T) : null;
   }
   const rows = data as Array<{ id?: string }>;
-  return (rows.find((row) => row?.id === id) as T | undefined) ?? null;
+  return withoutPassword(name, (rows.find((row) => row?.id === id) as T | undefined) ?? null);
 };
 
-export const listCollection = async <T,>(collection: string): Promise<T> =>
-  readCollection<T>(requireCollection(collection));
+export const listCollection = async <T,>(collection: string): Promise<T> => {
+  const name = requireCollection(collection);
+  return withoutPassword(name, await readCollection<T>(name));
+};
 
+/**
+ * Replaces a plaintext password with a hash before the record is stored.
+ *
+ * Only the create path can set a password. The users patch schema omits the
+ * password, so an update can never rewrite the stored hash, and no route can
+ * store a readable password because the hash is applied here rather than being
+ * left to a caller.
+ */
+const withHashedPassword = async <T,>(collection: CollectionName, record: T): Promise<T> => {
+  if (collection !== "users") return record;
+  const row = record as unknown as Record<string, unknown>;
+  if (typeof row?.password !== "string" || row.password === "") return record;
+  return { ...row, password: await hashPassword(row.password) } as T;
+};
+
+/** The stored id and password hash for an email, or null when there is no match. */
+export const readUserCredentials = async (
+  email: string,
+): Promise<{ id: string; password: string } | null> => {
+  const rows = await readCollection<Array<{ id?: string; email?: string; password?: string }>>(
+    "users",
+  );
+  const wanted = email.trim().toLowerCase();
+  const match = rows.find((row) => row?.email?.trim().toLowerCase() === wanted);
+  if (!match?.id || typeof match.password !== "string") return null;
+  return { id: match.id, password: match.password };
+};
+
+/** True when the email exists and the password matches its stored hash. */
+export const verifyUserCredentials = async (
+  email: string,
+  password: string,
+): Promise<{ id: string } | null> => {
+  const credentials = await readUserCredentials(email);
+  if (!credentials) return null;
+  return (await verifyPassword(password, credentials.password)) ? { id: credentials.id } : null;
+};
+
+/**
+ * A member_id identifies one member and has to stay that way.
+ *
+ * Meals and guest meals store a member_id rather than a user id, so two users
+ * sharing one would make "who ate this" ambiguous. The id is unique because it is
+ * the record key; this is the other half of that rule, enforced on the write so
+ * it cannot be violated by any caller.
+ */
+const assertMemberIdIsFree = async (
+  memberId: unknown,
+  ownerId: string | undefined,
+): Promise<void> => {
+  if (typeof memberId !== "string" || memberId === "") return;
+  const rows = await readCollection<Array<{ id?: string; member_id?: string | null }>>("users");
+  const clash = rows.find(
+    (row) => row?.member_id === memberId && row?.id !== ownerId,
+  );
+  if (clash) {
+    throw new DataStoreError(`Member id "${memberId}" is already used by ${clash.id}.`, 409);
+  }
+};
+
+/**
+ * The role decides who carries a member_id.
+ *
+ * Applied after validation so a caller cannot attach a member_id to a
+ * non-member: the field is set to null instead, which is the same thing the
+ * services do before they send the request.
+ */
+const normalizeUser = <T,>(collection: CollectionName, record: T): T => {
+  if (collection !== "users") return record;
+  const row = record as unknown as Record<string, unknown>;
+  if (row?.role === undefined || row.role === "member") return record;
+  if (row.member_id === null || row.member_id === undefined) return record;
+  return { ...row, member_id: null } as T;
+};
 /** Creates a record. The caller supplies the id, matching the existing services. */
 export const createRecord = async <T,>(collection: string, record: unknown): Promise<T> => {
   const name = requireCollection(collection);
   const entry = COLLECTIONS[name];
-  const validated = validateRecord(name, record) as T;
+  const validated = normalizeUser(
+    name,
+    await withHashedPassword(name, validateRecord(name, record) as T),
+  );
 
   if (!entry.isList) {
     // A singleton document is replaced wholesale, not appended.
     return withCollectionLock(name, async (): Promise<T> => {
       await writeCollection(name, validated);
-      return validated;
+      return withoutPassword(name, validated);
     });
   }
 
@@ -135,9 +239,13 @@ export const createRecord = async <T,>(collection: string, record: unknown): Pro
     if (rows.some((row) => row?.id === (validated as { id?: string }).id)) {
       throw new DataStoreError(`A ${name} record with that id already exists.`, 409);
     }
+    if (name === "users") {
+      const { id, member_id: memberId } = validated as { id?: string; member_id?: string | null };
+      await assertMemberIdIsFree(memberId, id);
+    }
     // The store holds the whole list; the caller is told about the new record.
     await writeCollection(name, [...rows, validated]);
-    return validated;
+    return withoutPassword(name, validated);
   });
 };
 
@@ -164,7 +272,7 @@ export const updateRecord = async <T,>(
         ...changes,
       }) as T;
       await writeCollection(name, merged);
-      return merged;
+      return withoutPassword(name, merged);
     }
 
     const rows = current as Array<{ id?: string }>;
@@ -173,13 +281,17 @@ export const updateRecord = async <T,>(
       // Nothing is written when the record is missing.
       throw new DataStoreError(`No ${name} record with id "${id}".`, 404);
     }
-    const merged = validateRecord(name, { ...rows[index], ...changes }) as T;
+    const merged = normalizeUser(name, validateRecord(name, { ...rows[index], ...changes }) as T);
+    if (name === "users") {
+      const { member_id: memberId } = merged as { member_id?: string | null };
+      await assertMemberIdIsFree(memberId, id);
+    }
     const updated = [...rows] as Array<{ id?: string }>;
     (updated as unknown as unknown[])[index] = merged;
     // The store holds the whole list, but the caller is told about the one
     // record it changed, which is what the services mirror into the cache.
     await writeCollection(name, updated);
-    return merged;
+    return withoutPassword(name, merged);
   });
 };
 
