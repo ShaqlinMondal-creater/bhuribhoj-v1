@@ -20,6 +20,46 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Data storage
+
+All CRUD goes through one server-side repository (`src/lib/server/storage`). Nothing is stored in the browser — the only `localStorage` usage in the app is the demo login session in `src/auth/authService.ts`.
+
+| Where the app runs | Backend | What is written |
+| --- | --- | --- |
+| Local, nothing configured | Filesystem | `src/data/json/<collection>.json` |
+| Blob credentials present | Vercel Blob (private) | `bhuribhoj/<collection>.json` |
+| Running on Vercel | Vercel Blob (private) | `bhuribhoj/<collection>.json` |
+
+`npm run dev` works with no setup at all: it reads and writes real files in `src/data/json`. The **Reset** action copies the immutable seeds in `src/data/initial` back over the live files.
+
+### Vercel Blob setup
+
+1. Create a **private** Blob store in the Vercel dashboard.
+2. Connect it to this project for the **Production** and **Preview** environments.
+3. Redeploy.
+
+Connecting the store is enough. Vercel provides `VERCEL_OIDC_TOKEN` and `BLOB_STORE_ID` automatically, and they rotate on their own. If you would rather manage a token yourself, set `BLOB_READ_WRITE_TOKEN` instead. Both are read on the server only and must **not** be prefixed with `NEXT_PUBLIC_`.
+
+If the app is running on Vercel without either credential, every request fails with a `500` that explains what to do. This is deliberate: there is no silent fallback to the filesystem, because a Vercel function's filesystem is read-only and discarded between invocations, so writing there would report success while losing every change.
+
+To use Blob in local development, pull the project environment first:
+
+```bash
+vercel env pull .env.local
+npm run dev
+```
+
+### Environment variables
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `VERCEL_OIDC_TOKEN` | On Vercel | Short-lived Blob auth. Set automatically when a store is connected. |
+| `BLOB_STORE_ID` | On Vercel | Blob store to use, alongside `VERCEL_OIDC_TOKEN`. |
+| `BLOB_READ_WRITE_TOKEN` | Alternative | Long-lived Blob credential, used when the OIDC pair is absent. |
+| `BHURIBHOJ_STORAGE` | No | Force a backend: `filesystem` or `vercel-blob` (aliases `fs`, `local`, `vercel`). Useful for testing. An unrecognised value is rejected with an error. |
+
+`BHURIBHOJ_STORAGE=filesystem` on Vercel will let you read and write the local JSON files, but the changes will not survive a redeploy. Use it for local debugging only.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
