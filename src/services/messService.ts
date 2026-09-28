@@ -9,9 +9,16 @@ import type { Role } from "@/types/user";
 // by the collection name. These are the two smallest datasets in the app and
 // the shell chrome itself needs both, so they are the only ones read as soon as
 // someone signs in. Reads come from the cache; writes POST to that document.
-export const getMess = (): Mess => getCollection<Mess>("mess");
+//
+// Both reads are nullable on purpose. A singleton is not in the cache until
+// something has asked for it, and anything that renders before the shell has
+// loaded - the theme controller sits above the shell's loading gate - would be
+// handed null. The type says so, so the compiler makes each caller decide
+// instead of letting a missing document read as a present one.
 
-export const getSettings = (): Settings => getCollection<Settings>("settings");
+export const getMess = (): Mess | null => getCollection<Mess>("mess");
+
+export const getSettings = (): Settings | null => getCollection<Settings>("settings");
 
 export const updateMess = async (input: Partial<Mess>, role: Role) => {
 	if (!hasFullAccess(role)) throw new Error("Only full-access roles can update mess settings.");
