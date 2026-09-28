@@ -9,8 +9,13 @@ import { vercelBlobRepository } from "@/lib/server/storage/vercelBlobJsonReposit
 // Picks the repository the API routes persist through. The rule set is:
 //
 //   local, nothing configured   -> filesystem, so `npm run dev` needs no setup
-//   Blob credentials present    -> Blob, so `vercel env pull` is enough
+//   a Blob store is connected   -> Blob, so `vercel env pull` is enough
 //   running on Vercel           -> Blob, always
+//
+// A connected store is detected from BLOB_STORE_ID on its own. Vercel supplies
+// the OIDC credential to the running function itself, so it never has to be put
+// in the environment by hand and is not read here. BLOB_READ_WRITE_TOKEN also
+// marks Blob as configured, for a store reached with a long-lived token.
 //
 // On Vercel there is deliberately no filesystem fallback. A function's
 // filesystem is read-only and discarded between invocations, so silently
@@ -46,13 +51,17 @@ const readOverride = (raw: string | undefined): FilesystemMode | BlobMode | "inv
 };
 
 export const resolveStoragePlan = (env: EnvironmentLike = process.env): StoragePlan => {
-  // OIDC is the current Vercel-supported mechanism and rotates on its own, so it
-  // is checked first. A long-lived read-write token is still accepted.
-  const oidcConfigured = isFilled(env.VERCEL_OIDC_TOKEN) && isFilled(env.BLOB_STORE_ID);
+  // A connected Blob store is what makes Blob usable, and BLOB_STORE_ID is the
+  // only signal that proves one is connected. Vercel hands the running function
+  // its short-lived OIDC credential automatically for a connected store, so that
+  // token is never something to add to the environment by hand and is not
+  // inspected here. BLOB_READ_WRITE_TOKEN is accepted as an alternative for a
+  // store reached with a long-lived token.
+  const storeConfigured = isFilled(env.BLOB_STORE_ID);
   const tokenConfigured = isFilled(env.BLOB_READ_WRITE_TOKEN);
-  const blobConfigured = oidcConfigured || tokenConfigured;
-  const credentialSource = oidcConfigured
-    ? "VERCEL_OIDC_TOKEN + BLOB_STORE_ID"
+  const blobConfigured = storeConfigured || tokenConfigured;
+  const credentialSource = storeConfigured
+    ? "BLOB_STORE_ID"
     : tokenConfigured
       ? "BLOB_READ_WRITE_TOKEN"
       : "none";
@@ -91,8 +100,9 @@ export const resolveStoragePlan = (env: EnvironmentLike = process.env): StorageP
 const UNCONFIGURED_MESSAGE =
   "Vercel Blob storage is not configured, and this deployment cannot use the filesystem. " +
   "Create a private Blob store, connect it to this project for the Production and Preview " +
-  "environments, then redeploy. Connecting it provides VERCEL_OIDC_TOKEN and BLOB_STORE_ID; " +
-  "alternatively add a BLOB_READ_WRITE_TOKEN. No data has been written.";
+  "environments, then redeploy. Connecting a store is all that is needed: it sets BLOB_STORE_ID " +
+  "and Vercel supplies the credential to the running function. To use a long-lived token " +
+  "instead, add a BLOB_READ_WRITE_TOKEN. No data has been written.";
 
 /**
  * Stands in for the Blob repository when Blob is required but not configured.

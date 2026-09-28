@@ -27,9 +27,11 @@ import { DataStoreError, type JsonRepository } from "@/lib/server/storage/types"
 // version.
 //
 // Credentials are never passed in by hand. The SDK resolves them from the
-// environment, preferring the short-lived OIDC pair (VERCEL_OIDC_TOKEN plus
-// BLOB_STORE_ID) and falling back to a long-lived BLOB_READ_WRITE_TOKEN. This
-// module is server-only, so none of them can reach the browser.
+// environment: a connected store is identified by BLOB_STORE_ID, for which
+// Vercel supplies a short-lived OIDC credential to the running function, and a
+// long-lived BLOB_READ_WRITE_TOKEN is used otherwise. Nothing has to be added to
+// the environment for OIDC by hand. This module is server-only, so no credential
+// can reach the browser.
 
 /** Folder every application dataset lives in, so it cannot collide with other blobs. */
 export const BLOB_FOLDER = "bhuribhoj";
