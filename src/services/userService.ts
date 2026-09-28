@@ -4,7 +4,7 @@ import type { DemoUser } from "@/auth/authTypes";
 import type { User } from "@/types/user";
 
 // users.json is the persistent account file. Lookups read the in-memory mirror;
-// a profile edit PATCHes the record so the change is written to disk and
+// a profile edit POSTs to the record so the change is written to disk and
 // survives a refresh. The server rejects any attempt to change the password
 // through this path.
 const getDemoUsers = (): DemoUser[] => getCollection<DemoUser[]>("users");

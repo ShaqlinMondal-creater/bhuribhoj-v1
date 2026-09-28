@@ -111,7 +111,7 @@ type RegistryEntry = {
    */
   singletonId: string;
   recordSchema: z.ZodType;
-  /** Patch validation for PATCH: only editable fields, never `id`. */
+  /** Update validation for a POST to /{collection}/{id}: only editable fields, never `id`. */
   patchSchema: z.ZodType;
 };
 

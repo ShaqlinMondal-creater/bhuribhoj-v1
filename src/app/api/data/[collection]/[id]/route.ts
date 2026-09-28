@@ -43,13 +43,18 @@ export async function GET(
   }
 }
 
-export async function PATCH(
+// Updates arrive as POST /api/data/{collection}/{id}. PATCH is deliberately not
+// supported: this API uses POST for both creating a record (on the collection
+// route) and updating one (on the record route).
+export async function POST(
   request: Request,
   { params }: { params: Promise<{ collection: string; id: string }> },
 ) {
   const { collection, id } = await params;
   try {
     const body = await readJsonBody(request);
+    // The url id identifies the record, so the body only carries editable
+    // fields. `updateRecord` drops an echoed `id` before validating the rest.
     const patch =
       body && typeof body === "object" && "patch" in body
         ? (body as { patch: unknown }).patch

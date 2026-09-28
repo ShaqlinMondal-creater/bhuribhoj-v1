@@ -81,6 +81,28 @@ const validatePatch = (collection: CollectionName, patch: unknown) => {
   return result.data;
 };
 
+/**
+ * Drops the immutable `id` from an update body before it is validated.
+ *
+ * A record is identified by the id in the request path, so `id` is not an
+ * editable field and the patch schemas deliberately omit it. A form that echoes
+ * back the record it was handed sends that id along with the fields the user
+ * actually changed, and refusing the whole update over a value that was never
+ * meant to be edited is the wrong outcome. Removing it here means an `id` in the
+ * body is simply ignored: the path id still selects the record, and the stored id
+ * is preserved because the merge below only ever applies the editable fields.
+ *
+ * Every other key is untouched, so the strict patch schemas still reject unknown
+ * fields exactly as before.
+ */
+const withoutIdentifier = (patch: unknown): unknown => {
+  if (!patch || typeof patch !== "object" || Array.isArray(patch)) return patch;
+  if (!("id" in patch)) return patch;
+  const editable = { ...(patch as Record<string, unknown>) };
+  delete editable.id;
+  return editable;
+};
+
 export const findRecord = async <T,>(collection: string, id: string): Promise<T | null> => {
   const name = requireCollection(collection);
   const data = await readCollection<unknown>(name);
@@ -126,11 +148,7 @@ export const updateRecord = async <T,>(
 ): Promise<T> => {
   const name = requireCollection(collection);
   const entry = COLLECTIONS[name];
-  const changes = validatePatch(name, patch) as Record<string, unknown>;
-
-  if ("id" in changes) {
-    throw new DataStoreError("A record id cannot be changed.", 422);
-  }
+  const changes = validatePatch(name, withoutIdentifier(patch)) as Record<string, unknown>;
 
   if (!entry.isList && id !== entry.singletonId) {
     throw new DataStoreError(`The ${name} document is addressed as "${entry.singletonId}".`, 404);

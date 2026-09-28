@@ -51,13 +51,15 @@ export const fetchRecord = <T,>(collection: string, id: string): Promise<T> =>
 export const createRecordRequest = <T,>(collection: string, record: unknown): Promise<T> =>
   request<T>(`${base}/${collection}`, { method: "POST", body: JSON.stringify({ record }) });
 
+// Update convention: POST carries both creating a record and updating one, so an
+// update is a POST to the record's own url. The url id identifies the record.
 export const updateRecordRequest = <T,>(
   collection: string,
   id: string,
   patch: unknown,
 ): Promise<T> =>
   request<T>(`${base}/${collection}/${encodeURIComponent(id)}`, {
-    method: "PATCH",
+    method: "POST",
     body: JSON.stringify({ patch }),
   });
 
