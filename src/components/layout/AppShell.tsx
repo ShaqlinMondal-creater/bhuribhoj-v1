@@ -20,11 +20,10 @@ import {
 import { useState } from "react";
 import { hasFullAccess, roleLabels } from "@/auth/authConfig";
 import type { AuthenticatedUser } from "@/auth/authTypes";
-import { useDashboardData } from "@/hooks/useDashboardData";
+import { useDashboardSummary, useShellData } from "@/hooks/useDashboardData";
 import { WorkspaceView } from "@/components/dashboard/WorkspaceViews";
 import { GoogleTranslateControl } from "@/components/layout/GoogleTranslateControl";
 import { formatCurrency } from "@/lib/formatters";
-import { getTodayDate } from "@/lib/dates";
 import { ProfileEditor } from "@/components/layout/ProfileEditor";
 import { ThemePicker } from "@/components/layout/ThemePicker";
 import { MessProfileEditor } from "@/components/layout/MessProfileEditor";
@@ -57,11 +56,23 @@ export function AppShell({ user, onSignOut }: AppShellProps) {
     const [activeView, setActiveView] = useState("Dashboard");
     const [mobileOpen, setMobileOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false);
-    const data = useDashboardData(user);
+    // The two documents the chrome itself shows, read once per session.
+    const shell = useShellData();
+    // The dashboard's own totals, asked for only while the dashboard is on screen.
+    const summary = useDashboardSummary(user, activeView === "Dashboard");
     const fullAccess = hasFullAccess(user.role);
     const navigation = fullAccess ? allNavigation : memberNavigation;
-    const totalExpenses = data.expenses.reduce((total, expense) => total + expense.amount, 0);
-    const todayMeals = data.todayLunch + data.todayDinner;
+    const totalExpenses = summary.expenses.total;
+    const todayMeals = summary.meals.todayLunch + summary.meals.todayDinner;
+
+    // Nothing else is rendered until the sidebar has something to name.
+    if (shell.status === "loading") {
+        return <main className="route-loading" aria-label="Loading BhuriBhoj"><div className="loading-mark">B</div><div className="loading-line loading-line-wide" /><div className="loading-line" /></main>;
+    }
+
+    if (shell.status === "error") {
+        return <main className="route-loading" aria-label="BhuriBhoj data error"><h1>Could not load the data files</h1><p>{shell.error}</p></main>;
+    }
 
     return (
         <div className="app-shell">
@@ -77,7 +88,7 @@ export function AppShell({ user, onSignOut }: AppShellProps) {
                 </div>
                 <div className="mess-switcher">
                     <span className="status-dot" />
-                    <div><span>Current mess</span><strong>{data.mess.name}</strong></div>
+                    <div><span>Current mess</span><strong>{shell.mess.name}</strong></div>
                     <ChevronDown size={16} />
                 </div>
                 <nav className="main-nav" aria-label="Main navigation">
@@ -123,7 +134,7 @@ export function AppShell({ user, onSignOut }: AppShellProps) {
                         transition={{ duration: 0.25 }}
                     >
                         <div className="page-heading">
-                            <div><p className="eyebrow">{data.mess.month}</p><h1>{activeView}</h1><p>{activeView === "Dashboard" ? "A clear view of what is happening around the mess." : `${activeView} is ready for the next layer of the BhuriBhoj workspace.`}</p></div>
+                            <div><p className="eyebrow">{shell.mess.month}</p><h1>{activeView}</h1><p>{activeView === "Dashboard" ? "A clear view of what is happening around the mess." : `${activeView} is ready for the next layer of the BhuriBhoj workspace.`}</p></div>
                             <div className="heading-actions">
                                 <span className="access-pill">
                                     <ShieldCheck size={15} />
@@ -136,21 +147,21 @@ export function AppShell({ user, onSignOut }: AppShellProps) {
                             <>
                                 <section className="welcome-panel">
                                     <div><span className="welcome-kicker">Good morning, {user.name.split(" ")[0]}</span><h2>{fullAccess ? "The table is set." : "Your mess, at a glance."}</h2><p>{fullAccess ? "Keep the shared rhythm visible, one day at a time." : "Everything you need to follow your meals and shared mess activity."}</p></div>
-                                    <div className="welcome-stamp"><span>{data.meals.length}</span><small>meals logged<br />in your view</small></div>
+                                    <div className="welcome-stamp"><span>{summary.meals.total}</span><small>meals logged<br />in your view</small></div>
                                 </section>
                                 <section className="stats-grid">
-                                    <StatCard label={fullAccess ? "Total users" : "My meals logged"} value={fullAccess ? String(data.users.length) : String(data.meals.length)} detail={fullAccess ? "Every registered user" : "Lunch & dinner"} icon={<Users size={19} />} />
-                                    <StatCard label={fullAccess ? "Active users" : "My guest meals"} value={fullAccess ? String(data.activeUsers) : String(data.guestMeals.length)} detail={fullAccess ? "Currently active" : "Confirmed this month"} icon={<Users size={19} />} />
-                                    <StatCard label="Today's meals" value={String(fullAccess ? todayMeals : data.meals.filter((meal) => meal.date === getTodayDate()).length)} detail={`Lunch ${data.todayLunch} Ã‚Â· Dinner ${data.todayDinner}`} icon={<CookingPot size={19} />} />
-                                    <StatCard label="Guest meals" value={String(data.guestMeals.length)} detail="Confirmed this month" icon={<CalendarDays size={19} />} />
-                                    <StatCard label="Monthly expenses" value={formatCurrency(totalExpenses)} detail={`Fixed ${formatCurrency(data.fixedExpenses)} Ã‚Â· Market ${formatCurrency(data.marketExpenses)}`} icon={<CircleDollarSign size={19} />} />
+                                    <StatCard label={fullAccess ? "Total users" : "My meals logged"} value={fullAccess ? String(summary.users.total) : String(summary.meals.total)} detail={fullAccess ? "Every registered user" : "Lunch & dinner"} icon={<Users size={19} />} />
+                                    <StatCard label={fullAccess ? "Active users" : "My guest meals"} value={fullAccess ? String(summary.users.active) : String(summary.guestMeals.total)} detail={fullAccess ? "Currently active" : "Confirmed this month"} icon={<Users size={19} />} />
+                                    <StatCard label="Today's meals" value={String(fullAccess ? todayMeals : summary.meals.todayAll)} detail={`Lunch ${summary.meals.todayLunch} · Dinner ${summary.meals.todayDinner}`} icon={<CookingPot size={19} />} />
+                                    <StatCard label="Guest meals" value={String(summary.guestMeals.total)} detail="Confirmed this month" icon={<CalendarDays size={19} />} />
+                                    <StatCard label="Monthly expenses" value={formatCurrency(totalExpenses)} detail={`Fixed ${formatCurrency(summary.expenses.fixed)} · Market ${formatCurrency(summary.expenses.market)}`} icon={<CircleDollarSign size={19} />} />
                                 </section>
                                 <section className="dashboard-grid">
-                                    <div className="content-panel"><div className="panel-header"><div><span className="panel-eyebrow">Recent activity</span><h3>Latest meal entries</h3></div><button className="text-button" onClick={() => setActiveView("Meals")}>View all</button></div><div className="activity-list">{data.meals.slice(-5).reverse().map((meal) => <div className="activity-row" key={meal.id}><div className={`activity-icon ${meal.mealType}`}><CookingPot size={17} /></div><div><strong>{meal.mealType === "lunch" ? "Lunch" : "Dinner"} marked as taken</strong><span>{meal.date} Ã‚Â· {meal.memberId}</span></div><span className="row-status">Logged</span></div>)}</div></div>
-                                    <div className="content-panel quiet-panel"><div className="panel-header"><div><span className="panel-eyebrow">Mess pulse</span><h3>At a glance</h3></div><BarChart3 size={19} /></div><div className="pulse-line"><span>Guest thalis</span><strong>{data.guestMeals.length}</strong></div><div className="pulse-line"><span>Fixed expenses</span><strong>{formatCurrency(data.fixedExpenses)}</strong></div><div className="pulse-line"><span>Market / bazar</span><strong>{formatCurrency(data.marketExpenses)}</strong></div><div className="permission-note"><ShieldCheck size={16} /><span>{fullAccess ? "You can manage this workspace." : "Your account has view-only access."}</span></div></div>
+                                    <div className="content-panel"><div className="panel-header"><div><span className="panel-eyebrow">Recent activity</span><h3>Latest meal entries</h3></div><button className="text-button" onClick={() => setActiveView("Meals")}>View all</button></div><div className="activity-list">{summary.meals.recent.map((meal) => <div className="activity-row" key={meal.id}><div className={`activity-icon ${meal.mealType}`}><CookingPot size={17} /></div><div><strong>{meal.mealType === "lunch" ? "Lunch" : "Dinner"} marked as taken</strong><span>{meal.date} · {meal.memberId}</span></div><span className="row-status">Logged</span></div>)}</div></div>
+                                    <div className="content-panel quiet-panel"><div className="panel-header"><div><span className="panel-eyebrow">Mess pulse</span><h3>At a glance</h3></div><BarChart3 size={19} /></div><div className="pulse-line"><span>Guest thalis</span><strong>{summary.guestMeals.total}</strong></div><div className="pulse-line"><span>Fixed expenses</span><strong>{formatCurrency(summary.expenses.fixed)}</strong></div><div className="pulse-line"><span>Market / bazar</span><strong>{formatCurrency(summary.expenses.market)}</strong></div><div className="permission-note"><ShieldCheck size={16} /><span>{fullAccess ? "You can manage this workspace." : "Your account has view-only access."}</span></div></div>
                                 </section>
                             </>
-                            ) : <>{activeView === "Settings" && <><ThemePicker role={user.role} /><MessProfileEditor mess={data.mess} role={user.role} /></>}<WorkspaceView view={activeView} data={{ ...data, user }} /></>}
+                            ) : <>{activeView === "Settings" && <><ThemePicker role={user.role} /><MessProfileEditor mess={shell.mess} role={user.role} /></>}<WorkspaceView view={activeView} user={user} mess={shell.mess} settings={shell.settings} /></>}
                         
                     </motion.div>
                 </main>

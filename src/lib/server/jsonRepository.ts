@@ -6,9 +6,17 @@ import {
   isCollectionName,
   type CollectionName,
 } from "@/lib/server/collections";
+import {
+  buildMeta,
+  buildWholeMeta,
+  filterRows,
+  summarizeRows,
+  takePage,
+} from "@/lib/server/listQuery";
 import { getJsonRepository } from "@/lib/server/storage";
 import { hashPassword, verifyPassword } from "@/lib/server/passwords";
 import { DataStoreError } from "@/lib/server/storage/types";
+import type { CollectionMeta, CollectionQuery } from "@/data/collections";
 
 // COLLECTION-AWARE CRUD FACADE.
 //
@@ -138,9 +146,52 @@ export const findRecord = async <T,>(collection: string, id: string): Promise<T 
   return withoutPassword(name, (rows.find((row) => row?.id === id) as T | undefined) ?? null);
 };
 
-export const listCollection = async <T,>(collection: string): Promise<T> => {
+export type ListResult<T> = { data: T; meta: CollectionMeta | null };
+
+/**
+ * Reads a list, narrowed and sliced on the server.
+ *
+ * The same endpoint serves both needs. With no query it returns the whole
+ * collection exactly as before; with `search`, a filter, `page`/`limit` or
+ * `summary` it does the work here so the browser only ever receives the rows it
+ * is going to show. `meta` travels beside the data so a table can page, count
+ * and generate the next id without a second request.
+ */
+export const listCollection = async <T,>(
+  collection: string,
+  query: CollectionQuery = {},
+): Promise<ListResult<T>> => {
   const name = requireCollection(collection);
-  return withoutPassword(name, await readCollection<T>(name));
+  const entry = COLLECTIONS[name];
+  const stored = await readCollection<unknown>(name);
+
+  // A singleton document has nothing to filter, page or count.
+  if (!entry.isList) {
+    return { data: withoutPassword(name, stored) as T, meta: null };
+  }
+
+  const rows = stored as Array<Record<string, unknown>>;
+
+  // A summary answers with totals instead of records, which is how the
+  // dashboard gets its numbers without downloading anything it will not show.
+  if (query.summary !== undefined) {
+    const scoped = filterRows(name, rows, query);
+    return { data: summarizeRows(name, scoped, query) as T, meta: null };
+  }
+
+  const matched = filterRows(name, rows, query);
+
+  // A caller that asked for a page wants a page. A caller that only filtered, or
+  // asked for nothing at all, wants every match: a meal log, a guest meal log or
+  // an expense log is a working set a view filters and totals in the browser, not
+  // a table that pages, and truncating it would silently lose records.
+  if (query.page === undefined && query.limit === undefined) {
+    return { data: withoutPassword(name, matched) as T, meta: buildWholeMeta(name, rows, matched, entry.idPrefix) };
+  }
+
+  const meta = buildMeta(name, rows, matched, query, entry.idPrefix);
+  const page = takePage(matched, query, meta.page);
+  return { data: withoutPassword(name, page) as T, meta };
 };
 
 /**

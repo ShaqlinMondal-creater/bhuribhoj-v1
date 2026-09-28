@@ -2,65 +2,111 @@ import { getCollection, setCollection } from "@/data/memoryStore";
 import {
   createRecordRequest,
   deleteRecordRequest,
-  fetchCollection,
+  fetchCollectionPage,
+  fetchRecord,
   updateRecordRequest,
 } from "@/data/api";
+import type { CollectionMeta, CollectionQuery } from "@/data/collections";
 import type { PublicUser, Role, User } from "@/types/user";
 
 // THE USER SERVICE.
 //
 // There is no member service: users.json is the one collection of people, and a
-// member is a user whose member_id is set. Lookups read the in-memory mirror, and
-// every change POSTs or DELETEs against the record so the server writes it to
-// disk and the change survives a refresh.
+// member is a user whose member_id is set.
 //
-// The cached users are the redacted records the API returns, so a password is
-// never in this file's data. Creating a user is the one path that sends a
-// password, and the server hashes it before it is stored.
+// The complete users collection is never downloaded just to show the app. The
+// browser asks for one page of it, with the search and filters applied on the
+// server, and keeps only the individual records it has actually seen. Those
+// records sit in the cache so a lookup by id is instant, but they are not the
+// collection: a view that needs the whole thing asks the server for it.
+//
+// Every change POSTs or DELETEs against the record so the server writes it to
+// disk and the change survives a refresh. The records the API returns are already
+// redacted, so a password is never in this file's data, and creating a user is
+// the one path that sends one - the server hashes it before it is stored.
 
-const getCachedUsers = (): PublicUser[] => getCollection<PublicUser[]>("users");
+/** Records the app has seen, keyed by nothing in particular: an overlay, not a list. */
+const seenUsers = (): PublicUser[] => getCollection<PublicUser[]>("users");
 
-/** Replaces one user in the mirror with the record the server just saved. */
-const mirrorUser = (saved: PublicUser) => {
+const rememberUser = (user: PublicUser): PublicUser => {
   setCollection(
     "users",
-    getCachedUsers().map((user) => (user.id === saved.id ? saved : user)),
+    [...seenUsers().filter((row) => row.id !== user.id), user],
   );
-  return saved;
+  return user;
 };
 
-export const getUsers = (): PublicUser[] => getCachedUsers();
-
-export const findUserById = (id: string): PublicUser | null =>
-  getCachedUsers().find((user) => user.id === id) ?? null;
-
-export const findUserByEmail = (email: string): PublicUser | null => {
-  const needle = email.trim().toLowerCase();
-  return getCachedUsers().find((user) => user.email.toLowerCase() === needle) ?? null;
-};
-
-/** The user a member_id belongs to, which is how meals resolve who ate. */
-export const findUserByMemberId = (memberId: string): PublicUser | null =>
-  getCachedUsers().find((user) => user.member_id === memberId) ?? null;
-
-/** Every user who carries a member_id, i.e. the people a meal can be booked to. */
-export const getMemberUsers = (): PublicUser[] =>
-  getCachedUsers().filter((user) => user.member_id !== null);
-
-/** Re-reads users.json from the server, so the mirror reflects a sign-in or a reset. */
-export const refreshUsers = async (): Promise<PublicUser[]> => {
-  const users = await fetchCollection<PublicUser[]>("users");
-  setCollection("users", users);
+const rememberUsers = (users: PublicUser[]): PublicUser[] => {
+  if (users.length === 0) return users;
+  const merged = new Map(seenUsers().map((row) => [row.id, row]));
+  users.forEach((row) => merged.set(row.id, row));
+  setCollection("users", [...merged.values()]);
   return users;
 };
 
-/** The value for a new record's id, so ids stay unique without a server round trip. */
-export const nextUserId = (users: PublicUser[] = getCachedUsers()): string => {
-  const highest = users.reduce((max, user) => {
-    const match = /^USR(\d+)$/.exec(user.id);
-    return match ? Math.max(max, Number(match[1])) : max;
-  }, 0);
-  return `USR${String(highest + 1).padStart(3, "0")}`;
+const forgetUser = (id: string): void => {
+  setCollection(
+    "users",
+    seenUsers().filter((row) => row.id !== id),
+  );
+};
+
+/**
+ * The id a new record should use.
+ *
+ * The server works it out from the whole collection and sends it back with every
+ * page, so no client has to hold the list to be able to add to it. It is only
+ * ever a hint for the next write: the server still rejects a duplicate.
+ */
+let nextIdHint: string | null = null;
+
+const rememberMeta = (meta: CollectionMeta | null): void => {
+  if (meta?.nextId) nextIdHint = meta.nextId;
+};
+
+/** Reads one page of users, filtered and searched by the server. */
+export const queryUsers = async (
+  query: CollectionQuery,
+): Promise<{ data: PublicUser[]; meta: CollectionMeta | null }> => {
+  const page = await fetchCollectionPage<PublicUser[]>("users", query);
+  rememberMeta(page.meta);
+  return { data: rememberUsers(page.data), meta: page.meta };
+};
+
+/** The lightweight totals the dashboard and the users table show. */
+export const countUsers = async () => {
+  const page = await fetchCollectionPage<{ total: number; active: number; entryFeePending: number }>(
+    "users",
+    { summary: "counts" },
+  );
+  rememberMeta(page.meta);
+  return page.data;
+};
+
+/** One user by id, straight from the server, cached once it has been seen. */
+export const loadUser = async (id: string): Promise<PublicUser | null> => {
+  try {
+    return rememberUser(await fetchRecord<PublicUser>("users", id));
+  } catch {
+    // A deleted user is not an error worth throwing about; the caller falls back
+    // to whatever it already has.
+    return null;
+  }
+};
+
+/** A user the app already holds, without asking the server again. */
+export const findUserById = (id: string): PublicUser | null =>
+  seenUsers().find((user) => user.id === id) ?? null;
+
+/** Caches a record the server has just handed back outside a list request. */
+export const rememberSignedInUser = (user: PublicUser): PublicUser => rememberUser(user);
+
+const ensureNextUserId = async (): Promise<string> => {
+  if (nextIdHint) return nextIdHint;
+  // Nobody has listed users in this tab yet, so ask for the smallest possible
+  // page purely to learn the id the server would hand out next.
+  await queryUsers({ page: 1, limit: 1 });
+  return nextIdHint ?? "USR001";
 };
 
 export const createUser = async (input: {
@@ -91,7 +137,7 @@ export const createUser = async (input: {
   // A new user starts signed out: the login fields reflect the last sign-in, and
   // there has not been one yet.
   const record = {
-    id: nextUserId(),
+    id: await ensureNextUserId(),
     member_id: memberId,
     name: input.name,
     email: input.email,
@@ -114,8 +160,7 @@ export const createUser = async (input: {
   };
 
   const created = await createRecordRequest<User>("users", record);
-  const publicUser = mirrorUser(redact(created));
-  return publicUser;
+  return rememberUser(redact(created));
 };
 
 export const updateUser = async (
@@ -151,20 +196,17 @@ export const updateUser = async (
   // the role decides it instead: only a member carries one.
   if (changes.role && changes.role !== "member") changes.member_id = null;
   if (changes.role === "member" && changes.member_id === undefined) {
-    const current = findUserById(id);
+    const current = await loadUser(id);
     changes.member_id = current?.member_id ?? null;
   }
 
   const saved = await updateRecordRequest<User>("users", id, changes);
-  return mirrorUser(redact(saved));
+  return rememberUser(redact(saved));
 };
 
 export const deleteUser = async (id: string) => {
   await deleteRecordRequest("users", id);
-  setCollection(
-    "users",
-    getCachedUsers().filter((user) => user.id !== id),
-  );
+  forgetUser(id);
 };
 
 /** Keeps a password out of anything the browser holds, even if a record is echoed back. */

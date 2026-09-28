@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   getCurrentUser,
+  restoreSession,
   signIn as authenticate,
   signOut as clearSession,
   subscribeToSession,
@@ -11,27 +12,35 @@ import {
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
 // The server has no localStorage, so the session store can only ever report
-// "signed out" during SSR. A second store tracks hydration itself: React drives
-// both the server render and the hydration render from getServerSnapshot, then
-// re-renders with the client snapshot once hydration completes. That transition
-// is the signal that the real session is now readable, and it needs no effect.
-const subscribeToHydration = () => () => {};
-const getHydratedSnapshot = () => true;
-const getServerHydratedSnapshot = () => false;
-
+// "signed out" during SSR. The session itself is resolved in an effect: the
+// server render and the hydration render both see nobody signed in, and once
+// hydration has run the real session is read and, if there is one, the single
+// user record it names is fetched. Until that settles the app shows its loading
+// state, so no component ever reads a user that has not arrived yet.
 export const useAuth = () => {
   const user = useSyncExternalStore(
     subscribeToSession,
     getCurrentUser,
     () => null,
   );
-  const isHydrated = useSyncExternalStore(
-    subscribeToHydration,
-    getHydratedSnapshot,
-    getServerHydratedSnapshot,
-  );
+  const [isResolving, setIsResolving] = useState(true);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    restoreSession()
+      .catch(() => {
+        // A session that cannot be resolved is treated as no session; the login
+        // screen is the right place for the user to be.
+      })
+      .finally(() => {
+        if (active) setIsResolving(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     setIsSigningIn(true);
@@ -48,7 +57,7 @@ export const useAuth = () => {
     clearSession();
   };
 
-  const status: AuthStatus = !isHydrated
+  const status: AuthStatus = isResolving
     ? "loading"
     : user
       ? "authenticated"

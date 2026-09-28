@@ -1,22 +1,27 @@
 "use client";
 
 import { Palette } from "lucide-react";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import type { Role } from "@/types/user";
 import type { ThemeName } from "@/types/settings";
 import { getSettings, updateSettings } from "@/services/messService";
+import { getStoreVersion, subscribeToStore } from "@/data/memoryStore";
 
 export function ThemePicker({ role }: { role: Role }) {
-  const [theme, setTheme] = useState<ThemeName>(getSettings().theme ?? "bhuri-green");
+  // settings.json was read with the shell, so this is a cache read rather than a
+  // request. Subscribing to the store keeps the swatch honest after a save or a
+  // reset without the component holding its own copy of the value.
+  const version = useSyncExternalStore(subscribeToStore, getStoreVersion, () => 0);
+  void version;
   const [error, setError] = useState("");
   const canEdit = role !== "member";
+  const theme = getSettings()?.theme ?? "bhuri-green";
   // settings.json is written by the server first; the swatch only moves once
   // the write succeeds.
   const choose = async (option: ThemeName) => {
     setError("");
     try {
       await updateSettings({ theme: option }, role);
-      setTheme(option);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not save the theme.");
     }

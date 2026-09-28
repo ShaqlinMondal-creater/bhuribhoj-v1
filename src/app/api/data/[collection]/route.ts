@@ -4,6 +4,7 @@ import {
   createRecord,
   listCollection,
 } from "@/lib/server/jsonRepository";
+import { parseListQuery } from "@/lib/server/listQuery";
 
 // Server-side file boundary for the prototype's JSON files. This is the only
 // place a browser request turns into a filesystem write.
@@ -28,13 +29,20 @@ const readJsonBody = async (request: Request): Promise<unknown> => {
   }
 };
 
+// One list endpoint covers every collection. The query string is optional, so
+// GET /api/data/{collection} still means "send me the whole collection"; adding
+// search, a filter or page/limit narrows it here on the server, and `summary`
+// swaps the records for the small set of totals a dashboard needs. `meta` comes
+// back beside the data so a table can page and count without another request.
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ collection: string }> },
 ) {
   const { collection } = await params;
   try {
-    return NextResponse.json({ data: await listCollection(collection) });
+    const query = parseListQuery(new URL(request.url).searchParams);
+    const { data, meta } = await listCollection(collection, query);
+    return NextResponse.json({ data, meta });
   } catch (error) {
     return toErrorResponse(error);
   }

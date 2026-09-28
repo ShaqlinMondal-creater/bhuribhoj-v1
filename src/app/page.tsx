@@ -3,19 +3,15 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { LoginScreen } from "@/components/auth/LoginScreen";
 import { useAuth } from "@/hooks/useAuth";
-import { useServerData } from "@/hooks/useServerData";
 import { ThemeController } from "@/components/layout/ThemeController";
 
+// The page itself fetches nothing. Signing in resolves one user record, and the
+// workspace asks for the rest of what it shows as each view is opened.
 export default function Home() {
   const auth = useAuth();
-  const data = useServerData();
 
-  if (auth.status === "loading" || data.status === "loading") {
+  if (auth.status === "loading") {
     return <main className="route-loading" aria-label="Loading BhuriBhoj"><div className="loading-mark">B</div><div className="loading-line loading-line-wide" /><div className="loading-line" /></main>;
-  }
-
-  if (data.status === "error") {
-    return <main className="route-loading" aria-label="BhuriBhoj data error"><h1>Could not load the data files</h1><p>{data.error}</p></main>;
   }
 
   if (auth.status === "authenticated" && auth.user) {

@@ -1,5 +1,5 @@
 import { hasFullAccess } from "@/auth/authConfig";
-import { getCollection, setCollection } from "@/data/memoryStore";
+import { ensureCollection, getCollection, setCollection } from "@/data/memoryStore";
 import { createRecordRequest, deleteRecordRequest, updateRecordRequest } from "@/data/api";
 import { makeId, nowIso } from "@/lib/ids";
 import type { Meal } from "@/types/meal";
@@ -7,6 +7,10 @@ import type { Role } from "@/types/user";
 
 // Reads come from the in-memory mirror of meals.json; every write goes through
 // the server so the JSON file is updated before the UI reports success.
+//
+// Meals are only fetched when a view that shows them is opened, so a write asks
+// for the collection first if nobody has. That keeps the id the app hands the
+// server in step with the ids already stored.
 export const getMeals = (): Meal[] => getCollection<Meal[]>("meals");
 
 const assertCanChange = (role: Role, actorMemberId: string | undefined, memberId: string) => {
@@ -31,7 +35,7 @@ export const addMeal = async (
 	actorMemberId?: string,
 ) => {
 	assertCanChange(role, actorMemberId, input.memberId);
-	const current = getMeals();
+	const current = await ensureCollection<Meal[]>("meals");
 	if (current.some((meal) => meal.memberId === input.memberId && meal.date === input.date && meal.mealType === input.mealType && meal.status === "taken")) throw new Error("This meal is already recorded.");
 	const timestamp = nowIso();
 	const meal = { ...input, id: makeId("MEAL", current.map((item) => item.id)), createdAt: timestamp, updatedAt: timestamp };
@@ -46,7 +50,8 @@ export const updateMeal = async (
 	role: Role,
 	actorMemberId?: string,
 ) => {
-	const target = getMeals().find((meal) => meal.id === id);
+	const rows = await ensureCollection<Meal[]>("meals");
+	const target = rows.find((meal) => meal.id === id);
 	if (!target) return null;
 	assertCanChange(role, actorMemberId, target.memberId);
 	const saved = await updateRecordRequest<Meal>("meals", id, { ...input, updatedAt: nowIso() });
@@ -58,7 +63,7 @@ export const cancelMeal = (id: string, role: Role, actorMemberId?: string) =>
 	updateMeal(id, { status: "cancelled" }, role, actorMemberId);
 
 export const deleteMeal = async (id: string, role: Role, actorMemberId?: string) => {
-  const target = getMeals().find((meal) => meal.id === id);
+  const target = (await ensureCollection<Meal[]>("meals")).find((meal) => meal.id === id);
   if (!target) return false;
   assertCanChange(role, actorMemberId, target.memberId);
   await deleteRecordRequest("meals", id);

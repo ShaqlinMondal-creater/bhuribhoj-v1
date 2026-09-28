@@ -123,6 +123,11 @@ type RegistryEntry = {
    * collection name rather than anything stored in the file.
    */
   singletonId: string;
+  /**
+   * The prefix a record id carries, so the next id can be worked out server
+   * side. Only list collections have one.
+   */
+  idPrefix: string;
   recordSchema: z.ZodType;
   /** Update validation for a POST to /{collection}/{id}: only editable fields, never `id`. */
   patchSchema: z.ZodType;
@@ -133,6 +138,7 @@ export const COLLECTIONS: Record<CollectionName, RegistryEntry> = {
     file: "meals.json",
     isList: true,
     singletonId: "",
+    idPrefix: "MEAL",
     recordSchema: mealRecordSchema,
     patchSchema: mealRecordSchema.omit({ id: true }).partial().strict(),
   },
@@ -140,6 +146,7 @@ export const COLLECTIONS: Record<CollectionName, RegistryEntry> = {
     file: "guestMeals.json",
     isList: true,
     singletonId: "",
+    idPrefix: "GMEAL",
     recordSchema: guestMealRecordSchema,
     patchSchema: guestMealRecordSchema.omit({ id: true }).partial().strict(),
   },
@@ -147,6 +154,7 @@ export const COLLECTIONS: Record<CollectionName, RegistryEntry> = {
     file: "expenses.json",
     isList: true,
     singletonId: "",
+    idPrefix: "EXP",
     recordSchema: expenseRecordSchema,
     patchSchema: expenseRecordSchema.omit({ id: true }).partial().strict(),
   },
@@ -154,6 +162,7 @@ export const COLLECTIONS: Record<CollectionName, RegistryEntry> = {
     file: "mess.json",
     isList: false,
     singletonId: "mess",
+    idPrefix: "",
     recordSchema: messRecordSchema,
     patchSchema: messRecordSchema.omit({ id: true }).partial().strict(),
   },
@@ -161,6 +170,7 @@ export const COLLECTIONS: Record<CollectionName, RegistryEntry> = {
     file: "settings.json",
     isList: false,
     singletonId: "settings",
+    idPrefix: "",
     recordSchema: settingsRecordSchema,
     patchSchema: settingsRecordSchema.partial().strict(),
   },
@@ -168,6 +178,7 @@ export const COLLECTIONS: Record<CollectionName, RegistryEntry> = {
     file: "users.json",
     isList: true,
     singletonId: "",
+    idPrefix: "USR",
     recordSchema: userRecordSchema,
     // A profile update can never change the stored password.
     patchSchema: userRecordSchema.omit({ id: true, password: true }).partial().strict(),

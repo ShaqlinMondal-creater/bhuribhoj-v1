@@ -6,7 +6,9 @@ import type { Settings } from "@/types/settings";
 import type { Role } from "@/types/user";
 
 // mess.json and settings.json each hold a single document, addressed in the API
-// by the collection name. Reads come from the cache; writes POST to that document.
+// by the collection name. These are the two smallest datasets in the app and
+// the shell chrome itself needs both, so they are the only ones read as soon as
+// someone signs in. Reads come from the cache; writes POST to that document.
 export const getMess = (): Mess => getCollection<Mess>("mess");
 
 export const getSettings = (): Settings => getCollection<Settings>("settings");

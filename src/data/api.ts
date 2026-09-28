@@ -1,8 +1,11 @@
 // Client-side HTTP boundary.
 //
 // This is the only module in the frontend that talks to the server. Services
-// call these helpers, so swapping the JSON file repository for a Laravel API
-// later means changing the paths here, not the services, hooks or components.
+// and hooks call these helpers, so swapping the JSON file repository for a
+// Laravel API later means changing the paths here, not the services, hooks or
+// components.
+
+import type { CollectionMeta, CollectionQuery } from "@/data/collections";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -16,7 +19,29 @@ export class ApiError extends Error {
 
 const base = "/api/data";
 
-const request = async <T,>(path: string, init?: RequestInit): Promise<T> => {
+/** Turns a query object into the url the list endpoints understand. */
+export const collectionPath = (collection: string, query?: CollectionQuery): string => {
+  const params = new URLSearchParams();
+  if (query?.search) params.set("search", query.search);
+  if (query?.role) params.set("role", query.role);
+  if (typeof query?.status === "boolean") params.set("status", String(query.status));
+  if (query?.memberId) params.set("memberId", query.memberId);
+  if (query?.today) params.set("today", query.today);
+  if (typeof query?.page === "number") params.set("page", String(query.page));
+  if (typeof query?.limit === "number") params.set("limit", String(query.limit));
+  if (query?.summary) params.set("summary", query.summary);
+  const search = params.toString();
+  return search === "" ? `${base}/${collection}` : `${base}/${collection}?${search}`;
+};
+
+/**
+ * Sends one request and hands back the whole response body.
+ *
+ * A non-2xx answer is always an error, so a rejected write is never reported as
+ * a success. `data` and `meta` stay optional here because the sign-in endpoint
+ * answers with a data-only envelope.
+ */
+const send = async (path: string, init?: RequestInit) => {
   let response: Response;
   try {
     response = await fetch(path, {
@@ -31,19 +56,38 @@ const request = async <T,>(path: string, init?: RequestInit): Promise<T> => {
   }
 
   const payload = (await response.json().catch(() => null)) as
-    | { data?: T; error?: string }
+    | { data?: unknown; meta?: unknown; error?: string }
     | null;
 
   if (!response.ok) {
-    // A failed write is never reported as a success.
-    throw new ApiError(payload?.error ?? `Request failed with status ${response.status}.`, response.status);
+    throw new ApiError(
+      payload?.error ?? `Request failed with status ${response.status}.`,
+      response.status,
+    );
   }
 
-  return payload?.data as T;
+  return payload ?? {};
 };
 
-export const fetchCollection = <T,>(collection: string): Promise<T> =>
-  request<T>(`${base}/${collection}`);
+const request = async <T,>(path: string, init?: RequestInit): Promise<T> =>
+  ((await send(path, init)).data) as T;
+
+/**
+ * Asks for one list, with the paging and counters that came back with it.
+ *
+ * The server does the search, the filtering and the slicing, so a view only
+ * ever holds the rows it is showing plus the totals it needs for its footer.
+ */
+export const fetchCollectionPage = async <T,>(
+  collection: string,
+  query?: CollectionQuery,
+): Promise<{ data: T; meta: CollectionMeta | null }> => {
+  const payload = await send(collectionPath(collection, query));
+  return { data: payload.data as T, meta: (payload.meta as CollectionMeta | undefined) ?? null };
+};
+
+export const fetchCollection = <T,>(collection: string, query?: CollectionQuery): Promise<T> =>
+  fetchCollectionPage<T>(collection, query).then((page) => page.data);
 
 /**
  * Asks the server to check a sign-in.
