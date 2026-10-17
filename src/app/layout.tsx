@@ -1,27 +1,40 @@
-import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
-import type { ReactNode } from "react";
+import type { Metadata, Viewport } from "next";
+import { Manrope, Outfit } from "next/font/google";
 import "./globals.css";
+import { appConfig } from "@/lib/config";
 
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
+const sans = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
-  display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "BhuriBhoj",
-  description:
-    "A modern mess management system for members, meals, expenses and monthly calculations.",
+const display = Outfit({
+  variable: "--font-outfit",
+  subsets: ["latin"],
+});
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#090909",
+  colorScheme: "dark",
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export const metadata: Metadata = {
+  title: {
+    default: appConfig.name,
+    template: `%s · ${appConfig.name}`,
+  },
+  description: "Mess management SaaS for shared kitchens.",
+};
+
+export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${jakarta.variable} h-full antialiased`}
+      className={`${sans.variable} ${display.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="flex min-h-dvh flex-col overflow-x-clip">{children}</body>
     </html>
   );
 }

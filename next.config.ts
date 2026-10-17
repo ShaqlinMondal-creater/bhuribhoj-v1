@@ -1,10 +1,27 @@
 import type { NextConfig } from "next";
 
+const laravelOrigin =
+  process.env.LARAVEL_API_ORIGIN ?? "http://127.0.0.1:8000";
+
 const nextConfig: NextConfig = {
-  // @vercel/blob is loaded with node's own resolver instead of being bundled.
-  // It is a Node-only SDK, and the server runtime has to be able to read its
-  // credentials from the environment at request time.
-  serverExternalPackages: ["@vercel/blob"],
+  cacheComponents: true,
+  partialPrefetching: true,
+  turbopack: {
+    rules: {
+      "*.css": {
+        loaders: ["@tailwindcss/turbopack"],
+        as: "*.css",
+      },
+    },
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/backend/:path*",
+        destination: `${laravelOrigin}/api/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
