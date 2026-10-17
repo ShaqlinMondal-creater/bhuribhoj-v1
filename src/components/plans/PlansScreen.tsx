@@ -1,100 +1,62 @@
 "use client";
 
-import Link from "next/link";
-import { ImagePanel } from "@/components/brand/ImagePanel";
-import { Notice } from "@/components/ui/Notice";
-import { useApi } from "@/hooks/useApi";
-import { inr } from "@/lib/format";
-import { planService } from "@/services/planService";
+import { useState } from "react";
+import { FaqList } from "@/components/marketing/FaqList";
+import { PlanGrid, usePlans } from "@/components/marketing/PlanCards";
 
-const included = [
-  "Lunch and dinner for every member",
-  "Market duty and the day’s purchases",
-  "Deposits, expenses, dues, and fines",
-  "Guest plates, priced by the house",
-  "President, managers, and members",
+const periods = [
+  { months: 1, label: "Monthly" },
+  { months: 3, label: "Semester" },
+  { months: 12, label: "Yearly" },
+];
+
+const questions = [
+  { q: "Do the plans include different features?", a: "No. Every plan is the same house. The difference is how long the subscription runs." },
+  { q: "Who buys the plan?", a: "The president opens the house on a plan, then invites managers and members." },
+  { q: "Can a short stay use a month?", a: "Yes. A month, a semester, or a year. One subscription covers that mess." },
 ];
 
 export function PlansScreen() {
-  const { data, error, loading } = useApi(planService.fetch);
+  const { data, error, loading } = usePlans();
   const plans = data?.data ?? [];
+  const [months, setMonths] = useState(3);
 
   return (
-    <main>
-      <section className="mx-auto max-w-[96rem] px-4 pt-8 sm:px-8 sm:pt-12">
-        <ImagePanel src="/home/thali.jpg" alt="A full mess plate" className="min-h-72 sm:min-h-80">
-          <p className="text-xs uppercase tracking-[0.24em] text-[#e2b657]">Subscription</p>
-          <h1 className="mt-3 max-w-2xl font-display tracking-tight text-4xl text-[#f7f1e4] sm:text-5xl">
-            A plan for the length of the term.
-          </h1>
-          <p className="mt-4 max-w-xl text-sm leading-7 text-[#f7f1e4]/85">
-            One mess. One subscription. The same house for a month, a short term, or a full year.
-          </p>
-        </ImagePanel>
-      </section>
-
-      <section className="mx-auto max-w-[96rem] px-4 py-12 sm:px-8 sm:py-16">
-        {error ? (
-          <div className="mb-8">
-            <Notice>{error}</Notice>
-          </div>
-        ) : null}
-        {loading ? <div className="h-72 animate-pulse rounded-[1.75rem] bg-[#161616]" /> : null}
-        <div className="grid items-stretch gap-5 lg:grid-cols-3">
-          {plans.map((plan, index) => {
-            const featured = index === 1;
+    <main className="marketing">
+      <section className="m-wrap py-16 md:py-24">
+        <p className="text-sm font-medium text-[var(--accent)]">Subscription</p>
+        <h1 className="mt-3 max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">A plan for the length of the term.</h1>
+        <p className="mt-4 max-w-xl text-base leading-7 text-[var(--muted)]">
+          One mess. One subscription. The same house for a month, a semester, or a full year.
+        </p>
+        <div className="mt-8 inline-flex rounded-full border border-[var(--border)] p-1" role="group" aria-label="Plan length">
+          {periods.map((period) => {
+            const selected = months === period.months;
             return (
-              <article
-                key={plan.id}
-                className={`flex flex-col rounded-[1.75rem] border p-7 ${
-                  featured
-                    ? "border-[#e2b657] bg-[#14110b] shadow-[0_20px_60px_rgba(226,182,87,0.12)] lg:-translate-y-3"
-                    : "border-[#e2b657]/25 bg-black"
-                }`}
+              <button
+                key={period.months}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => setMonths(period.months)}
+                className={`rounded-full px-4 py-2 text-sm font-semibold ${selected ? "bg-[var(--accent)] text-[var(--accent-ink)]" : "text-[var(--muted)]"}`}
               >
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="font-display tracking-tight text-3xl text-[#f7f1e4]">{plan.name}</h2>
-                  {featured ? (
-                    <span className="rounded-full bg-[#e2b657] px-3 py-1 text-xs font-semibold text-black">Usual term</span>
-                  ) : null}
-                </div>
-                <p className="mt-8 font-display tracking-tight text-5xl text-[#e2b657]">{inr(plan.price_inr)}</p>
-                <p className="mt-2 text-sm text-[#cbbfa6]">
-                  {plan.duration_months} month{plan.duration_months > 1 ? "s" : ""} · one mess
-                </p>
-                <ul className="mt-8 flex-1 space-y-3 border-t border-[#e2b657]/20 pt-6 text-sm leading-6 text-[#cbbfa6]">
-                  {included.map((item) => (
-                    <li key={item} className="flex gap-3">
-                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#e2b657]" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href="/login"
-                  className={`mt-8 rounded-full px-5 py-3 text-center text-sm font-semibold ${
-                    featured ? "bg-[#e2b657] text-black hover:bg-[#f0cb78]" : "border border-[#e2b657]/60 text-[#e2b657] hover:bg-[#e2b657]/10"
-                  }`}
-                >
-                  Sign in to open
-                </Link>
-              </article>
+                {period.label}
+              </button>
             );
           })}
         </div>
-
-        <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            ["Kitchen", "Lunch, dinner, guest meals, menus, and market duty."],
-            ["Money", "Deposits, expenses, monthly dues, and fines."],
-            ["People", "A code and a room for every member on the plan."],
-            ["Platform", "An admin can see the mess. They do not share its screen."],
-          ].map(([title, copy]) => (
-            <article key={title} className="rounded-[1.75rem] border border-[#e2b657]/20 p-5">
-              <h3 className="font-display tracking-tight text-2xl text-[#f7f1e4]">{title}</h3>
-              <p className="mt-2 text-sm leading-6 text-[#cbbfa6]">{copy}</p>
-            </article>
-          ))}
+        {error ? <p className="mt-6 text-sm text-[#ffb4b4]">Plans are unavailable right now. Try again in a moment.</p> : null}
+        {loading ? <div className="mt-8 h-56 animate-pulse rounded-[var(--radius)] bg-[var(--surface)]" /> : null}
+        {!loading && plans.length ? (
+          <div className="mt-8">
+            <PlanGrid plans={plans} activeMonths={months} />
+          </div>
+        ) : null}
+      </section>
+      <section className="m-wrap pb-16 md:pb-24">
+        <h2 className="text-3xl font-semibold tracking-tight">Questions about plans</h2>
+        <div className="mt-6">
+          <FaqList items={questions} />
         </div>
       </section>
     </main>

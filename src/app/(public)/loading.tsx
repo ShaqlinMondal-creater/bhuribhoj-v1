@@ -1,9 +1,7 @@
-import { LogoLoader } from "@/components/brand/LogoLoader";
-
 export default function Loading() {
   return (
-    <div className="grid min-h-[70dvh] place-items-center">
-      <LogoLoader />
+    <div className="marketing m-wrap py-24">
+      <p className="text-sm text-[var(--muted)]">Loading the page…</p>
     </div>
   );
 }

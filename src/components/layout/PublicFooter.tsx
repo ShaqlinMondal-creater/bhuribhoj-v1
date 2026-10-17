@@ -1,60 +1,67 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 
-const links = [
-  { href: "/features", label: "Features" },
-  { href: "/about", label: "About" },
-  { href: "/plans", label: "Plans" },
-  { href: "/contact", label: "Contact" },
+const columns = [
+  {
+    title: "Product",
+    links: [
+      { href: "/features", label: "Features" },
+      { href: "/plans", label: "Plans" },
+      { href: "/login", label: "Sign in" },
+    ],
+  },
+  {
+    title: "House",
+    links: [
+      { href: "/about", label: "About" },
+      { href: "/contact", label: "Contact" },
+    ],
+  },
 ];
 
 export function PublicFooter() {
   return (
-    <footer className="border-t border-[#e2b657]/20 bg-black text-[#f7f1e4]">
-      <div className="mx-auto grid max-w-[96rem] gap-10 px-4 py-12 sm:grid-cols-2 sm:px-8 lg:grid-cols-4">
-        <div>
-          <BrandLogo className="h-20 w-20" />
-          <p className="mt-4 max-w-sm text-sm leading-7 text-[#cbbfa6]">
+    <footer className="marketing border-t border-[var(--border)] bg-[#090909]">
+      <div className="m-wrap grid gap-10 py-16 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="lg:col-span-2">
+          <Link href="/" className="flex items-center gap-3">
+            <BrandLogo className="h-12 w-12" />
+            <span className="text-lg font-semibold">
+              <span className="bn">ভুরিভোজ</span>
+              <span className="ml-2 text-sm font-medium text-[var(--muted)]">BhuriBhoj</span>
+            </span>
+          </Link>
+          <p className="mt-4 max-w-sm text-sm leading-7 text-[var(--muted)]">
             A private ledger and kitchen book for the mess. Meals, money, and members, held in one house.
           </p>
         </div>
-        <div>
-          <p className="text-xs uppercase tracking-[0.22em] text-[#e2b657]">Visit</p>
-          <ul className="mt-4 space-y-2 text-sm">
-            {links.map((link) => (
-              <li key={link.href}>
-                <Link href={link.href} className="text-[#f7f1e4]/85 hover:text-[#e2b657]">
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <p className="text-xs uppercase tracking-[0.22em] text-[#e2b657]">House</p>
-          <ul className="mt-4 space-y-2 text-sm text-[#cbbfa6]">
-            <li>Hostel kitchens</li>
-            <li>Paying-guest messes</li>
-            <li>College dining halls</li>
-            <li>Lunch and dinner, one ledger</li>
-          </ul>
-        </div>
-        <div>
-          <p className="text-xs uppercase tracking-[0.22em] text-[#e2b657]">Open a seat</p>
-          <p className="mt-4 text-sm leading-7 text-[#cbbfa6]">
-            President, manager, and member each sign in to their own door.
-          </p>
-          <Link
-            href="/login"
-            className="mt-5 inline-flex rounded-full border border-[#e2b657] px-4 py-2 text-sm text-[#e2b657] hover:bg-[#e2b657] hover:text-black"
-          >
-            Sign in
-          </Link>
+        {columns.map((column) => (
+          <div key={column.title}>
+            <p className="text-sm font-semibold">{column.title}</p>
+            <ul className="mt-4 space-y-2 text-sm">
+              {column.links.map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className="text-[var(--muted)] hover:text-[var(--text)]">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <div className="m-wrap flex flex-col gap-3 border-t border-[var(--border)] py-6 text-sm text-[var(--muted)] sm:flex-row sm:items-center sm:justify-between">
+        <p>© 2026 BhuriBhoj</p>
+        <div className="flex flex-wrap gap-4">
+          <a href="#privacy">Privacy</a>
+          <a href="#terms">Terms</a>
+          <a href="mailto:hello@bhuribhoj.com">hello@bhuribhoj.com</a>
         </div>
       </div>
-      <p className="border-t border-[#e2b657]/15 py-4 text-center text-xs tracking-[0.16em] text-[#cbbfa6]">
-        ভুরিভোজ · BhuriBhoj
-      </p>
+      <div className="m-wrap grid gap-4 pb-10 text-sm leading-6 text-[var(--muted)] sm:grid-cols-2">
+        <p id="privacy">Privacy. A mess ledger is visible to the people of that house, and to the platform admin who keeps the subscriptions.</p>
+        <p id="terms">Terms. One subscription covers one mess, for a month, a semester, or a year. The president opens it.</p>
+      </div>
     </footer>
   );
 }

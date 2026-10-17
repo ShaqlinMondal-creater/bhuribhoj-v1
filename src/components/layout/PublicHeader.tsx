@@ -1,7 +1,10 @@
 "use client";
 
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 
 const links = [
@@ -13,44 +16,106 @@ const links = [
 
 export function PublicHeader() {
   const pathname = usePathname();
+  const reduced = useReducedMotion();
+  const [scrolled, setScrolled] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-[#e2b657]/25 bg-black/80 backdrop-blur-md">
-      <div className="mx-auto grid max-w-[96rem] grid-cols-[1fr_auto] items-center gap-3 px-4 py-3 sm:px-8 md:grid-cols-[1fr_auto_1fr]">
-        <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
-          <BrandLogo className="h-11 w-11 shrink-0 sm:h-14 sm:w-14" />
-          <span className="truncate font-display text-lg text-[#f7f1e4] sm:text-xl">
-            BhuriBhoj
+    <header
+      className={`marketing sticky top-0 z-40 border-b transition-[background-color,padding,border-color] duration-300 ease-out ${
+        scrolled ? "border-[var(--border)] bg-[#090909]/80 py-2 backdrop-blur-md" : "border-transparent bg-[#090909]/40 py-3"
+      }`}
+    >
+      <div className="m-wrap flex items-center justify-between gap-3">
+        <Link href="/" className="flex min-w-0 items-center gap-2">
+          <BrandLogo className="h-10 w-10 shrink-0 sm:h-11 sm:w-11" />
+          <span className="truncate text-lg font-semibold tracking-tight">
+            <span className="bn">ভুরিভোজ</span>
+            <span className="ml-2 hidden text-sm font-medium text-[var(--muted)] sm:inline">BhuriBhoj</span>
           </span>
         </Link>
-        <nav className="hidden items-center justify-center gap-8 text-sm text-[#cbbfa6] md:flex">
+
+        <nav className="hidden items-center gap-8 text-sm text-[var(--muted)] lg:flex" aria-label="Primary">
           {links.map((link) => {
             const active = pathname === link.href;
             return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={active ? "text-[#e2b657]" : "transition hover:text-[#f7f1e4]"}
-              >
+              <Link key={link.href} href={link.href} className={active ? "text-[var(--accent)]" : "hover:text-[var(--text)]"} aria-current={active ? "page" : undefined}>
                 {link.label}
               </Link>
             );
           })}
         </nav>
-        <Link
-          href="/login"
-          className="justify-self-end shrink-0 rounded-full border border-[#e2b657] bg-[#e2b657] px-3 py-2 text-sm font-semibold text-black transition hover:bg-[#f0cb78] sm:px-4"
-        >
-          Sign in
-        </Link>
-      </div>
-      <nav className="flex gap-4 overflow-x-auto px-4 pb-3 text-xs tracking-wide text-[#cbbfa6] md:hidden">
-        {links.map((link) => (
-          <Link key={link.href} href={link.href} className="shrink-0">
-            {link.label}
+
+        <div className="hidden items-center gap-2 lg:flex">
+          <Link href="/login" className="m-btn m-btn-ghost px-4 py-2">
+            Sign in
           </Link>
-        ))}
-      </nav>
+          <Link href="/contact" className="m-btn m-btn-primary px-4 py-2">
+            Start your mess
+          </Link>
+        </div>
+
+        <button
+          type="button"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] lg:hidden"
+          aria-expanded={open}
+          aria-controls="mobile-nav"
+          onClick={() => setOpen((value) => !value)}
+        >
+          <span className="sr-only">{open ? "Close menu" : "Open menu"}</span>
+          {open ? <X size={18} /> : <Menu size={18} />}
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {open ? (
+          <motion.nav
+            id="mobile-nav"
+            aria-label="Mobile"
+            className="m-wrap grid gap-2 overflow-hidden pb-4 pt-2 lg:hidden"
+            initial={reduced ? false : { height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={reduced ? undefined : { height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+          >
+            {links.map((link) => (
+              <Link key={link.href} href={link.href} className="rounded-[var(--radius)] px-3 py-3 text-base hover:bg-[var(--surface)]">
+                {link.label}
+              </Link>
+            ))}
+            <Link href="/login" className="m-btn m-btn-ghost mt-2">
+              Sign in
+            </Link>
+            <Link href="/contact" className="m-btn m-btn-primary">
+              Start your mess
+            </Link>
+          </motion.nav>
+        ) : null}
+      </AnimatePresence>
     </header>
   );
 }
