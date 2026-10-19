@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ApiError } from "@/lib/api/errors";
 import { setToken } from "@/lib/auth/token";
 import { startSessionAction } from "@/app/actions/auth";
@@ -22,7 +23,7 @@ export function LoginForm({ nextPath = "" }: { nextPath?: string }) {
     try {
       const session = await authService.login(email, password);
       setToken(session.token);
-      await startSessionAction(session.token, session.user.role, nextPath);
+      await startSessionAction(session.token, session.user.role, nextPath, session.seat.next);
     } catch (err) {
       if (isNextRedirect(err)) throw err;
       setError(err instanceof ApiError ? err.message : "API unreachable");
@@ -77,6 +78,11 @@ export function LoginForm({ nextPath = "" }: { nextPath?: string }) {
       >
         {pending ? "Signing in…" : "Sign in"}
       </button>
+      <p className="text-center text-sm text-[#cbbfa6]">
+        <Link href="/register" className="text-[#e2b657] underline-offset-4 hover:underline">
+          Create an account
+        </Link>
+      </p>
     </form>
   );
 }

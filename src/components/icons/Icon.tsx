@@ -6,10 +6,12 @@ export type IconName =
   | "meals"
   | "wallet"
   | "building"
+  | "plans"
   | "mail"
   | "logout"
   | "shield"
-  | "mark";
+  | "mark"
+  | "pencil";
 
 export function Icon({
   name,
@@ -79,6 +81,13 @@ const glyphs: Record<IconName, ReactNode> = {
       <path d="M11 20.5v-3.5h2v3.5" />
     </>
   ),
+  plans: (
+    <>
+      <rect x="4" y="4.5" width="16" height="15" rx="2" />
+      <path d="M8 9h8" />
+      <path d="M8 13h5" />
+    </>
+  ),
   mail: (
     <>
       <rect x="3.5" y="5.5" width="17" height="13" rx="2" />
@@ -96,6 +105,12 @@ const glyphs: Record<IconName, ReactNode> = {
     <>
       <path d="M12 3.5 19 6.2v5.3c0 4.2-2.8 7.2-7 8.8-4.2-1.6-7-4.6-7-8.8V6.2L12 3.5Z" />
       <path d="m9 12 2 2 4-4" />
+    </>
+  ),
+  pencil: (
+    <>
+      <path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3Z" />
+      <path d="m13.5 6.5 3 3" />
     </>
   ),
   mark: (

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { photos } from "@/components/marketing/photos";
 
 export const metadata: Metadata = {
   title: "About",
@@ -42,14 +43,16 @@ export default function AboutPage() {
 
       <section className="border-y border-[var(--border)] bg-[var(--surface)]">
         <div className="m-wrap grid items-center gap-8 py-16 lg:grid-cols-2">
-          <Image
-            src="/home/kitchen.jpg"
-            alt="A kitchen preparing a shared meal"
-            width={960}
-            height={640}
-            sizes="(max-width: 1024px) 100vw, 560px"
-            className="h-auto w-full rounded-[var(--radius)] object-cover"
-          />
+          <figure className="m-photo relative aspect-[16/10] overflow-hidden rounded-2xl">
+            <Image
+              src={photos.aboutKitchen}
+              alt="An empty kitchen with a stove, shelves, and room to cook for a house"
+              fill
+              sizes="(max-width: 1024px) 100vw, 560px"
+              placeholder="blur"
+              className="object-cover"
+            />
+          </figure>
           <div>
             <h2 className="text-3xl font-semibold tracking-tight">The mission</h2>
             <p className="mt-4 text-base leading-7 text-[var(--muted)]">

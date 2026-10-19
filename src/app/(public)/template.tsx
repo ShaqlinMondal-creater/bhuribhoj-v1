@@ -1,3 +1,3 @@
 export default function Template({ children }: { children: React.ReactNode }) {
-  return <div className="m-page">{children}</div>;
+  return children;
 }

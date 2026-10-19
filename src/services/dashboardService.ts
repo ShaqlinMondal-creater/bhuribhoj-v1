@@ -19,12 +19,18 @@ export type DashboardPayload = {
     total_deposit: number;
     guest_meals_amount: number;
     pending_fines: number;
-    pending_dues: unknown[];
+    pending_dues: Array<{
+      id: number;
+      month: string;
+      amount: string | number;
+      late_fee: string | number;
+      status: string;
+    }>;
   } | null;
 };
 
 export const dashboardService = {
   fetch() {
-    return apiClient<DashboardPayload>("/dashboard/fetch");
+    return apiClient<DashboardPayload>("/dashboard/fetch", { method: "POST", body: {} });
   },
 };

@@ -42,7 +42,9 @@ export async function logoutRequest() {
 
 export async function fetchPlans(): Promise<Plan[]> {
   const data = await apiFetch<{ data: Plan[] }>("/plans/fetch", {
+    method: "POST",
     auth: false,
+    body: {},
     next: { revalidate: 60 },
   });
   return data.data;
@@ -69,5 +71,5 @@ export async function fetchDashboard() {
       pending_fines: number;
       pending_dues: unknown[];
     } | null;
-  }>("/dashboard/fetch");
+  }>("/dashboard/fetch", { method: "POST", body: {} });
 }

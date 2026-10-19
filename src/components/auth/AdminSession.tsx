@@ -18,7 +18,7 @@ export function AdminSession({ children }: { children: React.ReactNode }) {
     authService
       .currentUser()
       .then((next) => {
-        if (!cancelled) setUser(next);
+        if (!cancelled) setUser(next.user);
       })
       .catch(async () => {
         if (cancelled) return;

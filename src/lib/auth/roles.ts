@@ -1,4 +1,4 @@
-import type { Role } from "@/types/auth";
+import type { Role, SeatNext } from "@/types/auth";
 
 export const MESS_ROLES: Role[] = ["president", "manager", "member"];
 
@@ -10,8 +10,19 @@ export function isMessRole(role: Role) {
   return MESS_ROLES.includes(role);
 }
 
+export function isPresident(role: Role | null | undefined) {
+  return role === "president";
+}
+
 export function homePathForRole(role: Role) {
   if (role === "admin") return "/admin";
+  return "/mess";
+}
+
+export function pathForSeat(seat: SeatNext, role: Role) {
+  if (seat === "admin" || role === "admin") return "/admin";
+  if (seat === "plans") return "/mess/plans";
+  if (seat === "mess_setup") return "/mess/setup";
   return "/mess";
 }
 

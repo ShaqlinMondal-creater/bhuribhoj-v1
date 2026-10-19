@@ -6,7 +6,7 @@ import { inr } from "@/lib/format";
 import { planService } from "@/services/planService";
 import type { Plan } from "@/types/auth";
 
-const included = [
+export const planFeatures = [
   "Lunch and dinner for every member",
   "Market duty and the day’s purchases",
   "Deposits, expenses, dues, and fines",
@@ -57,7 +57,7 @@ export function PlanGrid({
               {plan.duration_months} month{plan.duration_months > 1 ? "s" : ""} · one mess
             </p>
             <ul className="mt-6 flex-1 space-y-3 text-sm leading-6 text-[var(--muted)]">
-              {included.map((item) => (
+              {planFeatures.map((item) => (
                 <li key={item} className="flex gap-3">
                   <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden="true" />
                   {item}

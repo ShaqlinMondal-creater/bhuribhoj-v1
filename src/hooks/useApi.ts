@@ -6,6 +6,7 @@ export function useApi<T>(load: () => Promise<T>, enabled = true) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(enabled);
+  const [nonce, setNonce] = useState(0);
   const loadRef = useRef(load);
   loadRef.current = load;
 
@@ -35,7 +36,7 @@ export function useApi<T>(load: () => Promise<T>, enabled = true) {
     return () => {
       cancelled = true;
     };
-  }, [enabled]);
+  }, [enabled, nonce]);
 
-  return { data, error, loading };
+  return { data, error, loading, reload: () => setNonce((value) => value + 1) };
 }

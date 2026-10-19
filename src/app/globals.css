@@ -169,6 +169,41 @@ body {
   animation: m-glow 5s ease-in-out infinite;
 }
 
+.m-splash {
+  transition: opacity 400ms ease-out;
+}
+
+.m-logo-ring {
+  box-shadow: 0 0 0 10px rgba(226, 182, 87, 0.16), 0 0 48px rgba(226, 182, 87, 0.28);
+}
+
+.m-logo-pulse {
+  animation: m-logo-pulse 1.6s ease-out infinite;
+}
+
+@keyframes m-logo-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.m-loader-bar {
+  transform-origin: left center;
+  animation: m-loader-bar 1s ease-out forwards;
+}
+
+@keyframes m-loader-bar {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.m-photo img {
+  transition: transform 500ms ease-out;
+}
+
+.m-photo:hover img {
+  transform: scale(1.03);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .marketing .m-btn,
   .marketing .m-btn:hover,
@@ -178,9 +213,16 @@ body {
   .m-marquee,
   .m-float,
   .m-glow,
-  .m-page {
+  .m-page,
+  .m-logo-pulse,
+  .m-loader-bar,
+  .m-splash {
     animation: none !important;
     transform: none !important;
     transition: none !important;
+  }
+
+  .m-photo:hover img {
+    transform: none;
   }
 }

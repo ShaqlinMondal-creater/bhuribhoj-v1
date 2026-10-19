@@ -1,5 +1,15 @@
 export type Role = "admin" | "president" | "manager" | "member";
 
+export type SeatNext = "plans" | "mess_setup" | "dashboard" | "admin";
+
+export type AccountSeat = {
+  mess: boolean;
+  subscription: boolean;
+  next: SeatNext;
+  subscription_ends_on: string | null;
+  plan_id: number | null;
+};
+
 export type AuthUser = {
   id: string;
   name: string;
@@ -9,6 +19,7 @@ export type AuthUser = {
   roomNo: string | null;
   memberCode: string | null;
   status: "active" | "inactive";
+  avatar: string | null;
   messId: string | null;
   mess: { id: string; name: string; code: string } | null;
 };
@@ -23,6 +34,7 @@ export type LaravelUser = {
   room_no?: string | null;
   member_code?: string | null;
   status?: string;
+  avatar?: string | null;
   mess?: { id: number | string; name: string; code: string } | null;
 };
 
@@ -44,6 +56,7 @@ export function mapLaravelUser(user: LaravelUser): AuthUser {
     roomNo: user.room_no ?? null,
     memberCode: user.member_code ?? null,
     status: user.status === "inactive" ? "inactive" : "active",
+    avatar: user.avatar || null,
     messId: user.mess_id != null ? String(user.mess_id) : null,
     mess: user.mess
       ? {

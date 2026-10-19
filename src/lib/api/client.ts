@@ -18,6 +18,7 @@ const DEDUPE_MS = 800;
  */
 export function apiClient<T>(path: string, options: ClientOptions = {}): Promise<T> {
   const method = options.method ?? "GET";
+  if (method !== "GET") recentGets.clear();
   const key = `${method} ${path}`;
 
   if (method === "GET") {

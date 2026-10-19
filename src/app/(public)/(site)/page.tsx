@@ -5,8 +5,9 @@ import { DayTimeline } from "@/components/marketing/DayTimeline";
 import { FaqList } from "@/components/marketing/FaqList";
 import { Hero } from "@/components/marketing/Hero";
 import { PlanPreview } from "@/components/marketing/PlanCards";
-import { Reveal } from "@/components/marketing/Reveal";
+import { MessSetup } from "@/components/marketing/MessSetup";
 import { Roles } from "@/components/marketing/Roles";
+import { Reveal } from "@/components/marketing/Reveal";
 import { TrustMarquee } from "@/components/marketing/TrustMarquee";
 
 export const metadata: Metadata = {
@@ -31,6 +32,7 @@ export default function HomePage() {
     <main>
       <Hero />
       <TrustMarquee />
+      <MessSetup />
       <Bento />
       <DayTimeline />
       <Roles />

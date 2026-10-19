@@ -10,6 +10,6 @@ export type InvitationRow = {
 
 export const invitationService = {
   fetch() {
-    return apiClient<{ data: InvitationRow[] }>("/mess-invitations/fetch");
+    return apiClient<{ data: InvitationRow[] }>("/mess-invitations/fetch", { method: "POST", body: {} });
   },
 };

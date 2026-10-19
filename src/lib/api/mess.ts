@@ -3,14 +3,14 @@ import type { LaravelUser } from "@/types/auth";
 
 export type MembersPage = {
   data: LaravelUser[];
-  current_page: number;
-  last_page: number;
-  per_page: number;
-  total: number;
+  count: number;
+  limit: number;
+  offset: number;
+  rooms: string[];
 };
 
-export async function fetchMembers(page = 1) {
-  return apiFetch<MembersPage>(`/members/fetch?page=${page}`);
+export async function fetchMembers(body: { limit?: number; offset?: number } = {}) {
+  return apiFetch<MembersPage>("/members/fetch", { method: "POST", body });
 }
 
 export type MessRecord = {
@@ -31,5 +31,5 @@ export async function fetchMesses() {
     data?: MessRecord[];
     current_page?: number;
     total?: number;
-  } | MessRecord>("/messes/fetch");
+  } | MessRecord>("/messes/fetch", { method: "POST", body: {} });
 }

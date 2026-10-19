@@ -22,7 +22,9 @@ export type MealsPayload = {
 
 export const mealService = {
   fetch(mealDate?: string) {
-    const query = mealDate ? `?meal_date=${mealDate}` : "";
-    return apiClient<MealsPayload>(`/daily-meals/fetch${query}`);
+    return apiClient<MealsPayload>("/daily-meals/fetch", {
+      method: "POST",
+      body: mealDate ? { meal_date: mealDate } : {},
+    });
   },
 };
