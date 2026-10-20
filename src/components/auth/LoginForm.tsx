@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ApiError } from "@/lib/api/errors";
 import { setToken } from "@/lib/auth/token";
 import { startSessionAction } from "@/app/actions/auth";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { authService } from "@/services/authService";
 
 export function LoginForm({ nextPath = "" }: { nextPath?: string }) {

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSetMessSeat } from "@/components/auth/MessSession";
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
+import type { FundType } from "@/lib/api/mess";
 import { messService } from "@/services/messService";
 
 const fieldClass =
@@ -13,6 +14,7 @@ const fieldClass =
 export function SetupScreen() {
   const router = useRouter();
   const setSeat = useSetMessSeat();
+  const [fundType, setFundType] = useState<FundType>("manager_only");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -21,7 +23,8 @@ export function SetupScreen() {
     setError(null);
     setPending(true);
     const form = new FormData(event.currentTarget);
-    const fund = String(form.get("fund_mode") ?? "manager_only");
+    const fund = form.get("fund_type") === "mess_and_manager" ? "mess_and_manager" : "manager_only";
+    const deposit = optionalNumber(form.get("s_deposite_amount"));
 
     try {
       const result = await messService.open({
@@ -30,8 +33,12 @@ export function SetupScreen() {
         district: String(form.get("district") ?? ""),
         pincode: String(form.get("pincode") ?? ""),
         contact_no: String(form.get("contact_no") ?? ""),
-        email: String(form.get("email") ?? ""),
-        fund_mode: fund === "mess_and_manager" ? "mess_and_manager" : "manager_only",
+        email: optionalText(form.get("email")),
+        fund_type: fund,
+        monthly_due_amount: 0,
+        monthly_due_date: null,
+        late_fee_amount: 0,
+        s_deposite_amount: fund === "mess_and_manager" ? (deposit ?? null) : null,
       });
       setSeat(result.seat);
       router.push("/mess");
@@ -67,15 +74,26 @@ export function SetupScreen() {
         </label>
         <label className="block text-sm text-stone-600">
           Email
-          <input name="email" type="email" required className={fieldClass} />
+          <input name="email" type="email" className={fieldClass} />
         </label>
         <label className="block text-sm text-stone-600 sm:col-span-2">
           Fund
-          <select name="fund_mode" className={fieldClass} defaultValue="manager_only">
+          <select
+            name="fund_type"
+            className={fieldClass}
+            value={fundType}
+            onChange={(event) => setFundType(event.target.value === "mess_and_manager" ? "mess_and_manager" : "manager_only")}
+          >
             <option value="manager_only">Manager fund only</option>
             <option value="mess_and_manager">Mess fund and manager fund</option>
           </select>
         </label>
+        {fundType === "mess_and_manager" ? (
+          <label className="block text-sm text-stone-600 sm:col-span-2">
+            Starting deposit
+            <input name="s_deposite_amount" type="number" min="0" step="0.01" className={fieldClass} />
+          </label>
+        ) : null}
         {error ? (
           <div className="sm:col-span-2">
             <Notice>{error}</Notice>
@@ -89,4 +107,16 @@ export function SetupScreen() {
       </form>
     </section>
   );
+}
+
+function optionalText(value: FormDataEntryValue | null) {
+  const text = String(value ?? "").trim();
+  return text || null;
+}
+
+function optionalNumber(value: FormDataEntryValue | null) {
+  const text = String(value ?? "").trim();
+  if (!text) return undefined;
+  const number = Number(text);
+  return Number.isFinite(number) ? number : undefined;
 }

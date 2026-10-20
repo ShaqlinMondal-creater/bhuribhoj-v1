@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { useMessUser } from "@/components/auth/MessSession";
 import { Icon } from "@/components/icons/Icon";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useApi } from "@/hooks/useApi";
 import { isPresident, roleLabel } from "@/lib/auth/roles";
 import { inr, initials } from "@/lib/format";
 import { depositService, type DepositRow } from "@/services/depositService";
-import { managerService } from "@/services/managerService";
 import { memberService, type MemberFilters, type MembersPage } from "@/services/memberService";
 import type { LaravelUser, Role } from "@/types/auth";
 
@@ -30,7 +30,6 @@ export function MembersScreen() {
   const [listError, setListError] = useState<string | null>(null);
   const [listLoading, setListLoading] = useState(allowed);
   const [refreshKey, setRefreshKey] = useState(0);
-  const managers = useApi(managerService.fetch, president);
   const deposits = useApi(depositService.fetchAll, allowed);
   const rows = list?.data ?? [];
   const depositsByUser = new Map<number, DepositRow[]>();
@@ -39,9 +38,6 @@ export function MembersScreen() {
     bucket.push(deposit);
     depositsByUser.set(deposit.user_id, bucket);
   }
-  const month = managers.data?.month ?? "";
-  const assigned = new Map((managers.data?.data ?? []).map((row) => [row.user_id, row.id]));
-  const [managerError, setManagerError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<LaravelUser | null>(null);
 
@@ -81,22 +77,6 @@ export function MembersScreen() {
     }));
   }
 
-  async function toggleManager(userId: number, assignmentId?: number) {
-    if (!month) return;
-    setManagerError(null);
-    try {
-      if (assignmentId) {
-        await managerService.remove(assignmentId);
-      } else {
-        await managerService.assign(userId, month);
-      }
-      managers.reload();
-      setRefreshKey((value) => value + 1);
-    } catch (err) {
-      setManagerError(err instanceof Error ? err.message : "Could not update the manager.");
-    }
-  }
-
   if (!user) {
     return <div className="h-40 animate-pulse rounded-2xl bg-white" />;
   }
@@ -126,10 +106,8 @@ export function MembersScreen() {
           title="Members"
           description={
             president
-              ? month
-                ? `People seated in this mess. Managers for ${month}: ${managers.data?.count ?? 0} of ${managers.data?.max ?? 2}.`
-                : "People seated in this mess. Assign up to two managers for the month from the action column."
-              : "People in this mess. Adding a member or assigning a manager stays with the president."
+              ? "People seated in this mess."
+              : "People in this mess. Adding a member stays with the president."
           }
         />
         {president ? (
@@ -148,7 +126,6 @@ export function MembersScreen() {
         onChange={patchFilters}
       />
       {listError ? <Notice>{listError}</Notice> : null}
-      {managerError ? <Notice>{managerError}</Notice> : null}
       {deposits.error ? <Notice>{deposits.error}</Notice> : null}
       {listLoading ? <div className="h-64 animate-pulse rounded-2xl bg-white" /> : null}
       {!listLoading && !listError && rows.length === 0 ? (
@@ -193,18 +170,6 @@ export function MembersScreen() {
                 </div>
                 {president ? (
                   <div className="flex items-center justify-end gap-2 md:col-span-2">
-                    {row.role !== "president" ? (
-                      <button
-                        type="button"
-                        disabled={!assigned.has(Number(row.id)) && (managers.data?.count ?? 0) >= 2}
-                        onClick={() =>
-                          void toggleManager(Number(row.id), assigned.get(Number(row.id)))
-                        }
-                        className="rounded-full border border-stone-200 px-2.5 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-40"
-                      >
-                        {assigned.has(Number(row.id)) ? "Remove manager" : "Make manager"}
-                      </button>
-                    ) : null}
                     <button
                       type="button"
                       onClick={() => setEditing(row)}
@@ -292,7 +257,7 @@ function AddMemberDialog({ onClose, onCreated }: { onClose: () => void; onCreate
         </label>
         <label className="block text-sm text-stone-600">
           Password
-          <input name="password" type="password" required minLength={8} className={fieldClass} />
+          <PasswordInput name="password" required minLength={8} autoComplete="new-password" className={fieldClass} />
         </label>
         <label className="block text-sm text-stone-600">
           Mobile

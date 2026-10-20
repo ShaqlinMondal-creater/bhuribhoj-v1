@@ -17,7 +17,7 @@ export function MessesScreen() {
       {error ? <Notice>{error}</Notice> : null}
       {loading ? <div className="h-40 animate-pulse rounded-2xl bg-white" /> : null}
       {!loading && !error && rows.length === 0 ? (
-        <EmptyState icon="building" title="No messes yet" description="An accepted invitation creates the first mess." />
+        <EmptyState icon="building" title="No messes yet" description="A president creates the first mess after payment." />
       ) : null}
       {rows.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2">

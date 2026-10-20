@@ -7,7 +7,6 @@ export type IconName =
   | "wallet"
   | "building"
   | "plans"
-  | "mail"
   | "logout"
   | "shield"
   | "mark"

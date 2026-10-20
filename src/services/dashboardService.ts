@@ -17,15 +17,6 @@ export type DashboardPayload = {
   } | null;
   my_totals: {
     total_deposit: number;
-    guest_meals_amount: number;
-    pending_fines: number;
-    pending_dues: Array<{
-      id: number;
-      month: string;
-      amount: string | number;
-      late_fee: string | number;
-      status: string;
-    }>;
   } | null;
 };
 

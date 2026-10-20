@@ -1,38 +1,59 @@
 "use client";
 
 import { useState } from "react";
-import { useMessUser } from "@/components/auth/MessSession";
+import { useMessUser, useSetMessSeat, useSetMessUser } from "@/components/auth/MessSession";
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { useApi } from "@/hooks/useApi";
 import { isPresident } from "@/lib/auth/roles";
+import type { FundType } from "@/lib/api/mess";
 import { inr } from "@/lib/format";
+import { authService } from "@/services/authService";
 import { dashboardService } from "@/services/dashboardService";
 import { mealService } from "@/services/mealService";
 import { menuService } from "@/services/menuService";
-import { messService, type House } from "@/services/messService";
+import { messService, type GuestMealSetup, type House } from "@/services/messService";
+
+const fieldClass =
+  "mt-1 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 outline-none focus:border-emerald-700 disabled:bg-stone-50 disabled:text-stone-500";
 
 const tabs = [
   { id: "config", label: "Mess config" },
   { id: "meals", label: "Meal setup" },
-  { id: "reports", label: "Analytics reports" },
+  { id: "reports", label: "Reports" },
 ] as const;
 
-type TabId = (typeof tabs)[number]["id"];
+const emptyHouse = {
+  id: 0,
+  name: "",
+  code: "",
+  address: "",
+  district: "",
+  pincode: "",
+  contact_no: "",
+  email: "",
+  fund_type: "manager_only",
+  is_active: false,
+  monthly_due_amount: "",
+  monthly_due_date: "",
+  late_fee_amount: "",
+  s_deposite_amount: "",
+} as House;
 
 export function HouseScreen() {
   const user = useMessUser();
   const president = isPresident(user?.role);
-  const [tab, setTab] = useState<TabId>("config");
   const house = useApi(messService.house);
+  const [tab, setTab] = useState<(typeof tabs)[number]["id"]>("config");
+  const current = house.data?.data ?? emptyHouse;
 
   return (
     <section className="space-y-6">
       <PageHeader
         eyebrow="House"
-        title={house.data?.data.name ?? "Mess house"}
-        description="Mess config, meal setup, and the month's reports."
+        title={current.name || "Mess house"}
+        description="Mess config, guest meal prices, and the month's reports."
       />
       <div className="flex gap-2 overflow-x-auto">
         {tabs.map((item) => (
@@ -52,13 +73,11 @@ export function HouseScreen() {
       {tab === "config" ? (
         house.loading ? (
           <div className="h-64 animate-pulse rounded-2xl bg-white" />
-        ) : house.data?.data ? (
-          <MessConfig house={house.data.data} canEdit={president} onSaved={house.reload} />
-        ) : null
+        ) : (
+          <MessConfig key={current.id || "new"} house={current} canEdit={president} onSaved={house.reload} />
+        )
       ) : null}
-      {tab === "meals" ? (
-        <MealSetup house={house.data?.data ?? null} canEditPrices={president} onSaved={house.reload} />
-      ) : null}
+      {tab === "meals" ? <MealSetup house={house.data?.data ?? null} canEdit={president && !!current.id} /> : null}
       {tab === "reports" ? <AnalyticsReport /> : null}
     </section>
   );
@@ -73,31 +92,46 @@ function MessConfig({
   canEdit: boolean;
   onSaved: () => void;
 }) {
+  const setUser = useSetMessUser();
+  const setSeat = useSetMessSeat();
+  const [fundType, setFundType] = useState<FundType>(house.fund_type === "mess_and_manager" ? "mess_and_manager" : "manager_only");
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const creating = !house.id;
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canEdit) return;
     const data = new FormData(event.currentTarget);
+    const fund = data.get("fund_type") === "mess_and_manager" ? "mess_and_manager" : "manager_only";
+    const body = {
+      name: String(data.get("name") ?? ""),
+      address: String(data.get("address") ?? ""),
+      district: String(data.get("district") ?? ""),
+      pincode: String(data.get("pincode") ?? ""),
+      contact_no: String(data.get("contact_no") ?? ""),
+      email: optionalText(data.get("email")),
+      fund_type: fund,
+      monthly_due_amount: numberValue(data.get("monthly_due_amount")),
+      monthly_due_date: optionalText(data.get("monthly_due_date")),
+      late_fee_amount: numberValue(data.get("late_fee_amount")),
+      s_deposite_amount: fund === "mess_and_manager" ? (optionalNumber(data.get("s_deposite_amount")) ?? null) : null,
+    } as const;
     setPending(true);
     setError(null);
     setDone(null);
     try {
-      const result = await messService.update({
-        name: String(data.get("name") ?? ""),
-        address: String(data.get("address") ?? ""),
-        district: String(data.get("district") ?? ""),
-        pincode: String(data.get("pincode") ?? ""),
-        contact_no: String(data.get("contact_no") ?? ""),
-        email: String(data.get("email") ?? ""),
-        fund_mode: String(data.get("fund_mode") ?? house.fund_mode),
-        monthly_due_amount: Number(data.get("monthly_due_amount")),
-        monthly_due_day: Number(data.get("monthly_due_day")),
-        late_fee_amount: Number(data.get("late_fee_amount")),
-      });
-      setDone(result.message);
+      if (creating) {
+        const opened = await messService.open(body);
+        const next = await authService.currentUser();
+        setUser(next.user);
+        setSeat(next.seat);
+        setDone(opened.message);
+      } else {
+        const result = await messService.update(body);
+        setDone(result.message);
+      }
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save the mess.");
@@ -110,68 +144,70 @@ function MessConfig({
     <form onSubmit={onSubmit} className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm shadow-stone-900/5">
       <h2 className="text-sm font-semibold text-stone-900">Mess config</h2>
       <p className="mt-1 text-sm text-stone-500">Name, address, fund, and the monthly due. A manager can read this and cannot save it.</p>
+      {error ? <div className="mt-4"><Notice>{error}</Notice></div> : null}
+      {done ? <p className="mt-4 text-sm text-emerald-800">{done}</p> : null}
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <Field label="Name" name="name" defaultValue={house.name} disabled={!canEdit} />
+        <Field label="Name" name="name" defaultValue={house.name} disabled={!canEdit} required />
         <Field label="Code" name="code" defaultValue={house.code} disabled />
-        <Field label="Address" name="address" defaultValue={house.address} disabled={!canEdit} />
-        <Field label="District" name="district" defaultValue={house.district} disabled={!canEdit} />
-        <Field label="Pincode" name="pincode" defaultValue={house.pincode} disabled={!canEdit} />
-        <Field label="Contact" name="contact_no" defaultValue={house.contact_no} disabled={!canEdit} />
-        <Field label="Email" name="email" type="email" defaultValue={house.email} disabled={!canEdit} />
+        <Field label="Address" name="address" defaultValue={house.address} disabled={!canEdit} required />
+        <Field label="District" name="district" defaultValue={house.district} disabled={!canEdit} required />
+        <Field label="Pincode" name="pincode" defaultValue={house.pincode} disabled={!canEdit} required />
+        <Field label="Contact" name="contact_no" defaultValue={house.contact_no} disabled={!canEdit} required />
+        <Field label="Email" name="email" type="email" defaultValue={house.email ?? ""} disabled={!canEdit} />
         <label className="block text-sm text-stone-600">
           Fund
-          <select name="fund_mode" defaultValue={house.fund_mode} disabled={!canEdit} className={fieldClass}>
+          <select
+            name="fund_type"
+            className={fieldClass}
+            value={fundType}
+            disabled={!canEdit}
+            onChange={(event) => setFundType(event.target.value === "mess_and_manager" ? "mess_and_manager" : "manager_only")}
+          >
             <option value="manager_only">Manager fund only</option>
             <option value="mess_and_manager">Mess fund and manager fund</option>
           </select>
         </label>
-        <Field label="Monthly due" name="monthly_due_amount" type="number" defaultValue={String(house.monthly_due_amount)} disabled={!canEdit} />
-        <Field label="Due day" name="monthly_due_day" type="number" defaultValue={String(house.monthly_due_day)} disabled={!canEdit} />
-        <Field label="Late fee" name="late_fee_amount" type="number" defaultValue={String(house.late_fee_amount)} disabled={!canEdit} />
+        {fundType === "mess_and_manager" ? (
+          <Field label="Starting deposit" name="s_deposite_amount" type="number" defaultValue={house.s_deposite_amount == null ? "" : String(house.s_deposite_amount)} disabled={!canEdit} />
+        ) : null}
+        <Field label="Monthly due amount" name="monthly_due_amount" type="number" defaultValue={house.monthly_due_amount === "" ? "" : String(house.monthly_due_amount)} disabled={!canEdit} />
+        <Field label="Monthly due date" name="monthly_due_date" defaultValue={house.monthly_due_date ?? ""} disabled={!canEdit} placeholder="dd-mm-yyyy" />
+        <Field label="Late fee" name="late_fee_amount" type="number" defaultValue={house.late_fee_amount === "" ? "" : String(house.late_fee_amount)} disabled={!canEdit} />
       </div>
-      {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
-      {done ? <p className="mt-3 text-sm text-emerald-800">{done}</p> : null}
       {canEdit ? (
         <button type="submit" disabled={pending} className="mt-4 rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900 disabled:opacity-60">
-          {pending ? "Saving…" : "Save config"}
+          {pending ? "Saving…" : creating ? "Save mess" : "Save config"}
         </button>
       ) : null}
     </form>
   );
 }
 
-function MealSetup({
-  house,
-  canEditPrices,
-  onSaved,
-}: {
-  house: House | null;
-  canEditPrices: boolean;
-  onSaved: () => void;
-}) {
-  const menus = useApi(menuService.fetch);
+function MealSetup({ house, canEdit }: { house: House | null; canEdit: boolean }) {
+  const meals = useApi(messService.guestMeals, Boolean(house?.id) && canEdit);
+  const menus = useApi(menuService.fetch, Boolean(house?.id));
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  async function savePrices(event: React.FormEvent<HTMLFormElement>) {
+  async function addMeal(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!canEditPrices || !house) return;
-    const data = new FormData(event.currentTarget);
+    if (!canEdit) return;
+    const form = event.currentTarget;
+    const data = new FormData(form);
     setPending(true);
     setError(null);
     setDone(null);
     try {
-      const result = await messService.update({
-        guest_chicken_price: Number(data.get("guest_chicken_price")),
-        guest_fish_price: Number(data.get("guest_fish_price")),
-        guest_egg_price: Number(data.get("guest_egg_price")),
-        guest_veg_price: Number(data.get("guest_veg_price")),
+      const result = await messService.saveGuestMeal({
+        meal_name: String(data.get("meal_name") ?? ""),
+        price: numberValue(data.get("price")),
       });
+      form.reset();
       setDone(result.message);
-      onSaved();
+      meals.reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save meal prices.");
+      setError(err instanceof Error ? err.message : "Could not add the guest meal.");
     } finally {
       setPending(false);
     }
@@ -200,27 +236,33 @@ function MealSetup({
     }
   }
 
+  if (!house?.id) {
+    return <Notice>Save the mess config first.</Notice>;
+  }
+
   return (
     <div className="space-y-4">
-      {error ? <Notice>{error}</Notice> : null}
+      {error || meals.error ? <Notice>{error || meals.error}</Notice> : null}
       {done ? <p className="text-sm text-emerald-800">{done}</p> : null}
-      {house ? (
-        <form onSubmit={savePrices} className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm shadow-stone-900/5">
-          <h2 className="text-sm font-semibold text-stone-900">Guest meal prices</h2>
-          <p className="mt-1 text-sm text-stone-500">What a guest pays for each plate. Only the president saves these.</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <Field label="Chicken" name="guest_chicken_price" type="number" defaultValue={String(house.guest_chicken_price)} disabled={!canEditPrices} />
-            <Field label="Fish" name="guest_fish_price" type="number" defaultValue={String(house.guest_fish_price)} disabled={!canEditPrices} />
-            <Field label="Egg" name="guest_egg_price" type="number" defaultValue={String(house.guest_egg_price)} disabled={!canEditPrices} />
-            <Field label="Veg" name="guest_veg_price" type="number" defaultValue={String(house.guest_veg_price)} disabled={!canEditPrices} />
-          </div>
-          {canEditPrices ? (
-            <button type="submit" disabled={pending} className="mt-4 rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900 disabled:opacity-60">
-              {pending ? "Saving…" : "Save prices"}
+      <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm shadow-stone-900/5">
+        <h2 className="text-sm font-semibold text-stone-900">Guest meal prices</h2>
+        <p className="mt-1 text-sm text-stone-500">What a guest pays for each plate. Only the president saves these.</p>
+        <div className="mt-4 space-y-3">
+          {(meals.data?.data ?? []).map((row) => (
+            <GuestMealRow key={row.id} row={row} canEdit={canEdit} onChanged={(message) => { setDone(message); setError(null); meals.reload(); }} onFailed={setError} />
+          ))}
+          {!meals.loading && (meals.data?.data.length ?? 0) === 0 ? <p className="text-sm text-stone-500">No guest meals yet.</p> : null}
+        </div>
+        {canEdit ? (
+          <form onSubmit={addMeal} className="mt-4 grid gap-3 sm:grid-cols-[1fr_8rem_auto]">
+            <input name="meal_name" required placeholder="Meal name" className={fieldClass} />
+            <input name="price" type="number" min="0" step="0.01" required placeholder="Price" className={fieldClass} />
+            <button type="submit" disabled={pending} className="rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900 disabled:opacity-60">
+              Add
             </button>
-          ) : null}
-        </form>
-      ) : null}
+          </form>
+        ) : null}
+      </div>
       <form onSubmit={saveMenu} className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm shadow-stone-900/5">
         <h2 className="text-sm font-semibold text-stone-900">Menu</h2>
         <p className="mt-1 text-sm text-stone-500">Lunch or dinner for a date. The president and the manager can save this.</p>
@@ -259,6 +301,68 @@ function MealSetup({
   );
 }
 
+function GuestMealRow({
+  row,
+  canEdit,
+  onChanged,
+  onFailed,
+}: {
+  row: GuestMealSetup;
+  canEdit: boolean;
+  onChanged: (message: string) => void;
+  onFailed: (message: string) => void;
+}) {
+  const [pending, setPending] = useState(false);
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!canEdit) return;
+    const data = new FormData(event.currentTarget);
+    setPending(true);
+    try {
+      const result = await messService.saveGuestMeal({
+        id: row.id,
+        meal_name: String(data.get("meal_name") ?? ""),
+        price: numberValue(data.get("price")),
+      });
+      onChanged(result.message);
+    } catch (err) {
+      onFailed(err instanceof Error ? err.message : "Could not save the guest meal.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function onDelete() {
+    setPending(true);
+    try {
+      const result = await messService.removeGuestMeal(row.id);
+      onChanged(result.message);
+    } catch (err) {
+      onFailed(err instanceof Error ? err.message : "Could not delete the guest meal.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-[1fr_8rem_auto]">
+      <input name="meal_name" defaultValue={row.meal_name} disabled={!canEdit} required className={fieldClass} />
+      <input name="price" type="number" min="0" step="0.01" defaultValue={String(row.price)} disabled={!canEdit} required className={fieldClass} />
+      {canEdit ? (
+        <div className="flex gap-2">
+          <button type="submit" disabled={pending} className="rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
+            Save
+          </button>
+          <button type="button" disabled={pending} onClick={onDelete} className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-semibold text-stone-700 disabled:opacity-60">
+            Delete
+          </button>
+        </div>
+      ) : null}
+    </form>
+  );
+}
+
 function AnalyticsReport() {
   const report = useApi(dashboardService.fetch);
   const meals = useApi(mealService.fetch);
@@ -280,19 +384,6 @@ function AnalyticsReport() {
         <StatCard label="Dinner on" value={meals.data?.summary.dinner_active ?? 0} icon="meals" />
         <StatCard label="My deposits" value={inr(report.data?.my_totals?.total_deposit)} icon="wallet" />
       </div>
-      {(report.data?.my_totals?.pending_dues.length ?? 0) > 0 ? (
-        <ul className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-          {report.data?.my_totals?.pending_dues.map((due) => (
-            <li key={due.id} className="flex items-center justify-between gap-3 border-b border-stone-100 px-5 py-3.5 last:border-0">
-              <div>
-                <p className="text-sm font-medium text-stone-900">{due.month}</p>
-                <p className="text-xs capitalize text-stone-500">{due.status}</p>
-              </div>
-              <p className="text-sm font-semibold text-stone-900">{inr(Number(due.amount) + Number(due.late_fee))}</p>
-            </li>
-          ))}
-        </ul>
-      ) : null}
     </div>
   );
 }
@@ -303,19 +394,47 @@ function Field({
   defaultValue,
   type = "text",
   disabled,
+  required,
+  placeholder,
 }: {
   label: string;
   name: string;
   defaultValue?: string;
   type?: string;
   disabled?: boolean;
+  required?: boolean;
+  placeholder?: string;
 }) {
   return (
     <label className="block text-sm text-stone-600">
       {label}
-      <input name={name} type={type} defaultValue={defaultValue} disabled={disabled} required={type === "date"} step={type === "number" ? "0.01" : undefined} className={fieldClass} />
+      <input
+        name={name}
+        type={type}
+        defaultValue={defaultValue}
+        disabled={disabled}
+        required={required}
+        placeholder={placeholder}
+        step={type === "number" ? "0.01" : undefined}
+        min={type === "number" ? "0" : undefined}
+        className={fieldClass}
+      />
     </label>
   );
 }
 
-const fieldClass = "mt-1 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 outline-none focus:border-emerald-700 disabled:bg-stone-50 disabled:text-stone-500";
+function optionalText(value: FormDataEntryValue | null) {
+  const text = String(value ?? "").trim();
+  return text || null;
+}
+
+function optionalNumber(value: FormDataEntryValue | null) {
+  const text = String(value ?? "").trim();
+  if (!text) return undefined;
+  const number = Number(text);
+  return Number.isFinite(number) ? number : undefined;
+}
+
+function numberValue(value: FormDataEntryValue | null) {
+  return optionalNumber(value) ?? 0;
+}

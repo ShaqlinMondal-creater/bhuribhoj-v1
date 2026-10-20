@@ -8,7 +8,6 @@ import type { AuthUser } from "@/types/auth";
 const items: NavItem[] = [
   { href: "/admin", label: "Overview", icon: "grid" },
   { href: "/admin/messes", label: "Messes", icon: "building" },
-  { href: "/admin/invitations", label: "Invitations", icon: "mail" },
 ];
 
 export function AdminShell({

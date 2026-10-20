@@ -13,6 +13,8 @@ export async function fetchMembers(body: { limit?: number; offset?: number } = {
   return apiFetch<MembersPage>("/members/fetch", { method: "POST", body });
 }
 
+export type FundType = "manager_only" | "mess_and_manager";
+
 export type MessRecord = {
   id: number;
   name: string;
@@ -21,8 +23,8 @@ export type MessRecord = {
   district: string;
   pincode: string;
   contact_no: string;
-  email: string;
-  fund_mode: string;
+  email: string | null;
+  fund_type: FundType;
   is_active: boolean;
 };
 

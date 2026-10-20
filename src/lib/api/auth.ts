@@ -67,9 +67,6 @@ export async function fetchDashboard() {
     } | null;
     my_totals: {
       total_deposit: number;
-      guest_meals_amount: number;
-      pending_fines: number;
-      pending_dues: unknown[];
     } | null;
   }>("/dashboard/fetch", { method: "POST", body: {} });
 }

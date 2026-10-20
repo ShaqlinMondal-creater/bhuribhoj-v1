@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useMessUser, useSetMessUser } from "@/components/auth/MessSession";
 import { Icon } from "@/components/icons/Icon";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { roleLabel } from "@/lib/auth/roles";
 import { initials } from "@/lib/format";
 import { authService } from "@/services/authService";
@@ -182,23 +183,25 @@ function ProfileForm({ user }: { user: AuthUser }) {
               <input value={mobile} onChange={(event) => setMobile(event.target.value)} disabled={!editing} className={fieldClass} />
             </Field>
             <Field label="New password">
-              <input
-                type="password"
+              <PasswordInput
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 disabled={!editing}
                 minLength={8}
                 placeholder="Leave blank to keep current"
+                autoComplete="new-password"
+                toggleLabel="new password"
                 className={fieldClass}
               />
             </Field>
             <Field label="Confirm password">
-              <input
-                type="password"
+              <PasswordInput
                 value={confirm}
                 onChange={(event) => setConfirm(event.target.value)}
                 disabled={!editing}
                 placeholder="Re-enter new password"
+                autoComplete="new-password"
+                toggleLabel="confirm password"
                 className={fieldClass}
               />
             </Field>

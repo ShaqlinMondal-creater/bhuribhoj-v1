@@ -6,6 +6,7 @@ import { ApiError } from "@/lib/api/errors";
 import { kolkataDateTime } from "@/lib/format";
 import { setToken } from "@/lib/auth/token";
 import { startSessionAction } from "@/app/actions/auth";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { authService } from "@/services/authService";
 
 const fieldClass =
@@ -99,51 +100,20 @@ function PasswordField({
   label: string;
   autoComplete: string;
 }) {
-  const [visible, setVisible] = useState(false);
-
   return (
     <label className="block text-xs uppercase tracking-[0.16em] text-[#e2b657]" htmlFor={id}>
       {label}
-      <span className="relative mt-2 block">
-        <input
-          id={id}
-          name={name}
-          type={visible ? "text" : "password"}
-          required
-          minLength={8}
-          autoComplete={autoComplete}
-          className={`${fieldClass} mt-0 pr-12`}
-        />
-        <button
-          type="button"
-          onClick={() => setVisible((current) => !current)}
-          className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-[#e2b657]"
-          aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
-        >
-          {visible ? <EyeOffIcon /> : <EyeIcon />}
-        </button>
-      </span>
+      <PasswordInput
+        id={id}
+        name={name}
+        required
+        minLength={8}
+        autoComplete={autoComplete}
+        tone="dark"
+        toggleLabel={label.toLowerCase()}
+        className={fieldClass}
+      />
     </label>
-  );
-}
-
-function EyeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
-      <path d="M2.5 12S6 6.5 12 6.5 21.5 12 21.5 12 18 17.5 12 17.5 2.5 12 2.5 12Z" />
-      <circle cx="12" cy="12" r="2.5" />
-    </svg>
-  );
-}
-
-function EyeOffIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
-      <path d="M4 5.5 19 19" />
-      <path d="M9.5 9.8A3 3 0 0 0 12 15a3 3 0 0 0 2.2-.9" />
-      <path d="M6.2 7.4C4.2 8.8 2.5 12 2.5 12S6 17.5 12 17.5c1.4 0 2.6-.3 3.7-.8" />
-      <path d="M10 6.7A8 8 0 0 1 12 6.5c6 0 9.5 5.5 9.5 5.5a16 16 0 0 1-2.2 2.8" />
-    </svg>
   );
 }
 
