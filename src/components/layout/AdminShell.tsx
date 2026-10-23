@@ -51,6 +51,7 @@ export function AdminShell({
   user: AuthUser | null;
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
   const [open, setOpen] = useState(true);
   const [menu, setMenu] = useState(false);
   const first = user?.name.split(" ")[0] ?? "";
@@ -122,9 +123,24 @@ export function AdminShell({
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent)] text-xs font-semibold text-[var(--accent-ink)]">
-                {user ? initials(user.name) : ""}
-              </span>
+              <Link
+                href="/admin/profile"
+                aria-current={pathname === "/admin/profile" ? "page" : undefined}
+                className={`flex items-center gap-2.5 rounded-full py-1 pl-1 pr-3 transition hover:bg-stone-100 ${
+                  pathname === "/admin/profile" ? "bg-stone-100" : ""
+                }`}
+              >
+                <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[var(--accent)] text-xs font-semibold text-[var(--accent-ink)]">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+                  ) : user ? (
+                    initials(user.name)
+                  ) : (
+                    ""
+                  )}
+                </span>
+                <span className="text-sm font-medium text-stone-800">Profile</span>
+              </Link>
               <SignOutButton tone="admin" iconOnly />
             </div>
           </div>

@@ -12,6 +12,8 @@ import type { AuthUser } from "@/types/auth";
 export function ProfileScreen() {
   const user = useMessUser();
 
+  const setUser = useSetMessUser();
+
   if (!user) {
     return <div className="h-64 animate-pulse rounded-2xl bg-white" />;
   }
@@ -20,12 +22,32 @@ export function ProfileScreen() {
     <ProfileForm
       key={`${user.name}|${user.email}|${user.mobile}|${user.avatar?.length ?? 0}`}
       user={user}
+      onUser={setUser}
     />
   );
 }
 
-function ProfileForm({ user }: { user: AuthUser }) {
-  const setUser = useSetMessUser();
+export function AccountProfile({
+  user,
+  onUser,
+}: {
+  user: AuthUser | null;
+  onUser: (user: AuthUser) => void;
+}) {
+  if (!user) {
+    return <div className="h-64 animate-pulse rounded-2xl bg-white" />;
+  }
+
+  return (
+    <ProfileForm
+      key={`${user.name}|${user.email}|${user.mobile}|${user.avatar?.length ?? 0}`}
+      user={user}
+      onUser={onUser}
+    />
+  );
+}
+
+function ProfileForm({ user, onUser }: { user: AuthUser; onUser: (user: AuthUser) => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user.name);
@@ -86,7 +108,7 @@ function ProfileForm({ user }: { user: AuthUser }) {
           ? { password, password_confirmation: confirm }
           : {}),
       });
-      setUser(next);
+      onUser(next);
       setPassword("");
       setConfirm("");
       setEditing(false);
