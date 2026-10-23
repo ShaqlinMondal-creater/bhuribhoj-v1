@@ -31,27 +31,27 @@ export type GuestMealSetup = {
 
 export const messService = {
   fetch() {
-    return apiClient<{ data?: MessRecord[] } | MessRecord>("/messes/fetch", { method: "POST", body: {} });
+    return apiClient<{ data?: MessRecord[] } | MessRecord>("/admin/messes/fetch", { method: "POST", body: {} });
   },
   house() {
-    return apiClient<{ data: House | null }>("/messes/fetch", { method: "POST", body: {} });
+    return apiClient<{ data: House | null }>("/president/messes/fetch", { method: "POST", body: {} });
   },
   update(body: Partial<MessWrite>) {
-    return apiClient<{ message: string; data: House }>("/messes/update", { method: "POST", body });
+    return apiClient<{ message: string; data: House }>("/president/messes/update", { method: "POST", body });
   },
   open(body: MessWrite) {
-    return apiClient<{ message: string; seat: AccountSeat }>("/messes/open", { method: "POST", body });
+    return apiClient<{ message: string; seat: AccountSeat }>("/president/messes/open", { method: "POST", body });
   },
   guestMeals() {
-    return apiClient<{ data: GuestMealSetup[] }>("/guest-meal-setup/fetch", { method: "POST", body: {} });
+    return apiClient<{ data: GuestMealSetup[] }>("/president/guest-meal-setup/fetch", { method: "POST", body: {} });
   },
   saveGuestMeal(body: { id?: number; meal_name: string; price: number }) {
     if (body.id) {
-      return apiClient<{ message: string; data: GuestMealSetup }>("/guest-meal-setup/update", { method: "POST", body });
+      return apiClient<{ message: string; data: GuestMealSetup }>("/president/guest-meal-setup/update", { method: "POST", body });
     }
-    return apiClient<{ message: string; data: GuestMealSetup }>("/guest-meal-setup/create", { method: "POST", body });
+    return apiClient<{ message: string; data: GuestMealSetup }>("/president/guest-meal-setup/create", { method: "POST", body });
   },
   removeGuestMeal(id: number) {
-    return apiClient<{ message: string }>(`/guest-meal-setup/${id}/delete`, { method: "DELETE" });
+    return apiClient<{ message: string }>(`/president/guest-meal-setup/${id}/delete`, { method: "DELETE" });
   },
 };

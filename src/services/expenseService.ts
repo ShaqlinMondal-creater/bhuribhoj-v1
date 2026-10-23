@@ -1,4 +1,6 @@
 import { apiClient } from "@/lib/api/client";
+import { doorFor } from "@/lib/api/door";
+import type { Role } from "@/types/auth";
 
 export type ExpenseRow = {
   id: number;
@@ -25,10 +27,10 @@ export type NewExpense = {
 };
 
 export const expenseService = {
-  fetch() {
-    return apiClient<ExpensesPayload>("/expenses/fetch", { method: "POST", body: {} });
+  fetch(role: Role) {
+    return apiClient<ExpensesPayload>(`${doorFor(role)}/expenses/fetch`, { method: "POST", body: {} });
   },
-  create(body: NewExpense) {
-    return apiClient<{ message: string }>("/expenses/create", { method: "POST", body });
+  create(role: Role, body: NewExpense) {
+    return apiClient<{ message: string }>(`${doorFor(role)}/expenses/create`, { method: "POST", body });
   },
 };

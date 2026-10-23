@@ -7,7 +7,7 @@ import { useApi } from "@/hooks/useApi";
 import { dashboardService } from "@/services/dashboardService";
 
 export function OverviewScreen() {
-  const { data, error, loading } = useApi(dashboardService.fetch);
+  const { data, error, loading } = useApi(() => dashboardService.fetch("admin"));
   const platform = data?.platform;
 
   return (

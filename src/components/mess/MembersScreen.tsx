@@ -30,7 +30,7 @@ export function MembersScreen() {
   const [listError, setListError] = useState<string | null>(null);
   const [listLoading, setListLoading] = useState(allowed);
   const [refreshKey, setRefreshKey] = useState(0);
-  const deposits = useApi(depositService.fetchAll, allowed);
+  const deposits = useApi(() => depositService.fetchAll(user?.role ?? "president"), president);
   const rows = list?.data ?? [];
   const depositsByUser = new Map<number, DepositRow[]>();
   for (const deposit of deposits.data ?? []) {
@@ -42,7 +42,7 @@ export function MembersScreen() {
   const [editing, setEditing] = useState<LaravelUser | null>(null);
 
   useEffect(() => {
-    if (!allowed) {
+    if (!allowed || !user) {
       setListLoading(false);
       return;
     }
@@ -50,7 +50,7 @@ export function MembersScreen() {
     let cancelled = false;
     setListLoading(true);
     memberService
-      .fetch(filters)
+      .fetch(user.role, filters)
       .then((value) => {
         if (!cancelled) {
           setList(value);
@@ -67,7 +67,7 @@ export function MembersScreen() {
     return () => {
       cancelled = true;
     };
-  }, [allowed, filters, refreshKey]);
+  }, [allowed, filters, refreshKey, user]);
 
   function patchFilters(partial: Partial<MemberFilters>, resetPage = true) {
     setFilters((current) => ({
@@ -230,7 +230,7 @@ function AddMemberDialog({ onClose, onCreated }: { onClose: () => void; onCreate
     setPending(true);
     setError(null);
     try {
-      await memberService.create({
+      await memberService.create("president", {
         name: String(data.get("name") ?? ""),
         email: String(data.get("email") ?? ""),
         password: String(data.get("password") ?? ""),
@@ -301,7 +301,7 @@ function EditMemberDialog({
     setPending(true);
     setError(null);
     try {
-      await memberService.update({
+      await memberService.update("president", {
         user_id: Number(member.id),
         name: String(data.get("name") ?? ""),
         mobile: String(data.get("mobile") ?? "") || undefined,

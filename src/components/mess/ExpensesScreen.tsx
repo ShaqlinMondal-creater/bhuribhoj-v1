@@ -8,11 +8,12 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { useApi } from "@/hooks/useApi";
 import { inr } from "@/lib/format";
 import { expenseService, type NewExpense } from "@/services/expenseService";
+import type { Role } from "@/types/auth";
 
 export function ExpensesScreen() {
   const user = useMessUser();
   const canRecord = user?.role === "president" || user?.role === "manager";
-  const { data, error, loading, reload } = useApi(expenseService.fetch);
+  const { data, error, loading, reload } = useApi(() => expenseService.fetch(user?.role ?? "member"), Boolean(user));
   const rows = data?.data ?? [];
 
   return (
@@ -22,7 +23,7 @@ export function ExpensesScreen() {
         title="Expenses"
         description={data ? `Recorded total ${inr(data.total_amount)}` : "Market, constant, feast, and tour spending."}
       />
-      {canRecord ? <ExpenseForm onCreated={reload} /> : null}
+      {canRecord && user ? <ExpenseForm role={user.role} onCreated={reload} /> : null}
       {error ? <Notice>{error}</Notice> : null}
       {loading ? <div className="h-40 animate-pulse rounded-2xl bg-white" /> : null}
       {!loading && !error && rows.length === 0 ? (
@@ -47,7 +48,7 @@ export function ExpensesScreen() {
   );
 }
 
-function ExpenseForm({ onCreated }: { onCreated: () => void }) {
+function ExpenseForm({ role, onCreated }: { role: Role; onCreated: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -68,7 +69,7 @@ function ExpenseForm({ onCreated }: { onCreated: () => void }) {
     setError(null);
     setDone(null);
     try {
-      const result = await expenseService.create(body);
+      const result = await expenseService.create(role, body);
       form.reset();
       setDone(result.message);
       onCreated();

@@ -44,6 +44,7 @@ export type Plan = {
   slug: string;
   duration_months: number;
   price_inr: number;
+  is_active?: boolean;
 };
 
 export function mapLaravelUser(user: LaravelUser): AuthUser {

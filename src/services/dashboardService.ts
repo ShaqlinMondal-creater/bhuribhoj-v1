@@ -1,5 +1,6 @@
 import { apiClient } from "@/lib/api/client";
-import type { LaravelUser } from "@/types/auth";
+import { doorFor } from "@/lib/api/door";
+import type { LaravelUser, Role } from "@/types/auth";
 
 export type DashboardPayload = {
   user: LaravelUser;
@@ -21,7 +22,7 @@ export type DashboardPayload = {
 };
 
 export const dashboardService = {
-  fetch() {
-    return apiClient<DashboardPayload>("/dashboard/fetch", { method: "POST", body: {} });
+  fetch(role: Role) {
+    return apiClient<DashboardPayload>(`${doorFor(role)}/dashboard/fetch`, { method: "POST", body: {} });
   },
 };

@@ -1,4 +1,6 @@
 import { apiClient } from "@/lib/api/client";
+import { doorFor } from "@/lib/api/door";
+import type { Role } from "@/types/auth";
 
 export type MealRow = {
   id: number;
@@ -21,8 +23,8 @@ export type MealsPayload = {
 };
 
 export const mealService = {
-  fetch(mealDate?: string) {
-    return apiClient<MealsPayload>("/daily-meals/fetch", {
+  fetch(role: Role, mealDate?: string) {
+    return apiClient<MealsPayload>(`${doorFor(role)}/daily-meals/fetch`, {
       method: "POST",
       body: mealDate ? { meal_date: mealDate } : {},
     });

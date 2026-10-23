@@ -13,7 +13,7 @@ const DEDUPE_MS = 800;
 
 /**
  * Browser API client.
- * Calls same-origin /backend/*, which Next rewrites to Laravel /api/*.
+ * Calls same-origin /backend/*, which Next rewrites to the Laravel route.
  * The request and JSON response show in the browser Network tab.
  */
 export function apiClient<T>(path: string, options: ClientOptions = {}): Promise<T> {

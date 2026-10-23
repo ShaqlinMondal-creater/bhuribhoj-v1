@@ -5,13 +5,15 @@
 export const appConfig = {
   name: process.env.NEXT_PUBLIC_APP_NAME ?? "BhuriBhoj",
   url: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
-  /** Browser path proxied by Next rewrites → Laravel /api */
+  /** Browser path proxied by Next rewrites → the Laravel API. */
   publicApiBase: process.env.NEXT_PUBLIC_API_BASE ?? "/backend",
 } as const;
 
 /** Absolute Laravel API base used only on the server. */
 export function getLaravelApiBase(): string {
-  const origin = process.env.LARAVEL_API_ORIGIN ?? "http://127.0.0.1:8000";
+  // Local, off for now:
+  // const origin = process.env.LARAVEL_API_ORIGIN ?? "http://127.0.0.1:8000";
+  const origin = process.env.LARAVEL_API_ORIGIN ?? "https://bhuribhoj-api.liwaas.com";
   return `${origin.replace(/\/$/, "")}/api`;
 }
 

@@ -7,6 +7,7 @@ import type { AuthUser } from "@/types/auth";
 
 const items: NavItem[] = [
   { href: "/admin", label: "Overview", icon: "grid" },
+  { href: "/admin/plans", label: "Plans", icon: "plans" },
   { href: "/admin/messes", label: "Messes", icon: "building" },
 ];
 

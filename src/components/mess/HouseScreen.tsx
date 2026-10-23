@@ -8,6 +8,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { useApi } from "@/hooks/useApi";
 import { isPresident } from "@/lib/auth/roles";
 import type { FundType } from "@/lib/api/mess";
+import type { Role } from "@/types/auth";
 import { inr } from "@/lib/format";
 import { authService } from "@/services/authService";
 import { dashboardService } from "@/services/dashboardService";
@@ -77,8 +78,8 @@ export function HouseScreen() {
           <MessConfig key={current.id || "new"} house={current} canEdit={president} onSaved={house.reload} />
         )
       ) : null}
-      {tab === "meals" ? <MealSetup house={house.data?.data ?? null} canEdit={president && !!current.id} /> : null}
-      {tab === "reports" ? <AnalyticsReport /> : null}
+      {tab === "meals" ? <MealSetup house={house.data?.data ?? null} canEdit={president && !!current.id} role={user?.role ?? "president"} /> : null}
+      {tab === "reports" ? <AnalyticsReport role={user?.role ?? "president"} /> : null}
     </section>
   );
 }
@@ -183,9 +184,9 @@ function MessConfig({
   );
 }
 
-function MealSetup({ house, canEdit }: { house: House | null; canEdit: boolean }) {
+function MealSetup({ house, canEdit, role }: { house: House | null; canEdit: boolean; role: Role }) {
   const meals = useApi(messService.guestMeals, Boolean(house?.id) && canEdit);
-  const menus = useApi(menuService.fetch, Boolean(house?.id));
+  const menus = useApi(() => menuService.fetch(role), Boolean(house?.id));
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -221,7 +222,7 @@ function MealSetup({ house, canEdit }: { house: House | null; canEdit: boolean }
     setError(null);
     setDone(null);
     try {
-      const result = await menuService.save({
+      const result = await menuService.save(role, {
         menu_date: String(data.get("menu_date") ?? ""),
         meal_type: String(data.get("meal_type") ?? "lunch") as "lunch" | "dinner",
         dishes: String(data.get("dishes") ?? ""),
@@ -363,9 +364,9 @@ function GuestMealRow({
   );
 }
 
-function AnalyticsReport() {
-  const report = useApi(dashboardService.fetch);
-  const meals = useApi(mealService.fetch);
+function AnalyticsReport({ role }: { role: Role }) {
+  const report = useApi(() => dashboardService.fetch(role));
+  const meals = useApi(() => mealService.fetch(role));
   const totals = report.data?.mess_totals;
 
   return (

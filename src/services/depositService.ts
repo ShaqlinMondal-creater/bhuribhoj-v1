@@ -1,4 +1,6 @@
 import { apiClient } from "@/lib/api/client";
+import { doorFor } from "@/lib/api/door";
+import type { Role } from "@/types/auth";
 
 export type DepositRow = {
   id: number;
@@ -20,14 +22,14 @@ type DepositsPage = {
 };
 
 export const depositService = {
-  async fetchAll() {
+  async fetchAll(role: Role) {
     const limit = 100;
     let offset = 0;
     const rows: DepositRow[] = [];
     let count = 0;
 
     do {
-      const page = await apiClient<DepositsPage>("/deposits/fetch", {
+      const page = await apiClient<DepositsPage>(`${doorFor(role)}/deposits/fetch`, {
         method: "POST",
         body: { limit, offset },
       });

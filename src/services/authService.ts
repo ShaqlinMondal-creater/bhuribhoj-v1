@@ -23,7 +23,7 @@ function sessionFrom(data: LoginResponse) {
 
 export const authService = {
   async login(email: string, password: string) {
-    const data = await apiClient<LoginResponse>("/auth/login", {
+    const data = await apiClient<LoginResponse>("/public/auth/login", {
       method: "POST",
       auth: false,
       body: { email, password, device_name: "bhuribhoj-web" },
@@ -33,7 +33,7 @@ export const authService = {
   },
 
   registerEmail(email: string) {
-    return apiClient<{ message: string }>("/auth/register/email", {
+    return apiClient<{ message: string }>("/public/auth/register/email", {
       method: "POST",
       auth: false,
       body: { email },
@@ -41,7 +41,7 @@ export const authService = {
   },
 
   registerPreview(token: string) {
-    return apiClient<{ email: string; expires_at: string }>("/auth/register/preview", {
+    return apiClient<{ email: string; expires_at: string }>("/public/auth/register/preview", {
       method: "POST",
       auth: false,
       body: { token },
@@ -49,7 +49,7 @@ export const authService = {
   },
 
   async registerComplete(body: { token: string; mobile: string; password: string; password_confirmation: string }) {
-    const data = await apiClient<LoginResponse>("/auth/register/complete", {
+    const data = await apiClient<LoginResponse>("/public/auth/register/complete", {
       method: "POST",
       auth: false,
       body: { ...body, device_name: "bhuribhoj-web" },
@@ -59,7 +59,7 @@ export const authService = {
   },
 
   async currentUser(): Promise<{ user: AuthUser; seat: AccountSeat }> {
-    const data = await apiClient<MeResponse>("/auth/me");
+    const data = await apiClient<MeResponse>("/authorize/auth/me");
     return { user: mapLaravelUser(data.user), seat: data.seat };
   },
 
@@ -71,7 +71,7 @@ export const authService = {
     password_confirmation?: string;
     avatar?: string | null;
   }) {
-    const data = await apiClient<{ user: LaravelUser; message: string }>("/auth/profile", {
+    const data = await apiClient<{ user: LaravelUser; message: string }>("/authorize/auth/profile", {
       method: "POST",
       body,
     });
@@ -79,6 +79,6 @@ export const authService = {
   },
 
   logout() {
-    return apiClient<{ message: string }>("/auth/logout", { method: "POST" });
+    return apiClient<{ message: string }>("/authorize/auth/logout", { method: "POST" });
   },
 };

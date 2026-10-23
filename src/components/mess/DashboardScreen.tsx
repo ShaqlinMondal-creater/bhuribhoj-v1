@@ -1,5 +1,6 @@
 "use client";
 
+import { useMessUser } from "@/components/auth/MessSession";
 import { Notice } from "@/components/ui/Notice";
 import { StatCard } from "@/components/ui/StatCard";
 import { useApi } from "@/hooks/useApi";
@@ -7,7 +8,8 @@ import { inr } from "@/lib/format";
 import { dashboardService } from "@/services/dashboardService";
 
 export function DashboardScreen() {
-  const { data, error, loading } = useApi(dashboardService.fetch);
+  const user = useMessUser();
+  const { data, error, loading } = useApi(() => dashboardService.fetch(user?.role ?? "member"), Boolean(user));
 
   return (
     <section className="space-y-6">

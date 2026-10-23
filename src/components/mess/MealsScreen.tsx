@@ -1,5 +1,6 @@
 "use client";
 
+import { useMessUser } from "@/components/auth/MessSession";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -8,7 +9,8 @@ import { useApi } from "@/hooks/useApi";
 import { mealService } from "@/services/mealService";
 
 export function MealsScreen() {
-  const { data, error, loading } = useApi(mealService.fetch);
+  const user = useMessUser();
+  const { data, error, loading } = useApi(() => mealService.fetch(user?.role ?? "member"), Boolean(user));
 
   return (
     <section className="space-y-6">

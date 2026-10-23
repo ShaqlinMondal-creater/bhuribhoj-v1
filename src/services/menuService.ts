@@ -1,4 +1,6 @@
 import { apiClient } from "@/lib/api/client";
+import { doorFor } from "@/lib/api/door";
+import type { Role } from "@/types/auth";
 
 export type MenuRow = {
   id: number;
@@ -8,10 +10,10 @@ export type MenuRow = {
 };
 
 export const menuService = {
-  fetch() {
-    return apiClient<{ data: MenuRow[] }>("/daily-menus/fetch", { method: "POST", body: {} });
+  fetch(role: Role) {
+    return apiClient<{ data: MenuRow[] }>(`${doorFor(role)}/daily-menus/fetch`, { method: "POST", body: {} });
   },
-  save(body: { menu_date: string; meal_type: "lunch" | "dinner"; dishes: string }) {
-    return apiClient<{ message: string }>("/daily-menus/create", { method: "POST", body });
+  save(role: Role, body: { menu_date: string; meal_type: "lunch" | "dinner"; dishes: string }) {
+    return apiClient<{ message: string }>(`${doorFor(role)}/daily-menus/create`, { method: "POST", body });
   },
 };
