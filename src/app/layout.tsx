@@ -33,8 +33,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${sans.variable} ${display.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="flex min-h-dvh flex-col overflow-x-clip">{children}</body>
+      <body className="flex min-h-dvh flex-col overflow-x-clip">
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("bhuribhoj-theme");var ok={"black-yellow":1,"sea-green":1,"orange":1,"red":1};document.documentElement.dataset.theme=ok[t]?t:"black-yellow";}catch(e){document.documentElement.dataset.theme="black-yellow";}})();`,
+          }}
+        />
+        {children}
+      </body>
     </html>
   );
 }

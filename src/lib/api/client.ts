@@ -8,28 +8,25 @@ type ClientOptions = {
   auth?: boolean;
 };
 
-const recentGets = new Map<string, { at: number; promise: Promise<unknown> }>();
-const DEDUPE_MS = 800;
+const inflight = new Map<string, Promise<unknown>>();
 
 /**
  * Browser API client.
- * Calls same-origin /backend/*, which Next rewrites to the Laravel route.
- * The request and JSON response show in the browser Network tab.
+ * Calls the Laravel API directly (see appConfig.publicApiBase).
+ * A second identical call while the first is still running shares that request,
+ * so a dev remount does not hit the same address twice.
  */
 export function apiClient<T>(path: string, options: ClientOptions = {}): Promise<T> {
   const method = options.method ?? "GET";
-  if (method !== "GET") recentGets.clear();
-  const key = `${method} ${path}`;
+  const key = `${method} ${path} ${options.body === undefined ? "" : JSON.stringify(options.body)}`;
+  const pending = inflight.get(key);
+  if (pending) return pending as Promise<T>;
 
-  if (method === "GET") {
-    const recent = recentGets.get(key);
-    if (recent && Date.now() - recent.at < DEDUPE_MS) {
-      return recent.promise as Promise<T>;
-    }
-  }
+  const request = send<T>(path, { ...options, method }).finally(() => {
+    if (inflight.get(key) === request) inflight.delete(key);
+  });
 
-  const request = send<T>(path, options);
-  if (method === "GET") recentGets.set(key, { at: Date.now(), promise: request });
+  inflight.set(key, request);
   return request;
 }
 

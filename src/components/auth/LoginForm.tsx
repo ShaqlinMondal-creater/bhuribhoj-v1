@@ -37,7 +37,7 @@ export function LoginForm({ nextPath = "" }: { nextPath?: string }) {
     <form onSubmit={onSubmit} className="space-y-4">
       <input type="hidden" name="next" value={nextPath} />
       <div className="space-y-1.5">
-        <label htmlFor="email" className="text-xs uppercase tracking-[0.16em] text-[#e2b657]">
+        <label htmlFor="email" className="text-xs uppercase tracking-[0.16em] text-[var(--accent)]">
           Email
         </label>
         <input
@@ -47,22 +47,22 @@ export function LoginForm({ nextPath = "" }: { nextPath?: string }) {
           required
           autoComplete="email"
           placeholder="you@example.com"
-          className="mt-2 w-full rounded-2xl border border-[#e2b657]/30 bg-black px-4 py-3 text-[#f7f1e4] outline-none focus:border-[#e2b657]"
+          className="mt-2 w-full rounded-2xl border border-[var(--accent)]/30 bg-black px-4 py-3 text-[#f7f1e4] outline-none focus:border-[var(--accent)]"
         />
       </div>
 
       <div className="space-y-1.5">
-        <label htmlFor="password" className="text-xs uppercase tracking-[0.16em] text-[#e2b657]">
+        <label htmlFor="password" className="text-xs uppercase tracking-[0.16em] text-[var(--accent)]">
           Password
         </label>
-        <input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
+          tone="dark"
           required
           autoComplete="current-password"
           placeholder="••••••••"
-          className="mt-2 w-full rounded-2xl border border-[#e2b657]/30 bg-black px-4 py-3 text-[#f7f1e4] outline-none focus:border-[#e2b657]"
+          className="mt-2 w-full rounded-2xl border border-[var(--accent)]/30 bg-black px-4 py-3 text-[#f7f1e4] outline-none focus:border-[var(--accent)]"
         />
       </div>
 
@@ -75,12 +75,12 @@ export function LoginForm({ nextPath = "" }: { nextPath?: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="mt-2 w-full rounded-full bg-[#e2b657] px-4 py-3 text-sm font-semibold text-black transition hover:bg-[#f0cb78] disabled:opacity-60"
+        className="mt-2 w-full rounded-full bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-[var(--accent-ink)] transition hover:bg-[var(--accent-hover)] disabled:opacity-60"
       >
         {pending ? "Signing in…" : "Sign in"}
       </button>
       <p className="text-center text-sm text-[#cbbfa6]">
-        <Link href="/register" className="text-[#e2b657] underline-offset-4 hover:underline">
+        <Link href="/register" className="text-[var(--accent)] underline-offset-4 hover:underline">
           Create an account
         </Link>
       </p>

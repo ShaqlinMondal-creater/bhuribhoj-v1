@@ -20,7 +20,7 @@ const links = [
 
 export default function NotFound() {
   return (
-    <div className={`${marketingSans.variable} ${marketingBengali.variable} flex min-h-dvh flex-col bg-[#090909] text-[#f6f3ec]`}>
+    <div className={`${marketingSans.variable} ${marketingBengali.variable} flex min-h-dvh flex-col bg-[var(--site)] text-[#f6f3ec]`}>
       <PublicHeader />
       <PublicSplash />
       <main className="marketing flex flex-1 items-center">

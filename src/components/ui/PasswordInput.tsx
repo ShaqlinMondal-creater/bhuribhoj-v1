@@ -15,7 +15,7 @@ export function PasswordInput({
   ...props
 }: PasswordInputProps) {
   const [visible, setVisible] = useState(false);
-  const icon = tone === "dark" ? "text-[#e2b657]" : "text-stone-500";
+  const icon = tone === "dark" ? "text-[var(--accent)]" : "text-stone-500";
 
   return (
     <span className="relative block">

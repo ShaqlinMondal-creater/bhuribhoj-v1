@@ -3,7 +3,7 @@ import { isAdmin } from "@/lib/auth/roles";
 import { getAuthRole, getAuthToken } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 
-/** Cookie check only. Live user data comes from GET /backend/auth/me in the browser. */
+/** Cookie check only. Live user data comes from the authorize me route in the browser. */
 export const instant = false;
 
 export default async function AdminLayout({

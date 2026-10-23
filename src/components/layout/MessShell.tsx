@@ -30,7 +30,7 @@ export function MessShell({
     .map(({ href, label, icon }) => ({ href, label, icon }));
 
   return (
-    <div className="min-h-dvh bg-[#f3f6f4] text-stone-900">
+    <div className="min-h-dvh bg-[var(--page)] text-stone-900">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-emerald-950 px-4 py-6 text-emerald-50 md:flex">
         <Brand user={user} />
         <SideNav items={items} tone="mess" />

@@ -30,7 +30,7 @@ export function PublicSplash() {
 
   return (
     <div
-      className={`marketing m-splash fixed inset-0 z-[70] grid place-items-center bg-[#090909] ${phase === "out" ? "opacity-0" : "opacity-100"}`}
+      className={`marketing m-splash fixed inset-0 z-[70] grid place-items-center bg-[var(--site)] ${phase === "out" ? "opacity-0" : "opacity-100"}`}
     >
       <BrandLoader />
     </div>

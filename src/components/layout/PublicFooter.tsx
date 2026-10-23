@@ -21,7 +21,7 @@ const columns = [
 
 export function PublicFooter() {
   return (
-    <footer className="marketing border-t border-[var(--border)] bg-[#090909]">
+    <footer className="marketing border-t border-[var(--border)] bg-[var(--site)]">
       <div className="m-wrap grid gap-10 py-16 sm:grid-cols-2 lg:grid-cols-4">
         <div className="lg:col-span-2">
           <Link href="/" className="flex items-center gap-3">

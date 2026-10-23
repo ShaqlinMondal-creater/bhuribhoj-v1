@@ -73,7 +73,7 @@ export function Hero() {
         </motion.div>
 
         <div className="relative">
-          <div className="m-glow pointer-events-none absolute -inset-8 rounded-full bg-[radial-gradient(circle,rgba(226,182,87,0.35),transparent_68%)]" />
+          <div className="m-glow pointer-events-none absolute -inset-8 rounded-full bg-[radial-gradient(circle,var(--accent-glow),transparent_68%)]" />
           <motion.div
             className={reduced ? "relative" : "m-float relative"}
             initial={reduced ? false : { opacity: 0, x: 24 }}

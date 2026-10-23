@@ -14,7 +14,7 @@ export default async function RegisterVerifyPage({
 
   return (
     <main className="mx-auto w-full max-w-md px-4 py-16">
-      <p className="text-xs uppercase tracking-[0.22em] text-[#e2b657]">Verify</p>
+      <p className="text-xs uppercase tracking-[0.22em] text-[var(--accent)]">Verify</p>
       <h1 className="mt-2 font-display text-4xl text-[#f7f1e4]">Set your seat</h1>
       <div className="mt-7">
         <RegisterVerifyForm token={token} />

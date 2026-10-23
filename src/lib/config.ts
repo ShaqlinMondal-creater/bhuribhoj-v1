@@ -5,8 +5,12 @@
 export const appConfig = {
   name: process.env.NEXT_PUBLIC_APP_NAME ?? "BhuriBhoj",
   url: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
-  /** Browser path proxied by Next rewrites → the Laravel API. */
-  publicApiBase: process.env.NEXT_PUBLIC_API_BASE ?? "/backend",
+  /**
+   * Browser calls the Laravel API directly.
+   * Local proxy, off for now:
+   * publicApiBase: "/backend",
+   */
+  publicApiBase: "https://bhuribhoj-api.liwaas.com/api",
 } as const;
 
 /** Absolute Laravel API base used only on the server. */

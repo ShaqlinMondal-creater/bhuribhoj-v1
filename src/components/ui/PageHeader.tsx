@@ -10,7 +10,7 @@ export function PageHeader({
   return (
     <header>
       {eyebrow ? (
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800/80">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
           {eyebrow}
         </p>
       ) : null}

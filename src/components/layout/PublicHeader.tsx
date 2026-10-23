@@ -47,7 +47,7 @@ export function PublicHeader() {
   return (
     <header
       className={`marketing sticky top-0 z-40 border-b transition-[background-color,padding,border-color] duration-300 ease-out ${
-        scrolled ? "border-[var(--border)] bg-[#090909]/80 py-2 backdrop-blur-md" : "border-transparent bg-[#090909]/40 py-3"
+        scrolled ? "border-[var(--border)] bg-[var(--site)]/80 py-2 backdrop-blur-md" : "border-transparent bg-[var(--site)]/40 py-3"
       }`}
     >
       <div className="m-wrap flex items-center justify-between gap-3">

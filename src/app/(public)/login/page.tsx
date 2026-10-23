@@ -30,9 +30,9 @@ export default async function LoginPage({
         <img src="/home/hall.jpg" alt="The dining hall" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/20" />
         <div className="relative flex h-full flex-col justify-between p-6 sm:p-8">
-          <BrandLogo className="h-16 w-16 ring-2 ring-[#e2b657]/50 sm:h-20 sm:w-20" />
+          <BrandLogo className="h-16 w-16 ring-2 ring-[var(--accent)]/50 sm:h-20 sm:w-20" />
           <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-[#e2b657]">The door</p>
+            <p className="text-xs uppercase tracking-[0.24em] text-[var(--accent)]">The door</p>
             <h1 className="mt-3 max-w-md font-display tracking-tight text-4xl leading-tight text-[#f7f1e4] sm:text-5xl">
               Your seat is already set.
             </h1>
@@ -43,22 +43,22 @@ export default async function LoginPage({
         </div>
       </section>
 
-      <section className="flex flex-col justify-center rounded-[1.75rem] border border-[#e2b657]/30 bg-[#0c0c0c] p-6 sm:p-8">
-        <p className="text-xs uppercase tracking-[0.22em] text-[#e2b657]">Sign in</p>
+      <section className="flex flex-col justify-center rounded-[1.75rem] border border-[var(--accent)]/30 bg-[#0c0c0c] p-6 sm:p-8">
+        <p className="text-xs uppercase tracking-[0.22em] text-[var(--accent)]">Sign in</p>
         <h2 className="mt-2 font-display tracking-tight text-4xl text-[#f7f1e4]">Welcome back</h2>
         <p className="mt-2 text-sm leading-6 text-[#cbbfa6]">Use the email and password for your seat.</p>
         <div className="mt-7">
           <LoginForm nextPath={nextPath} />
         </div>
-        <div className="mt-8 rounded-[1.25rem] border border-[#e2b657]/20 p-4">
-          <p className="text-xs uppercase tracking-[0.18em] text-[#e2b657]">Practice seats</p>
+        <div className="mt-8 rounded-[1.25rem] border border-[var(--accent)]/20 p-4">
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--accent)]">Practice seats</p>
           <ul className="mt-3 space-y-2">
             {seats.map(([role, email, password]) => (
               <li key={email} className="grid gap-1 rounded-2xl bg-black/50 px-3 py-2 sm:grid-cols-[6.5rem_1fr] sm:items-center">
                 <span className="text-sm text-[#f7f1e4]">{role}</span>
                 <span className="break-all text-xs leading-5 text-[#cbbfa6]">
                   {email}
-                  <span className="text-[#e2b657]"> · </span>
+                  <span className="text-[var(--accent)]"> · </span>
                   {password}
                 </span>
               </li>
