@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useMessUser } from "@/components/auth/MessSession";
+import { FilterAutocomplete, FilterBar, FilterSearch, FilterSelect, MaterialScope } from "@/components/ui/FilterBar";
 import { rowClass, TableShell, TableStatus, thClass } from "@/components/ui/DataTable";
-import { fieldClass as baseFieldClass } from "@/components/ui/classes";
+import { DetailList } from "@/components/ui/DetailList";
 import { Dialog } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { PasswordInput } from "@/components/ui/PasswordInput";
+import IconButtonMui from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
+import MenuItem from "@mui/material/MenuItem";
+import TextField from "@mui/material/TextField";
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useApi } from "@/hooks/useApi";
@@ -15,6 +19,7 @@ import { isPresident, roleLabel } from "@/lib/auth/roles";
 import { inr, initials } from "@/lib/format";
 import { depositService, type DepositRow } from "@/services/depositService";
 import { memberService, type MemberFilters, type MembersPage } from "@/services/memberService";
+import { messService } from "@/services/messService";
 import type { LaravelUser, Role } from "@/types/auth";
 
 export function MembersScreen() {
@@ -34,6 +39,8 @@ export function MembersScreen() {
   const [listLoading, setListLoading] = useState(allowed);
   const [refreshKey, setRefreshKey] = useState(0);
   const deposits = useApi(() => depositService.fetchAll(user?.role ?? "president"), president);
+  const house = useApi(() => messService.house("president"), president);
+  const monthlyDue = Number(house.data?.data?.monthly_due_amount ?? 0);
   const rows = list?.data ?? [];
   const depositsByUser = new Map<number, DepositRow[]>();
   for (const deposit of deposits.data ?? []) {
@@ -43,6 +50,7 @@ export function MembersScreen() {
   }
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<LaravelUser | null>(null);
+  const [viewing, setViewing] = useState<LaravelUser | null>(null);
 
   useEffect(() => {
     if (!allowed || !user) {
@@ -143,16 +151,22 @@ export function MembersScreen() {
             <th className={thClass()}>Room</th>
             <th className={thClass()}>Role</th>
             <th className={thClass()}>Status</th>
-            {president ? <th className={thClass("right")}>Action</th> : null}
+            <th className={thClass()}>Mess Fund</th>
+            <th className={thClass()}>Manager Fund</th>
+            <th className={thClass()}>Due Curr. Month</th>
+            <th className={thClass()}>Due Prev Month</th>
+            <th className={thClass("right")}>Action</th>
           </tr>
         }
       >
         <TableStatus
-          colSpan={president ? 6 : 5}
+          colSpan={10}
           loading={listLoading}
           empty={!listLoading && rows.length === 0 ? "No members yet." : null}
         />
-        {rows.map((row) => (
+        {rows.map((row) => {
+          const memberDeposits = depositsByUser.get(Number(row.id)) ?? [];
+          return (
           <tr key={String(row.id)} className={rowClass}>
             <td className="px-4 py-3">
               <div className="flex min-w-0 items-center gap-3">
@@ -163,9 +177,6 @@ export function MembersScreen() {
                   <p className="truncate text-sm font-medium text-stone-900">{row.name}</p>
                   <p className="truncate text-xs text-stone-500">{row.email}</p>
                 </div>
-              </div>
-              <div className="mt-2">
-                <MemberDeposits rows={depositsByUser.get(Number(row.id)) ?? []} />
               </div>
             </td>
             <td className="px-4 py-3 align-top text-stone-600">{row.member_code ?? "—"}</td>
@@ -180,15 +191,21 @@ export function MembersScreen() {
                 {row.status ?? "active"}
               </span>
             </td>
-            {president ? (
-              <td className="px-4 py-3 align-top">
-                <div className="flex justify-end">
+            <td className="px-4 py-3 align-top font-medium text-stone-900">{president ? inr(fundSum(memberDeposits, "mess_fund")) : "—"}</td>
+            <td className="px-4 py-3 align-top font-medium text-stone-900">{president ? inr(fundSum(memberDeposits, "manager_fund")) : "—"}</td>
+            <td className="px-4 py-3 align-top font-medium text-red-600">{president ? inr(monthDue(memberDeposits, monthlyDue, 0)) : "—"}</td>
+            <td className="px-4 py-3 align-top font-medium text-red-600">{president ? inr(monthDue(memberDeposits, monthlyDue, -1)) : "—"}</td>
+            <td className="px-4 py-3 align-top">
+              <div className="flex justify-end">
+                <IconButton label={`View ${row.name}`} icon="eye" iconClassName="h-3.5 w-3.5" onClick={() => setViewing(row)} />
+                {president ? (
                   <IconButton label={`Edit ${row.name}`} icon="pencil" iconClassName="h-3.5 w-3.5" onClick={() => setEditing(row)} />
-                </div>
-              </td>
-            ) : null}
+                ) : null}
+              </div>
+            </td>
           </tr>
-        ))}
+          );
+        })}
       </TableShell>
 
       {adding ? (
@@ -198,6 +215,14 @@ export function MembersScreen() {
             setAdding(false);
             setRefreshKey((value) => value + 1);
           }}
+        />
+      ) : null}
+      {viewing ? (
+        <MemberDetailDialog
+          member={viewing}
+          deposits={depositsByUser.get(Number(viewing.id)) ?? []}
+          monthlyDue={monthlyDue}
+          onClose={() => setViewing(null)}
         />
       ) : null}
       {editing ? (
@@ -218,6 +243,7 @@ export function MembersScreen() {
 function AddMemberDialog({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -241,27 +267,27 @@ function AddMemberDialog({ onClose, onCreated }: { onClose: () => void; onCreate
 
   return (
     <Dialog title="Add member" onClose={onClose} size="lg" backdrop="stone" closeClassName="text-sm font-medium text-stone-500 hover:text-stone-800">
+      <MaterialScope>
       <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2">
-        <label className="block text-sm text-stone-600">
-          Name
-          <input name="name" required className={fieldClass} />
-        </label>
-        <label className="block text-sm text-stone-600">
-          Email
-          <input name="email" type="email" required className={fieldClass} />
-        </label>
-        <label className="block text-sm text-stone-600">
-          Password
-          <PasswordInput name="password" required minLength={8} autoComplete="new-password" className={fieldClass} />
-        </label>
-        <label className="block text-sm text-stone-600">
-          Mobile
-          <input name="mobile" className={fieldClass} />
-        </label>
-        <label className="block text-sm text-stone-600 sm:col-span-2">
-          Room
-          <input name="room_no" className={fieldClass} />
-        </label>
+        <TextField name="name" label="Name" required fullWidth />
+        <TextField name="email" label="Email" type="email" required fullWidth />
+        <TextField
+          name="password"
+          label="Password"
+          type={showPassword ? "text" : "password"}
+          required
+          fullWidth
+          autoComplete="new-password"
+          slotProps={{ htmlInput: { minLength: 8 }, input: { endAdornment: (
+            <InputAdornment position="end">
+              <IconButtonMui type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword((current) => !current)} size="small">
+                {showPassword ? "Hide" : "Show"}
+              </IconButtonMui>
+            </InputAdornment>
+          ) } }}
+        />
+        <TextField name="mobile" label="Mobile" fullWidth />
+        <TextField name="room_no" label="Room" fullWidth className="sm:col-span-2" />
         {error ? <p className="text-sm text-red-700 sm:col-span-2">{error}</p> : null}
         <div className="flex justify-end gap-2 sm:col-span-2">
           <button type="button" onClick={onClose} className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-700">
@@ -272,6 +298,7 @@ function AddMemberDialog({ onClose, onCreated }: { onClose: () => void; onCreate
           </button>
         </div>
       </form>
+      </MaterialScope>
     </Dialog>
   );
 }
@@ -312,26 +339,15 @@ function EditMemberDialog({
 
   return (
     <Dialog title="Edit member" onClose={onClose} size="lg" backdrop="stone" closeClassName="text-sm font-medium text-stone-500 hover:text-stone-800">
+      <MaterialScope>
       <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2">
-        <label className="block text-sm text-stone-600 sm:col-span-2">
-          Name
-          <input name="name" required defaultValue={member.name} className={fieldClass} />
-        </label>
-        <label className="block text-sm text-stone-600">
-          Mobile
-          <input name="mobile" defaultValue={member.mobile ?? ""} className={fieldClass} />
-        </label>
-        <label className="block text-sm text-stone-600">
-          Room
-          <input name="room_no" defaultValue={member.room_no ?? ""} className={fieldClass} />
-        </label>
-        <label className="block text-sm text-stone-600 sm:col-span-2">
-          Status
-          <select name="status" defaultValue={member.status ?? "active"} disabled={self} className={fieldClass}>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </label>
+        <TextField name="name" label="Name" required fullWidth defaultValue={member.name} className="sm:col-span-2" />
+        <TextField name="mobile" label="Mobile" fullWidth defaultValue={member.mobile ?? ""} />
+        <TextField name="room_no" label="Room" fullWidth defaultValue={member.room_no ?? ""} />
+        <TextField name="status" label="Status" select fullWidth defaultValue={member.status ?? "active"} disabled={self} className="sm:col-span-2">
+          <MenuItem value="active">Active</MenuItem>
+          <MenuItem value="inactive">Inactive</MenuItem>
+        </TextField>
         {error ? <p className="text-sm text-red-700 sm:col-span-2">{error}</p> : null}
         <div className="flex justify-end gap-2 sm:col-span-2">
           <button type="button" onClick={onClose} className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-700">
@@ -342,6 +358,7 @@ function EditMemberDialog({
           </button>
         </div>
       </form>
+      </MaterialScope>
     </Dialog>
   );
 }
@@ -359,116 +376,104 @@ function MemberFiltersBar({
   const roomOptions = rooms.filter((room) => room.toLowerCase().includes(typedRoom));
 
   return (
-    <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-stone-200 bg-white p-3 shadow-sm shadow-stone-900/5 lg:flex-nowrap">
-      <label className="block min-w-56 flex-1 text-xs font-medium text-stone-500">
-        Search
-        <input
-          value={filters.search ?? ""}
-          onChange={(event) => onChange({ search: event.target.value })}
-          placeholder="Name, email, member id, code, or mobile"
-          className={filterControl}
-        />
-      </label>
-      <label className="block w-36 shrink-0 text-xs font-medium text-stone-500">
-        Role
-        <select
-          value={filters.role ?? ""}
-          onChange={(event) => onChange({ role: event.target.value as MemberFilters["role"] })}
-          className={filterControl}
-        >
-          <option value="">All roles</option>
-          <option value="president">President</option>
-          <option value="manager">Manager</option>
-          <option value="member">Member</option>
-        </select>
-      </label>
-      <div className="block shrink-0 text-xs font-medium text-stone-500">
-        Status
-        <div className="mt-1 flex h-10 items-center rounded-xl border border-stone-200 p-1">
-          {(
-            [
-              ["", "All"],
-              ["active", "Active"],
-              ["inactive", "Inactive"],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={label}
-              type="button"
-              onClick={() => onChange({ status: value })}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                (filters.status ?? "") === value ? "bg-emerald-800 text-white" : "text-stone-600"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <label className="group relative block w-44 shrink-0 text-xs font-medium text-stone-500">
-        Room
-        <input
-          value={filters.room_no ?? ""}
-          onChange={(event) => onChange({ room_no: event.target.value })}
-          placeholder="Search a room"
-          className={filterControl}
-          autoComplete="off"
-        />
-        {roomOptions.length > 0 ? (
-          <ul className="absolute z-10 mt-1 hidden max-h-40 w-full overflow-auto rounded-xl border border-stone-200 bg-white shadow-lg group-focus-within:block">
-            {roomOptions.map((room) => (
-              <li key={room}>
-                <button
-                  type="button"
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => onChange({ room_no: room })}
-                  className="block w-full px-3 py-2 text-left text-sm text-stone-800 hover:bg-emerald-50"
-                >
-                  {room}
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </label>
-    </div>
+    <FilterBar>
+      <FilterSearch
+        value={filters.search ?? ""}
+        onChange={(search) => onChange({ search })}
+        placeholder="Name, email, member id, code, or mobile"
+      />
+      <FilterAutocomplete
+        label="Room"
+        value={filters.room_no ?? ""}
+        options={roomOptions}
+        placeholder="Search a room"
+        onChange={(room_no) => onChange({ room_no })}
+      />
+      <FilterSelect
+        label="Role"
+        value={filters.role ?? ""}
+        onChange={(role) => onChange({ role: role as MemberFilters["role"] })}
+        options={[
+          { value: "", label: "All roles" },
+          { value: "president", label: "President" },
+          { value: "manager", label: "Manager" },
+          { value: "member", label: "Member" },
+        ]}
+      />
+      <FilterSelect
+        label="Status"
+        value={filters.status ?? ""}
+        onChange={(status) => onChange({ status: status as MemberFilters["status"] })}
+        options={[
+          { value: "", label: "All" },
+          { value: "active", label: "Active" },
+          { value: "inactive", label: "Inactive" },
+        ]}
+      />
+    </FilterBar>
   );
 }
 
-function MemberDeposits({ rows }: { rows: DepositRow[] }) {
-  const total = rows.reduce((sum, row) => sum + Number(row.amount), 0);
+function MemberDetailDialog({
+  member,
+  deposits,
+  monthlyDue,
+  onClose,
+}: {
+  member: LaravelUser;
+  deposits: DepositRow[];
+  monthlyDue: number;
+  onClose: () => void;
+}) {
+  const lines: Array<[string, string]> = [
+    ["Name", member.name],
+    ["Email", member.email],
+    ["Mobile", member.mobile || "—"],
+    ["Code", member.member_code || "—"],
+    ["Room", member.room_no || "—"],
+    ["Role", roleLabel[member.role as Role] ?? member.role],
+    ["Status", member.status ?? "active"],
+    ["Mess fund", inr(fundSum(deposits, "mess_fund"))],
+    ["Manager fund", inr(fundSum(deposits, "manager_fund"))],
+  ];
 
   return (
-    <div className="rounded-xl bg-stone-50 px-3 py-2.5">
-      <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">
-        Deposits · {inr(total)}
-      </p>
-      {rows.length === 0 ? (
-        <p className="mt-1 text-sm text-stone-500">No deposits yet.</p>
-      ) : (
-        <ul className="mt-1 space-y-1">
-          {rows.map((row) => (
-            <li key={row.id} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-sm">
-              <span className="text-stone-600">
-                {labelFor(row.deposit_type)} · {labelFor(row.fund_type)}
-                {row.for_month ? ` · ${row.for_month}` : ""}
-                {" · "}
-                {String(row.deposited_on).slice(0, 10)}
-                {row.note ? ` · ${row.note}` : ""}
-              </span>
-              <span className="font-medium text-stone-900">{inr(Number(row.amount))}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <Dialog title="Member detail" onClose={onClose} size="lg" backdrop="stone">
+      <DetailList rows={lines} />
+      <p className="mt-4 text-sm font-medium text-red-600">Due Curr. Month {inr(monthDue(deposits, monthlyDue, 0))}</p>
+      <p className="mt-1 text-sm font-medium text-red-600">Due Prev Month {inr(monthDue(deposits, monthlyDue, -1))}</p>
+    </Dialog>
   );
 }
 
-function labelFor(value: string) {
-  return value.replaceAll("_", " ");
+function fundSum(rows: DepositRow[], fund: string) {
+  return rows.reduce((sum, row) => sum + (row.fund_type === fund ? Number(row.amount) : 0), 0);
 }
 
-const fieldClass = `${baseFieldClass} disabled:bg-stone-50`;
-const filterControl =
-  "mt-1 h-10 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm text-stone-900 outline-none focus:border-[var(--accent)]";
+function monthDue(rows: DepositRow[], monthlyDue: number, offset: number) {
+  const key = kolkataMonth(offset);
+  const paid = rows.reduce((sum, row) => {
+    if (row.fund_type !== "manager_fund") return sum;
+    const month = monthKey(row.for_month) || monthKey(row.deposited_on);
+    return month === key ? sum + Number(row.amount) : sum;
+  }, 0);
+  return Math.max(0, monthlyDue - paid);
+}
+
+function kolkataMonth(offset: number) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kolkata",
+    month: "2-digit",
+    year: "numeric",
+  }).formatToParts(new Date());
+  const month = Number(parts.find((part) => part.type === "month")?.value ?? "1");
+  const year = Number(parts.find((part) => part.type === "year")?.value ?? "2026");
+  const date = new Date(Date.UTC(year, month - 1 + offset, 1));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function monthKey(value: string | null | undefined) {
+  const match = String(value ?? "").match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (!match) return "";
+  return `${match[3]}-${match[2]}`;
+}

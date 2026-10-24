@@ -20,6 +20,7 @@ function navGroups(role?: Role): NavGroup[] {
       label: "Mess Details",
       items: [
         { href: "/mess/members", label: "Member", icon: "users" },
+        ...(role === "president" ? [{ href: "/mess/deposits", label: "Deposites", icon: "wallet" as const }] : []),
         { href: "/mess/meals", label: "Meals", icon: "meals" },
         { href: "/mess/daily-meals", label: "Daily Meals", icon: "calendar" },
         { href: "/mess/expenses", label: "Expense", icon: "wallet" },

@@ -7,15 +7,15 @@ import { Dialog } from "@/components/ui/Dialog";
 import { Flash } from "@/components/ui/Flash";
 import { IconButton } from "@/components/ui/IconButton";
 import { Notice } from "@/components/ui/Notice";
+import { FilterBar, FilterSearch, FilterSelect, MaterialScope } from "@/components/ui/FilterBar";
+import MenuItem from "@mui/material/MenuItem";
+import TextField from "@mui/material/TextField";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { roleLabel } from "@/lib/auth/roles";
 import { userService, type PlatformUser, type UserWrite } from "@/services/userService";
 import type { Role } from "@/types/auth";
 
 const ROLES: Role[] = ["admin", "president", "manager", "member"];
-
-const fieldClass =
-  "mt-1 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 outline-none focus:border-[var(--accent)]";
 
 export function UsersScreen() {
   const [searchInput, setSearchInput] = useState("");
@@ -85,50 +85,31 @@ export function UsersScreen() {
       <Flash message={notice} />
       {error ? <Notice>{error}</Notice> : null}
 
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="block min-w-56 flex-1 text-xs font-medium uppercase tracking-[0.12em] text-stone-500">
-          Search
-          <input
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Name, email, or mobile"
-            className={fieldClass}
-          />
-        </label>
-        <label className="block text-xs font-medium uppercase tracking-[0.12em] text-stone-500">
-          Role
-          <select
-            value={role}
-            onChange={(event) => {
-              setRole(event.target.value);
-              setOffset(0);
-            }}
-            className={fieldClass}
-          >
-            <option value="">All</option>
-            {ROLES.map((item) => (
-              <option key={item} value={item}>
-                {roleLabel[item]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-xs font-medium uppercase tracking-[0.12em] text-stone-500">
-          Status
-          <select
-            value={status}
-            onChange={(event) => {
-              setStatus(event.target.value);
-              setOffset(0);
-            }}
-            className={fieldClass}
-          >
-            <option value="">All</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </label>
-      </div>
+      <FilterBar>
+        <FilterSearch value={searchInput} onChange={setSearchInput} placeholder="Name, email, or mobile" />
+        <FilterSelect
+          label="Role"
+          value={role}
+          onChange={(value) => {
+            setRole(value);
+            setOffset(0);
+          }}
+          options={[{ value: "", label: "All" }, ...ROLES.map((item) => ({ value: item, label: roleLabel[item] }))]}
+        />
+        <FilterSelect
+          label="Status"
+          value={status}
+          onChange={(value) => {
+            setStatus(value);
+            setOffset(0);
+          }}
+          options={[
+            { value: "", label: "All" },
+            { value: "active", label: "Active" },
+            { value: "inactive", label: "Inactive" },
+          ]}
+        />
+      </FilterBar>
 
       <TableShell
         count={count}
@@ -271,35 +252,27 @@ function UpdateDialog({
 
   return (
     <Dialog title="Update" onClose={onClose}>
-      <form onSubmit={onSubmit} className="space-y-3">
-        <Field label="Name">
-          <input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className={fieldClass} />
-        </Field>
-        <Field label="Email">
-          <input required type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} className={fieldClass} />
-        </Field>
-        <Field label="Mobile">
-          <input value={form.mobile ?? ""} onChange={(event) => setForm({ ...form, mobile: event.target.value })} className={fieldClass} />
-        </Field>
-        <Field label="Role">
-          <select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as Role })} className={fieldClass}>
+      <MaterialScope>
+        <form onSubmit={onSubmit} className="grid gap-3">
+          <TextField required fullWidth label="Name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+          <TextField required fullWidth type="email" label="Email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
+          <TextField fullWidth label="Mobile" value={form.mobile ?? ""} onChange={(event) => setForm({ ...form, mobile: event.target.value })} />
+          <TextField select fullWidth label="Role" value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as Role })}>
             {ROLES.map((item) => (
-              <option key={item} value={item}>
+              <MenuItem key={item} value={item}>
                 {roleLabel[item]}
-              </option>
+              </MenuItem>
             ))}
-          </select>
-        </Field>
-        <Field label="Status">
-          <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} className={fieldClass}>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </Field>
-        <button type="submit" disabled={pending} className="mt-2 w-full rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-ink)] disabled:opacity-60">
-          {pending ? "Saving…" : "Save"}
-        </button>
-      </form>
+          </TextField>
+          <TextField select fullWidth label="Status" value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
+            <MenuItem value="active">Active</MenuItem>
+            <MenuItem value="inactive">Inactive</MenuItem>
+          </TextField>
+          <button type="submit" disabled={pending} className="mt-2 w-full rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-ink)] disabled:opacity-60">
+            {pending ? "Saving…" : "Save"}
+          </button>
+        </form>
+      </MaterialScope>
     </Dialog>
   );
 }
@@ -344,15 +317,6 @@ function DeleteDialog({
         </button>
       </div>
     </Dialog>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block text-xs font-medium uppercase tracking-[0.12em] text-stone-500">
-      {label}
-      {children}
-    </label>
   );
 }
 

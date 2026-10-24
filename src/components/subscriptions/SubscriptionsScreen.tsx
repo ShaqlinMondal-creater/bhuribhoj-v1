@@ -8,14 +8,12 @@ import { Dialog } from "@/components/ui/Dialog";
 import { Flash } from "@/components/ui/Flash";
 import { IconButton } from "@/components/ui/IconButton";
 import { Notice } from "@/components/ui/Notice";
+import { FilterBar, FilterSearch, FilterSelect } from "@/components/ui/FilterBar";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { inr } from "@/lib/format";
 import { subscriptionService, type SubscriptionRow } from "@/services/subscriptionService";
 import { SubscriptionDetailScreen } from "@/components/mess/SubscriptionDetailScreen";
 import { CurrentSubscriptionCard } from "@/components/subscriptions/CurrentSubscriptionCard";
-
-const controlClass =
-  "h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm text-stone-800 outline-none focus:border-[var(--accent)]";
 
 const statusLabel: Record<string, string> = {
   pending: "Pending",
@@ -97,34 +95,24 @@ export function SubscriptionsScreen({ scope }: { scope: "admin" | "president" })
       <Flash message={notice} />
       {error ? <Notice>{error}</Notice> : null}
       {scope === "admin" ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-stone-200 bg-white p-3">
-          <label className="relative min-w-56 flex-1">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400">
-              <SearchIcon />
-            </span>
-            <input
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Mess, plan, or email"
-              className={`${controlClass} w-full pl-10`}
-            />
-          </label>
-          <select
+        <FilterBar>
+          <FilterSearch value={searchInput} onChange={setSearchInput} placeholder="Mess, plan, or email" />
+          <FilterSelect
+            label="Status"
             value={status}
-            aria-label="Status"
-            onChange={(event) => {
-              setStatus(event.target.value);
+            onChange={(value) => {
+              setStatus(value);
               setOffset(0);
             }}
-            className={`${controlClass} min-w-36`}
-          >
-            <option value="">All</option>
-            <option value="pending">Pending</option>
-            <option value="active">Active</option>
-            <option value="expired">Expired</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </div>
+            options={[
+              { value: "", label: "All" },
+              { value: "pending", label: "Pending" },
+              { value: "active", label: "Active" },
+              { value: "expired", label: "Expired" },
+              { value: "cancelled", label: "Cancelled" },
+            ]}
+          />
+        </FilterBar>
       ) : null}
       <TableShell
         count={count}
@@ -286,13 +274,4 @@ function showDate(value: string | null) {
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
   if (!match) return value;
   return `${match[3]}-${match[2]}-${match[1]}`;
-}
-
-function SearchIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
-      <circle cx="11" cy="11" r="6" />
-      <path d="m16 16 4 4" />
-    </svg>
-  );
 }

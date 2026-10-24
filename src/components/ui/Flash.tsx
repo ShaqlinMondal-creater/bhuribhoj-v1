@@ -15,7 +15,7 @@ export function Flash({ message }: { message: string | null }) {
   if (!text) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4">
+      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-4">
       <div
         role="status"
         className="pointer-events-auto flex max-w-md items-center gap-3 rounded-full border border-[var(--accent)]/40 bg-white px-4 py-2.5 text-sm font-medium text-stone-950 shadow-lg shadow-stone-900/10"

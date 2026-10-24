@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { BillDetailDialog } from "@/components/bills/BillDetailDialog";
-import { Icon } from "@/components/icons/Icon";
 import { rowClass, TableShell, TableStatus, thClass } from "@/components/ui/DataTable";
+import { FilterBar, FilterDate, FilterSearch, FilterSelect } from "@/components/ui/FilterBar";
 import { Dialog } from "@/components/ui/Dialog";
 import { Flash } from "@/components/ui/Flash";
 import { IconButton } from "@/components/ui/IconButton";
@@ -12,9 +12,6 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { paymentStatusLabel, StatusPill } from "@/components/ui/StatusPill";
 import { inr, kolkataDateTime } from "@/lib/format";
 import { paymentService, type PaymentRow } from "@/services/paymentService";
-
-const controlClass =
-  "h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm text-stone-800 outline-none focus:border-[var(--accent)]";
 
 export function PaymentsScreen() {
   const [searchInput, setSearchInput] = useState("");
@@ -96,35 +93,25 @@ export function PaymentsScreen() {
       />
       <Flash message={notice} />
       {error || dateOrderError ? <Notice>{error || dateOrderError}</Notice> : null}
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-stone-200 bg-white p-3">
-        <label className="relative min-w-56 flex-1">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400">
-            <SearchIcon />
-          </span>
-          <input
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Name, email, plan, or order"
-            className={`${controlClass} w-full pl-10`}
-          />
-        </label>
-        <select
+      <FilterBar>
+        <FilterSearch value={searchInput} onChange={setSearchInput} placeholder="Name, email, plan, or order" />
+        <FilterSelect
+          label="Status"
           value={status}
-          aria-label="Status"
-          onChange={(event) => {
-            setStatus(event.target.value);
+          onChange={(value) => {
+            setStatus(value);
             setOffset(0);
           }}
-          className={`${controlClass} min-w-36`}
-        >
-          <option value="">All</option>
-          <option value="paid">Paid</option>
-          <option value="failed">Failed</option>
-          <option value="created">Created</option>
-        </select>
-        <DateField label="From" value={fromDate} onChange={(value) => { setFromDate(value); setOffset(0); }} />
-        <DateField label="To" value={toDate} onChange={(value) => { setToDate(value); setOffset(0); }} />
-      </div>
+          options={[
+            { value: "", label: "All" },
+            { value: "paid", label: "Paid" },
+            { value: "failed", label: "Failed" },
+            { value: "created", label: "Created" },
+          ]}
+        />
+        <FilterDate label="From" value={fromDate} onChange={(value) => { setFromDate(value); setOffset(0); }} />
+        <FilterDate label="To" value={toDate} onChange={(value) => { setToDate(value); setOffset(0); }} />
+      </FilterBar>
       <TableShell
         count={count}
         limit={limit}
@@ -237,54 +224,6 @@ function DeleteDialog({
   );
 }
 
-function DateField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  const picker = useRef<HTMLInputElement>(null);
-
-  return (
-    <div className={`${controlClass} flex min-w-44 items-center gap-2`}>
-      <span className="text-xs text-stone-400">{label}</span>
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder="dd-mm-yyyy"
-        inputMode="numeric"
-        aria-label={label}
-        className="w-28 bg-transparent outline-none placeholder:text-stone-400"
-      />
-      <button
-        type="button"
-        aria-label={`Choose ${label} date`}
-        onClick={() => {
-          const input = picker.current;
-          if (!input) return;
-          if (typeof input.showPicker === "function") input.showPicker();
-          else input.click();
-        }}
-        className="text-stone-400"
-      >
-        <Icon name="calendar" className="h-4 w-4" />
-      </button>
-      <input
-        ref={picker}
-        type="date"
-        tabIndex={-1}
-        value={isoFromDmy(value)}
-        onChange={(event) => onChange(dmyFromIso(event.target.value))}
-        className="sr-only"
-      />
-    </div>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
-      <circle cx="11" cy="11" r="6" />
-      <path d="m16 16 4 4" />
-    </svg>
-  );
-}
-
 function isDmy(value: string) {
   if (!/^\d{2}-\d{2}-\d{4}$/.test(value)) return false;
   const [day, month, year] = value.split("-").map(Number);
@@ -300,12 +239,6 @@ function isoFromDmy(value: string) {
   if (!isDmy(value)) return "";
   const [day, month, year] = value.split("-");
   return `${year}-${month}-${day}`;
-}
-
-function dmyFromIso(value: string) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) return "";
-  return `${match[3]}-${match[2]}-${match[1]}`;
 }
 
 function inDateRange(value: string | null, from: string, to: string) {
