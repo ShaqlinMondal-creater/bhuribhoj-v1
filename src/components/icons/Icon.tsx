@@ -22,7 +22,8 @@ export type IconName =
   | "sliders"
   | "logs"
   | "eye"
-  | "trash";
+  | "trash"
+  | "market";
 
 export function Icon({
   name,
@@ -195,6 +196,12 @@ const glyphs: Record<IconName, ReactNode> = {
       <path d="M4.5 7h15" />
       <path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7" />
       <path d="M6.5 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h6.4a1.5 1.5 0 0 0 1.5-1.4l.8-12" />
+    </>
+  ),
+  market: (
+    <>
+      <path d="M6 8h12l-1 12H7L6 8Z" />
+      <path d="M9 8V6.5A3 3 0 0 1 12 3.5 3 3 0 0 1 15 6.5V8" />
     </>
   ),
   logs: (

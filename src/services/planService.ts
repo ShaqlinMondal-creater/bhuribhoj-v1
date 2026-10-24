@@ -18,7 +18,11 @@ export type PlanInput = {
 
 export const planService = {
   fetch() {
-    return apiClient<{ data: Plan[] }>("/admin/plans/fetch", { method: "POST", body: {} });
+    return apiClient<{ data: Plan[] }>("/public/plans/fetch", {
+      method: "POST",
+      body: {},
+      auth: false,
+    });
   },
   create(body: PlanInput) {
     return apiClient<{ message: string; data: Plan }>("/admin/plans/create", { method: "POST", body });

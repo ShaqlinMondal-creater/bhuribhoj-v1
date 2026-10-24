@@ -1,6 +1,7 @@
 import { apiClient } from "@/lib/api/client";
+import { doorFor } from "@/lib/api/door";
 import type { FundType, MessRecord } from "@/lib/api/mess";
-import type { AccountSeat } from "@/types/auth";
+import type { AccountSeat, Plan, Role } from "@/types/auth";
 
 export type House = MessRecord & {
   monthly_due_amount: string | number;
@@ -29,12 +30,26 @@ export type GuestMealSetup = {
   price: string | number;
 };
 
+export type HouseSubscription = {
+  id: number;
+  plan_id: number;
+  starts_on: string | null;
+  ends_on: string | null;
+  status: string;
+  amount_paid_inr: number;
+  plan?: Pick<Plan, "id" | "name" | "duration_months" | "price_inr"> | null;
+};
+
+export type HousePayload = House & {
+  active_subscription?: HouseSubscription | null;
+};
+
 export const messService = {
   fetch() {
     return apiClient<{ data?: MessRecord[] } | MessRecord>("/admin/messes/fetch", { method: "POST", body: {} });
   },
-  house() {
-    return apiClient<{ data: House | null }>("/president/messes/fetch", { method: "POST", body: {} });
+  house(role: Role) {
+    return apiClient<{ data: HousePayload | null }>(`${doorFor(role)}/messes/fetch`, { method: "POST", body: {} });
   },
   update(body: Partial<MessWrite>) {
     return apiClient<{ message: string; data: House }>("/president/messes/update", { method: "POST", body });

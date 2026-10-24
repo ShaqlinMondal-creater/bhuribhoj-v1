@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Flash } from "@/components/ui/Flash";
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useApi } from "@/hooks/useApi";
@@ -24,8 +25,8 @@ export function PlansScreen() {
         title="Plans"
         description="The prices a president can buy. Only an admin can see or change them."
       />
+      <Flash message={done} />
       {plans.error || error ? <Notice>{error || plans.error}</Notice> : null}
-      {done ? <p className="text-sm text-[var(--brand)]">{done}</p> : null}
       {plans.loading ? <div className="h-64 animate-pulse rounded-2xl bg-[var(--panel)]" /> : null}
       <div className="grid items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {!plans.loading ? (

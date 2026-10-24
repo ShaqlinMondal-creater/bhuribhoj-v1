@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useMessUser } from "@/components/auth/MessSession";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { fieldClass, panelCard } from "@/components/ui/classes";
+import { rowClass, TableShell, TableStatus, thClass, useClientPage } from "@/components/ui/DataTable";
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useApi } from "@/hooks/useApi";
@@ -14,7 +15,7 @@ export function ExpensesScreen() {
   const user = useMessUser();
   const canRecord = user?.role === "president" || user?.role === "manager";
   const { data, error, loading, reload } = useApi(() => expenseService.fetch(user?.role ?? "member"), Boolean(user));
-  const rows = data?.data ?? [];
+  const table = useClientPage(data?.data ?? []);
 
   return (
     <section className="space-y-6">
@@ -25,25 +26,31 @@ export function ExpensesScreen() {
       />
       {canRecord && user ? <ExpenseForm role={user.role} onCreated={reload} /> : null}
       {error ? <Notice>{error}</Notice> : null}
-      {loading ? <div className="h-40 animate-pulse rounded-2xl bg-white" /> : null}
-      {!loading && !error && rows.length === 0 ? (
-        <EmptyState icon="wallet" title="No expenses yet" description="New expense entries will list here." />
-      ) : null}
-      {rows.length > 0 ? (
-        <ul className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-          {rows.map((row) => (
-            <li key={row.id} className="flex items-center justify-between gap-3 border-b border-stone-100 px-5 py-3.5 last:border-0">
-              <div>
-                <p className="text-sm font-medium text-stone-900">{row.title}</p>
-                <p className="text-xs capitalize text-stone-500">
-                  {row.category} · {row.spent_on}
-                </p>
-              </div>
-              <p className="text-sm font-semibold text-stone-900">{inr(Number(row.amount))}</p>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      <TableShell
+        count={table.count}
+        limit={table.limit}
+        offset={table.offset}
+        onLimit={table.setLimit}
+        onOffset={table.setOffset}
+        head={
+          <tr>
+            <th className={thClass()}>Title</th>
+            <th className={thClass()}>Category</th>
+            <th className={thClass()}>Date</th>
+            <th className={thClass("right")}>Amount</th>
+          </tr>
+        }
+      >
+        <TableStatus colSpan={4} loading={loading} empty={!loading && table.count === 0 ? "No expenses yet." : null} />
+        {table.page.map((row) => (
+          <tr key={row.id} className={rowClass}>
+            <td className="px-4 py-3 font-medium text-stone-950">{row.title}</td>
+            <td className="px-4 py-3 capitalize text-stone-600">{row.category}</td>
+            <td className="px-4 py-3 text-stone-600">{row.spent_on}</td>
+            <td className="px-4 py-3 text-right font-semibold text-stone-900">{inr(Number(row.amount))}</td>
+          </tr>
+        ))}
+      </TableShell>
     </section>
   );
 }
@@ -81,7 +88,7 @@ function ExpenseForm({ role, onCreated }: { role: Role; onCreated: () => void })
   }
 
   return (
-    <form onSubmit={onSubmit} className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm shadow-stone-900/5">
+    <form onSubmit={onSubmit} className={panelCard}>
       <h2 className="text-sm font-semibold text-stone-900">Record an expense</h2>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <label className="block text-sm text-stone-600">
@@ -126,5 +133,3 @@ function ExpenseForm({ role, onCreated }: { role: Role; onCreated: () => void })
     </form>
   );
 }
-
-const fieldClass = "mt-1 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 outline-none focus:border-emerald-700";

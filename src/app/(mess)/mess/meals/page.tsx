@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { MealsScreen } from "@/components/mess/MealsScreen";
+import { MenusScreen } from "@/components/mess/MenusScreen";
 
 export const metadata: Metadata = { title: "Meals" };
 
 export const instant = false;
 
 export default function MessMealsPage() {
-  return <MealsScreen />;
+  return <MenusScreen />;
 }

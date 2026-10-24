@@ -27,8 +27,8 @@ export type NewExpense = {
 };
 
 export const expenseService = {
-  fetch(role: Role) {
-    return apiClient<ExpensesPayload>(`${doorFor(role)}/expenses/fetch`, { method: "POST", body: {} });
+  fetch(role: Role, body: { category?: NewExpense["category"] } = {}) {
+    return apiClient<ExpensesPayload>(`${doorFor(role)}/expenses/fetch`, { method: "POST", body });
   },
   create(role: Role, body: NewExpense) {
     return apiClient<{ message: string }>(`${doorFor(role)}/expenses/create`, { method: "POST", body });

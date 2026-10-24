@@ -3,13 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSetMessSeat } from "@/components/auth/MessSession";
+import { fieldClass } from "@/components/ui/classes";
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
 import type { FundType } from "@/lib/api/mess";
 import { messService } from "@/services/messService";
-
-const fieldClass =
-  "mt-1 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 outline-none focus:border-emerald-700";
 
 export function SetupScreen() {
   const router = useRouter();

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMessUser } from "@/components/auth/MessSession";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { rowClass, TableShell, TableStatus, thClass, useClientPage } from "@/components/ui/DataTable";
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
@@ -11,16 +11,16 @@ import { mealService } from "@/services/mealService";
 export function MealsScreen() {
   const user = useMessUser();
   const { data, error, loading } = useApi(() => mealService.fetch(user?.role ?? "member"), Boolean(user));
+  const table = useClientPage(data?.data ?? []);
 
   return (
     <section className="space-y-6">
       <PageHeader
-        eyebrow="Kitchen"
-        title="Daily meals"
+        eyebrow="Mess Details"
+        title="Daily Meals"
         description={data ? `Meal date ${data.meal_date}` : "Lunch and dinner for today."}
       />
       {error ? <Notice>{error}</Notice> : null}
-      {loading ? <div className="h-28 animate-pulse rounded-2xl bg-white" /> : null}
       {data ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Lunch on" value={data.summary.lunch_active} icon="meals" />
@@ -29,29 +29,31 @@ export function MealsScreen() {
           <StatCard label="Dinner taken" value={data.summary.dinner_taken} icon="meals" />
         </div>
       ) : null}
-      {!loading && !error && (data?.data.length ?? 0) === 0 ? (
-        <EmptyState
-          icon="meals"
-          title="No meals marked"
-          description="Today's lunch and dinner rows will show here after they are saved."
-        />
-      ) : null}
-      {(data?.data.length ?? 0) > 0 ? (
-        <ul className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-          {data?.data.map((row) => (
-            <li key={row.id} className="flex items-center justify-between gap-3 border-b border-stone-100 px-5 py-3.5 last:border-0">
-              <div>
-                <p className="text-sm font-medium text-stone-900">{row.user?.name ?? "Member"}</p>
-                <p className="text-xs text-stone-500">{row.user?.member_code ?? "—"}</p>
-              </div>
-              <p className="text-xs text-stone-600">
-                Lunch {row.lunch_taken ? "taken" : row.lunch_active ? "on" : "off"} · Dinner{" "}
-                {row.dinner_taken ? "taken" : row.dinner_active ? "on" : "off"}
-              </p>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      <TableShell
+        count={table.count}
+        limit={table.limit}
+        offset={table.offset}
+        onLimit={table.setLimit}
+        onOffset={table.setOffset}
+        head={
+          <tr>
+            <th className={thClass()}>Member</th>
+            <th className={thClass()}>Code</th>
+            <th className={thClass()}>Lunch</th>
+            <th className={thClass()}>Dinner</th>
+          </tr>
+        }
+      >
+        <TableStatus colSpan={4} loading={loading} empty={!loading && table.count === 0 ? "No meals marked." : null} />
+        {table.page.map((row) => (
+          <tr key={row.id} className={rowClass}>
+            <td className="px-4 py-3 font-medium text-stone-950">{row.user?.name ?? "Member"}</td>
+            <td className="px-4 py-3 text-stone-600">{row.user?.member_code ?? "—"}</td>
+            <td className="px-4 py-3 text-stone-600">{row.lunch_taken ? "Taken" : row.lunch_active ? "On" : "Off"}</td>
+            <td className="px-4 py-3 text-stone-600">{row.dinner_taken ? "Taken" : row.dinner_active ? "On" : "Off"}</td>
+          </tr>
+        ))}
+      </TableShell>
     </section>
   );
 }

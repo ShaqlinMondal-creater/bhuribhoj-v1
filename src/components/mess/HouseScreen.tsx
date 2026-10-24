@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useMessUser, useSetMessSeat, useSetMessUser } from "@/components/auth/MessSession";
+import { fieldClass as baseFieldClass, panelCard } from "@/components/ui/classes";
+import { rowClass, TableShell, TableStatus, thClass, useClientPage } from "@/components/ui/DataTable";
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
@@ -16,8 +18,7 @@ import { mealService } from "@/services/mealService";
 import { menuService } from "@/services/menuService";
 import { messService, type GuestMealSetup, type House } from "@/services/messService";
 
-const fieldClass =
-  "mt-1 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 outline-none focus:border-emerald-700 disabled:bg-stone-50 disabled:text-stone-500";
+const fieldClass = `${baseFieldClass} disabled:bg-stone-50 disabled:text-stone-500`;
 
 const tabs = [
   { id: "config", label: "Mess config" },
@@ -45,7 +46,7 @@ const emptyHouse = {
 export function HouseScreen() {
   const user = useMessUser();
   const president = isPresident(user?.role);
-  const house = useApi(messService.house);
+  const house = useApi(() => messService.house(user?.role ?? "president"), Boolean(user));
   const [tab, setTab] = useState<(typeof tabs)[number]["id"]>("config");
   const current = house.data?.data ?? emptyHouse;
 
@@ -142,7 +143,7 @@ function MessConfig({
   }
 
   return (
-    <form onSubmit={onSubmit} className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm shadow-stone-900/5">
+    <form onSubmit={onSubmit} className={panelCard}>
       <h2 className="text-sm font-semibold text-stone-900">Mess config</h2>
       <p className="mt-1 text-sm text-stone-500">Name, address, fund, and the monthly due. A manager can read this and cannot save it.</p>
       {error ? <div className="mt-4"><Notice>{error}</Notice></div> : null}
@@ -187,6 +188,7 @@ function MessConfig({
 function MealSetup({ house, canEdit, role }: { house: House | null; canEdit: boolean; role: Role }) {
   const meals = useApi(messService.guestMeals, Boolean(house?.id) && canEdit);
   const menus = useApi(() => menuService.fetch(role), Boolean(house?.id));
+  const menuTable = useClientPage(menus.data?.data ?? []);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -245,7 +247,7 @@ function MealSetup({ house, canEdit, role }: { house: House | null; canEdit: boo
     <div className="space-y-4">
       {error || meals.error ? <Notice>{error || meals.error}</Notice> : null}
       {done ? <p className="text-sm text-emerald-800">{done}</p> : null}
-      <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm shadow-stone-900/5">
+      <div className={panelCard}>
         <h2 className="text-sm font-semibold text-stone-900">Guest meal prices</h2>
         <p className="mt-1 text-sm text-stone-500">What a guest pays for each plate. Only the president saves these.</p>
         <div className="mt-4 space-y-3">
@@ -264,7 +266,7 @@ function MealSetup({ house, canEdit, role }: { house: House | null; canEdit: boo
           </form>
         ) : null}
       </div>
-      <form onSubmit={saveMenu} className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm shadow-stone-900/5">
+      <form onSubmit={saveMenu} className={panelCard}>
         <h2 className="text-sm font-semibold text-stone-900">Menu</h2>
         <p className="mt-1 text-sm text-stone-500">Lunch or dinner for a date. The president and the manager can save this.</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -285,19 +287,29 @@ function MealSetup({ house, canEdit, role }: { house: House | null; canEdit: boo
           {pending ? "Saving…" : "Save menu"}
         </button>
       </form>
-      {(menus.data?.data.length ?? 0) > 0 ? (
-        <ul className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-          {menus.data?.data.map((row) => (
-            <li key={row.id} className="flex items-center justify-between gap-3 border-b border-stone-100 px-5 py-3.5 last:border-0">
-              <div>
-                <p className="text-sm font-medium capitalize text-stone-900">{row.meal_type}</p>
-                <p className="text-xs text-stone-500">{row.menu_date}</p>
-              </div>
-              <p className="max-w-sm text-right text-sm text-stone-700">{row.dishes}</p>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      <TableShell
+        count={menuTable.count}
+        limit={menuTable.limit}
+        offset={menuTable.offset}
+        onLimit={menuTable.setLimit}
+        onOffset={menuTable.setOffset}
+        head={
+          <tr>
+            <th className={thClass()}>Meal</th>
+            <th className={thClass()}>Date</th>
+            <th className={thClass()}>Dishes</th>
+          </tr>
+        }
+      >
+        <TableStatus colSpan={3} loading={menus.loading} empty={!menus.loading && menuTable.count === 0 ? "No meals yet." : null} />
+        {menuTable.page.map((row) => (
+          <tr key={row.id} className={rowClass}>
+            <td className="px-4 py-3 font-medium capitalize text-stone-950">{row.meal_type}</td>
+            <td className="px-4 py-3 text-stone-600">{row.menu_date}</td>
+            <td className="px-4 py-3 text-stone-700">{row.dishes}</td>
+          </tr>
+        ))}
+      </TableShell>
     </div>
   );
 }

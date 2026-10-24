@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useMessUser } from "@/components/auth/MessSession";
-import { Icon } from "@/components/icons/Icon";
+import { rowClass, TableShell, TableStatus, thClass } from "@/components/ui/DataTable";
+import { fieldClass as baseFieldClass } from "@/components/ui/classes";
+import { Dialog } from "@/components/ui/Dialog";
+import { IconButton } from "@/components/ui/IconButton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Notice } from "@/components/ui/Notice";
@@ -127,68 +130,66 @@ export function MembersScreen() {
       />
       {listError ? <Notice>{listError}</Notice> : null}
       {deposits.error ? <Notice>{deposits.error}</Notice> : null}
-      {listLoading ? <div className="h-64 animate-pulse rounded-2xl bg-white" /> : null}
-      {!listLoading && !listError && rows.length === 0 ? (
-        <EmptyState icon="users" title="No members yet" description="People added to this mess will show up here." />
-      ) : null}
-      {rows.length > 0 ? (
-        <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
-          <div className="hidden grid-cols-12 gap-3 border-b border-stone-100 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-stone-400 md:grid">
-            <div className={president ? "col-span-3" : "col-span-4"}>Name</div>
-            <div className="col-span-2">Code</div>
-            <div className="col-span-2">Room</div>
-            <div className="col-span-2">Role</div>
-            <div className={president ? "col-span-1" : "col-span-2"}>Status</div>
-            {president ? <div className="col-span-2 text-right">Action</div> : null}
-          </div>
-          <ul>
-            {rows.map((row) => (
-              <li
-                key={String(row.id)}
-                className="grid grid-cols-1 gap-2 border-b border-stone-100 px-5 py-4 last:border-0 md:grid-cols-12 md:items-center md:gap-3"
-              >
-                <div className={`flex min-w-0 items-center gap-3 ${president ? "md:col-span-3" : "md:col-span-4"}`}>
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-semibold text-emerald-900">
-                    {initials(row.name)}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-stone-900">{row.name}</p>
-                    <p className="truncate text-xs text-stone-500">{row.email}</p>
-                  </div>
+      <TableShell
+        count={list?.count ?? rows.length}
+        limit={filters.limit ?? 10}
+        offset={filters.offset ?? 0}
+        onLimit={(limit) => patchFilters({ limit })}
+        onOffset={(offset) => patchFilters({ offset }, false)}
+        head={
+          <tr>
+            <th className={thClass()}>Name</th>
+            <th className={thClass()}>Code</th>
+            <th className={thClass()}>Room</th>
+            <th className={thClass()}>Role</th>
+            <th className={thClass()}>Status</th>
+            {president ? <th className={thClass("right")}>Action</th> : null}
+          </tr>
+        }
+      >
+        <TableStatus
+          colSpan={president ? 6 : 5}
+          loading={listLoading}
+          empty={!listLoading && rows.length === 0 ? "No members yet." : null}
+        />
+        {rows.map((row) => (
+          <tr key={String(row.id)} className={rowClass}>
+            <td className="px-4 py-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-xs font-semibold text-[var(--brand)]">
+                  {initials(row.name)}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-stone-900">{row.name}</p>
+                  <p className="truncate text-xs text-stone-500">{row.email}</p>
                 </div>
-                <p className="text-sm text-stone-600 md:col-span-2">{row.member_code ?? "—"}</p>
-                <p className="text-sm text-stone-600 md:col-span-2">{row.room_no ?? "—"}</p>
-                <div className="md:col-span-2">
-                  <span className="inline-flex rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-700">
-                    {roleLabel[row.role as Role] ?? row.role}
-                  </span>
+              </div>
+              <div className="mt-2">
+                <MemberDeposits rows={depositsByUser.get(Number(row.id)) ?? []} />
+              </div>
+            </td>
+            <td className="px-4 py-3 align-top text-stone-600">{row.member_code ?? "—"}</td>
+            <td className="px-4 py-3 align-top text-stone-600">{row.room_no ?? "—"}</td>
+            <td className="px-4 py-3 align-top">
+              <span className="inline-flex rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-700">
+                {roleLabel[row.role as Role] ?? row.role}
+              </span>
+            </td>
+            <td className="px-4 py-3 align-top">
+              <span className="inline-flex rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-xs font-medium capitalize text-[var(--brand)]">
+                {row.status ?? "active"}
+              </span>
+            </td>
+            {president ? (
+              <td className="px-4 py-3 align-top">
+                <div className="flex justify-end">
+                  <IconButton label={`Edit ${row.name}`} icon="pencil" iconClassName="h-3.5 w-3.5" onClick={() => setEditing(row)} />
                 </div>
-                <div className={president ? "md:col-span-1" : "md:col-span-2"}>
-                  <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium capitalize text-emerald-800">
-                    {row.status ?? "active"}
-                  </span>
-                </div>
-                {president ? (
-                  <div className="flex items-center justify-end gap-2 md:col-span-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditing(row)}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 text-stone-600 hover:bg-stone-50"
-                      aria-label={`Edit ${row.name}`}
-                      title="Edit"
-                    >
-                      <Icon name="pencil" className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ) : null}
-                <div className="md:col-span-12">
-                  <MemberDeposits rows={depositsByUser.get(Number(row.id)) ?? []} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+              </td>
+            ) : null}
+          </tr>
+        ))}
+      </TableShell>
 
       {adding ? (
         <AddMemberDialog
@@ -210,12 +211,6 @@ export function MembersScreen() {
           }}
         />
       ) : null}
-      <MemberPager
-        count={list?.count ?? 0}
-        limit={list?.limit ?? filters.limit ?? 10}
-        offset={list?.offset ?? filters.offset ?? 0}
-        onOffset={(offset) => patchFilters({ offset }, false)}
-      />
     </section>
   );
 }
@@ -245,7 +240,7 @@ function AddMemberDialog({ onClose, onCreated }: { onClose: () => void; onCreate
   }
 
   return (
-    <Dialog title="Add member" onClose={onClose}>
+    <Dialog title="Add member" onClose={onClose} size="lg" backdrop="stone" closeClassName="text-sm font-medium text-stone-500 hover:text-stone-800">
       <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2">
         <label className="block text-sm text-stone-600">
           Name
@@ -316,7 +311,7 @@ function EditMemberDialog({
   }
 
   return (
-    <Dialog title="Edit member" onClose={onClose}>
+    <Dialog title="Edit member" onClose={onClose} size="lg" backdrop="stone" closeClassName="text-sm font-medium text-stone-500 hover:text-stone-800">
       <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2">
         <label className="block text-sm text-stone-600 sm:col-span-2">
           Name
@@ -348,44 +343,6 @@ function EditMemberDialog({
         </div>
       </form>
     </Dialog>
-  );
-}
-
-function Dialog({
-  title,
-  onClose,
-  children,
-}: {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-stone-950/40 p-4" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-stone-950">{title}</h2>
-          <button type="button" onClick={onClose} className="text-sm font-medium text-stone-500 hover:text-stone-800">
-            Close
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
   );
 }
 
@@ -478,47 +435,6 @@ function MemberFiltersBar({
   );
 }
 
-function MemberPager({
-  count,
-  limit,
-  offset,
-  onOffset,
-}: {
-  count: number;
-  limit: number;
-  offset: number;
-  onOffset: (offset: number) => void;
-}) {
-  const from = count === 0 ? 0 : offset + 1;
-  const to = Math.min(offset + limit, count);
-
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-stone-600">
-      <p>
-        {from}–{to} of {count}
-      </p>
-      <div className="flex gap-2">
-        <button
-          type="button"
-          disabled={offset <= 0}
-          onClick={() => onOffset(Math.max(0, offset - limit))}
-          className="rounded-xl border border-stone-200 bg-white px-3 py-2 font-medium disabled:opacity-40"
-        >
-          Previous
-        </button>
-        <button
-          type="button"
-          disabled={offset + limit >= count}
-          onClick={() => onOffset(offset + limit)}
-          className="rounded-xl border border-stone-200 bg-white px-3 py-2 font-medium disabled:opacity-40"
-        >
-          Next
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function MemberDeposits({ rows }: { rows: DepositRow[] }) {
   const total = rows.reduce((sum, row) => sum + Number(row.amount), 0);
 
@@ -553,4 +469,4 @@ function labelFor(value: string) {
   return value.replaceAll("_", " ");
 }
 
-const fieldClass = "mt-1 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 outline-none focus:border-emerald-700 disabled:bg-stone-50";
+const fieldClass = `${baseFieldClass} disabled:bg-stone-50`;

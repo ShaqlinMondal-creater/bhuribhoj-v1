@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Icon } from "@/components/icons/Icon";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { rowClass, TableShell, TableStatus, thClass } from "@/components/ui/DataTable";
+import { DetailList } from "@/components/ui/DetailList";
+import { Dialog } from "@/components/ui/Dialog";
+import { Flash } from "@/components/ui/Flash";
+import { IconButton } from "@/components/ui/IconButton";
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { roleLabel } from "@/lib/auth/roles";
 import { userService, type PlatformUser, type UserWrite } from "@/services/userService";
 import type { Role } from "@/types/auth";
 
-const LIMITS = [10, 25, 50];
 const ROLES: Role[] = ["admin", "president", "manager", "member"];
 
 const fieldClass =
@@ -68,8 +70,6 @@ export function UsersScreen() {
   }, [search, role, status, limit, offset, reloadKey]);
 
   const filtered = search !== "" || role !== "" || status !== "";
-  const page = Math.floor(offset / limit) + 1;
-  const pages = Math.max(1, Math.ceil(count / limit));
 
   function refresh() {
     setReloadKey((value) => value + 1);
@@ -82,8 +82,8 @@ export function UsersScreen() {
         title="Users"
         description="Every account on the platform, including the admin."
       />
+      <Flash message={notice} />
       {error ? <Notice>{error}</Notice> : null}
-      {notice ? <p className="text-sm text-[var(--brand)]">{notice}</p> : null}
 
       <div className="flex flex-wrap items-end gap-3">
         <label className="block min-w-56 flex-1 text-xs font-medium uppercase tracking-[0.12em] text-stone-500">
@@ -130,32 +130,33 @@ export function UsersScreen() {
         </label>
       </div>
 
-      {loading && rows.length === 0 ? <div className="h-40 animate-pulse rounded-2xl bg-white" /> : null}
-      {!loading && rows.length === 0 ? (
-        <EmptyState
-          icon="users"
-          title={filtered ? "No accounts match" : "No users yet"}
-          description={filtered ? "Try another name, email, mobile, role, or status." : "Accounts appear here after someone signs in or registers."}
-        />
-      ) : null}
-
-      {rows.length > 0 ? (
-        <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-stone-200 text-xs uppercase tracking-[0.12em] text-stone-500">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-4 py-3 font-medium">Role</th>
-                  <th className="px-4 py-3 font-medium">Mess</th>
-                  <th className="px-4 py-3 font-medium">Contact</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 text-right font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+      <TableShell
+        count={count}
+        limit={limit}
+        offset={offset}
+        onLimit={(value) => {
+          setLimit(value);
+          setOffset(0);
+        }}
+        onOffset={setOffset}
+        head={
+          <tr>
+            <th className={thClass()}>Name</th>
+            <th className={thClass()}>Role</th>
+            <th className={thClass()}>Mess</th>
+            <th className={thClass()}>Contact</th>
+            <th className={thClass()}>Status</th>
+            <th className={thClass("right")}>Actions</th>
+          </tr>
+        }
+      >
+              <TableStatus
+                colSpan={6}
+                loading={loading && rows.length === 0}
+                empty={!loading && rows.length === 0 ? (filtered ? "No accounts match these filters." : "No users yet.") : null}
+              />
                 {rows.map((user) => (
-                  <tr key={user.id} className="border-b border-stone-100 last:border-0">
+                  <tr key={user.id} className={rowClass}>
                     <td className="px-4 py-3">
                       <p className="font-medium text-stone-950">{user.name}</p>
                       {user.member_code ? <p className="text-xs text-stone-500">{user.member_code}</p> : null}
@@ -180,33 +181,7 @@ export function UsersScreen() {
                     </td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
-          {count > 10 ? (
-            <div className="flex items-center justify-end gap-3 border-t border-stone-100 px-4 py-3">
-              <label className="flex items-center gap-2 text-xs text-stone-500">
-                Limit
-                <select
-                  value={limit}
-                  onChange={(event) => {
-                    setLimit(Number(event.target.value));
-                    setOffset(0);
-                  }}
-                  className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-sm text-stone-800"
-                >
-                  {LIMITS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <Pager page={page} pages={pages} onPage={(next) => setOffset((next - 1) * limit)} />
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+      </TableShell>
 
       {open?.mode === "detail" ? <DetailDialog user={open.user} onClose={() => setOpen(null)} /> : null}
       {open?.mode === "update" ? (
@@ -240,63 +215,8 @@ export function UsersScreen() {
   );
 }
 
-function Pager({ page, pages, onPage }: { page: number; pages: number; onPage: (page: number) => void }) {
-  const items = pageItems(page, pages);
-
-  return (
-    <nav className="flex items-center gap-1" aria-label="Pages">
-      {page > 1 ? (
-        <button type="button" onClick={() => onPage(page - 1)} className="h-8 min-w-8 rounded-full px-2 text-sm text-stone-500 hover:bg-stone-100" aria-label="Previous page">
-          ‹
-        </button>
-      ) : null}
-      {items.map((item, index) =>
-        item === "dot" ? (
-          <span key={`dot-${index}`} className="px-1 text-stone-400">
-            ·
-          </span>
-        ) : (
-          <button
-            key={item}
-            type="button"
-            onClick={() => onPage(item)}
-            aria-current={item === page ? "page" : undefined}
-            className={`h-8 min-w-8 rounded-full px-2 text-sm font-semibold ${
-              item === page ? "bg-[var(--accent)] text-[var(--accent-ink)]" : "text-stone-600 hover:bg-stone-100"
-            }`}
-          >
-            {item}
-          </button>
-        ),
-      )}
-    </nav>
-  );
-}
-
-function pageItems(page: number, pages: number): Array<number | "dot"> {
-  const window: number[] = [];
-  for (let next = page; next < page + 3 && next <= pages; next += 1) window.push(next);
-  const lastShown = window[window.length - 1] ?? page;
-  if (lastShown < pages) return [...window, "dot", pages];
-  return window;
-}
-
-function IconButton({ label, icon, onClick }: { label: string; icon: "eye" | "pencil" | "trash"; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className="flex h-8 w-8 items-center justify-center rounded-full text-stone-500 transition hover:bg-[var(--accent-soft)] hover:text-[var(--brand)]"
-    >
-      <Icon name={icon} className="h-4 w-4" />
-    </button>
-  );
-}
-
 function DetailDialog({ user, onClose }: { user: PlatformUser; onClose: () => void }) {
-  const rows = [
+  const rows: Array<[string, string]> = [
     ["Name", user.name],
     ["Email", user.email],
     ["Mobile", user.mobile || "—"],
@@ -310,14 +230,7 @@ function DetailDialog({ user, onClose }: { user: PlatformUser; onClose: () => vo
 
   return (
     <Dialog title="Detail" onClose={onClose}>
-      <dl className="space-y-3">
-        {rows.map(([label, value]) => (
-          <div key={label} className="flex items-start justify-between gap-4 text-sm">
-            <dt className="text-stone-500">{label}</dt>
-            <dd className="text-right font-medium text-stone-900">{value}</dd>
-          </div>
-        ))}
-      </dl>
+      <DetailList rows={rows} valueClassName="text-right font-medium text-stone-900" />
     </Dialog>
   );
 }
@@ -431,22 +344,6 @@ function DeleteDialog({
         </button>
       </div>
     </Dialog>
-  );
-}
-
-function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl" onClick={(event) => event.stopPropagation()} role="dialog" aria-label={title}>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-stone-950">{title}</h2>
-          <button type="button" onClick={onClose} className="text-sm text-stone-500" aria-label="Close">
-            Close
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
   );
 }
 
