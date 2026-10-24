@@ -15,9 +15,10 @@ Next.js App Router frontend for the BhuriBhoj Laravel API.
 ```
 src/
   app/
-    (public)/          public marketing + login + plans
-    (mess)/mess/       mess workspace
-    (admin)/admin/     platform admin
+    page.tsx           home page at /
+    about/ contact/ features/ plans/ login/ register/
+    admin/             platform admin at /admin
+    mess/              mess workspace at /mess
     actions/           server actions (auth)
   components/
     auth/              LoginForm

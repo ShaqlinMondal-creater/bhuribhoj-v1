@@ -359,22 +359,22 @@ function MemberFiltersBar({
   const roomOptions = rooms.filter((room) => room.toLowerCase().includes(typedRoom));
 
   return (
-    <div className="grid gap-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm shadow-stone-900/5 md:grid-cols-4">
-      <label className="block text-sm text-stone-600 md:col-span-2">
+    <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-stone-200 bg-white p-3 shadow-sm shadow-stone-900/5 lg:flex-nowrap">
+      <label className="block min-w-56 flex-1 text-xs font-medium text-stone-500">
         Search
         <input
           value={filters.search ?? ""}
           onChange={(event) => onChange({ search: event.target.value })}
           placeholder="Name, email, member id, code, or mobile"
-          className={fieldClass}
+          className={filterControl}
         />
       </label>
-      <label className="block text-sm text-stone-600">
+      <label className="block w-36 shrink-0 text-xs font-medium text-stone-500">
         Role
         <select
           value={filters.role ?? ""}
           onChange={(event) => onChange({ role: event.target.value as MemberFilters["role"] })}
-          className={fieldClass}
+          className={filterControl}
         >
           <option value="">All roles</option>
           <option value="president">President</option>
@@ -382,9 +382,9 @@ function MemberFiltersBar({
           <option value="member">Member</option>
         </select>
       </label>
-      <div className="block text-sm text-stone-600">
+      <div className="block shrink-0 text-xs font-medium text-stone-500">
         Status
-        <div className="mt-1 flex rounded-xl border border-stone-200 p-1">
+        <div className="mt-1 flex h-10 items-center rounded-xl border border-stone-200 p-1">
           {(
             [
               ["", "All"],
@@ -396,7 +396,7 @@ function MemberFiltersBar({
               key={label}
               type="button"
               onClick={() => onChange({ status: value })}
-              className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-medium ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
                 (filters.status ?? "") === value ? "bg-emerald-800 text-white" : "text-stone-600"
               }`}
             >
@@ -405,13 +405,13 @@ function MemberFiltersBar({
           ))}
         </div>
       </div>
-      <label className="group relative block text-sm text-stone-600 md:col-span-2">
+      <label className="group relative block w-44 shrink-0 text-xs font-medium text-stone-500">
         Room
         <input
           value={filters.room_no ?? ""}
           onChange={(event) => onChange({ room_no: event.target.value })}
           placeholder="Search a room"
-          className={fieldClass}
+          className={filterControl}
           autoComplete="off"
         />
         {roomOptions.length > 0 ? (
@@ -470,3 +470,5 @@ function labelFor(value: string) {
 }
 
 const fieldClass = `${baseFieldClass} disabled:bg-stone-50`;
+const filterControl =
+  "mt-1 h-10 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm text-stone-900 outline-none focus:border-[var(--accent)]";

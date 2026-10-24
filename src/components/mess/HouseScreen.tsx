@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useMessUser, useSetMessSeat, useSetMessUser } from "@/components/auth/MessSession";
+import { Icon } from "@/components/icons/Icon";
 import { fieldClass as baseFieldClass, panelCard } from "@/components/ui/classes";
+import { Flash } from "@/components/ui/Flash";
 import { rowClass, TableShell, TableStatus, thClass, useClientPage } from "@/components/ui/DataTable";
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -16,14 +18,14 @@ import { authService } from "@/services/authService";
 import { dashboardService } from "@/services/dashboardService";
 import { mealService } from "@/services/mealService";
 import { menuService } from "@/services/menuService";
-import { messService, type GuestMealSetup, type House } from "@/services/messService";
+import { messService, type GuestMealSetup, type House, type MessWrite } from "@/services/messService";
 
 const fieldClass = `${baseFieldClass} disabled:bg-stone-50 disabled:text-stone-500`;
 
 const tabs = [
-  { id: "config", label: "Mess config" },
-  { id: "meals", label: "Meal setup" },
-  { id: "reports", label: "Reports" },
+  { id: "config", label: "Mess config", icon: "building" },
+  { id: "meals", label: "Meal setup", icon: "meals" },
+  { id: "reports", label: "Reports", icon: "grid" },
 ] as const;
 
 const emptyHouse = {
@@ -57,19 +59,27 @@ export function HouseScreen() {
         title={current.name || "Mess house"}
         description="Mess config, guest meal prices, and the month's reports."
       />
-      <div className="flex gap-2 overflow-x-auto">
-        {tabs.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => setTab(item.id)}
-            className={`rounded-full px-4 py-2 text-sm font-medium ${
-              tab === item.id ? "bg-emerald-800 text-white" : "bg-white text-stone-600 hover:bg-stone-100"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
+      <div className="inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-2xl bg-[var(--panel)] p-1.5" role="tablist">
+        {tabs.map((item) => {
+          const selected = tab === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              onClick={() => setTab(item.id)}
+              className={`inline-flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                selected
+                  ? "bg-white/10 text-[var(--accent)]"
+                  : "text-[var(--panel-muted)] hover:bg-white/10 hover:text-[var(--panel-ink)]"
+              }`}
+            >
+              <Icon name={item.icon} className="h-4 w-4 shrink-0" />
+              {item.label}
+            </button>
+          );
+        })}
       </div>
       {house.error ? <Notice>{house.error}</Notice> : null}
       {tab === "config" ? (
@@ -84,6 +94,13 @@ export function HouseScreen() {
     </section>
   );
 }
+
+const fundLabel: Record<FundType, string> = {
+  manager_only: "Manager fund only",
+  mess_and_manager: "Mess fund and manager fund",
+};
+
+type ConfigKey = Exclude<keyof MessWrite, never>;
 
 function MessConfig({
   house,
@@ -101,6 +118,10 @@ function MessConfig({
   const [done, setDone] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const creating = !house.id;
+
+  if (!creating) {
+    return <MessProfile house={house} canEdit={canEdit} onSaved={onSaved} />;
+  }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -185,6 +206,239 @@ function MessConfig({
   );
 }
 
+function MessProfile({
+  house,
+  canEdit,
+  onSaved,
+}: {
+  house: House;
+  canEdit: boolean;
+  onSaved: () => void;
+}) {
+  const [editing, setEditing] = useState<ConfigKey | null>(null);
+  const [draft, setDraft] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+  const bothFunds = house.fund_type === "mess_and_manager";
+
+  function begin(key: ConfigKey, value: string) {
+    setEditing(key);
+    setDraft(value);
+    setError(null);
+  }
+
+  function cancel() {
+    setEditing(null);
+    setDraft("");
+  }
+
+  async function save(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editing || !canEdit || pending) return;
+    const body = fieldBody(editing, draft);
+    if (typeof body === "string") {
+      setError(body);
+      return;
+    }
+    setPending(true);
+    setError(null);
+    setDone(null);
+    try {
+      const result = await messService.update(body);
+      setDone(result.message);
+      setEditing(null);
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save the mess.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const houseRows: ProfileRow[] = [
+    { key: "name", label: "Name", display: textOf(house.name), draft: house.name, kind: "text", required: true },
+    { key: "code", label: "Code", display: textOf(house.code), draft: house.code, kind: "readonly" },
+    { key: "email", label: "Email", display: textOf(house.email), draft: house.email ?? "", kind: "email" },
+    { key: "contact_no", label: "Contact", display: textOf(house.contact_no), draft: house.contact_no, kind: "text", required: true },
+  ];
+  const addressRows: ProfileRow[] = [
+    { key: "address", label: "Address", display: textOf(house.address), draft: house.address, kind: "text", required: true },
+    { key: "district", label: "District", display: textOf(house.district), draft: house.district, kind: "text", required: true },
+    { key: "pincode", label: "Pincode", display: textOf(house.pincode), draft: house.pincode, kind: "text", required: true },
+  ];
+  const dueRows: ProfileRow[] = [
+    { key: "fund_type", label: "Fund", display: fundLabel[house.fund_type] ?? house.fund_type, draft: house.fund_type, kind: "select" },
+    ...(bothFunds
+      ? [{ key: "s_deposite_amount" as const, label: "Starting deposit", display: moneyOf(house.s_deposite_amount), draft: house.s_deposite_amount == null ? "" : String(house.s_deposite_amount), kind: "number" as const }]
+      : []),
+    { key: "monthly_due_amount", label: "Monthly due amount", display: moneyOf(house.monthly_due_amount), draft: house.monthly_due_amount === "" ? "" : String(house.monthly_due_amount), kind: "number" },
+    { key: "monthly_due_date", label: "Monthly due date", display: textOf(house.monthly_due_date), draft: house.monthly_due_date ?? "", kind: "text" },
+    { key: "late_fee_amount", label: "Late fee", display: moneyOf(house.late_fee_amount), draft: house.late_fee_amount === "" ? "" : String(house.late_fee_amount), kind: "number" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <Flash message={done} />
+      {error ? <Notice>{error}</Notice> : null}
+      {!canEdit ? <p className="text-sm text-stone-500">A manager can read this and cannot save it.</p> : null}
+      <div className="grid items-start gap-3 lg:grid-cols-2">
+        <ProfileCard title="House" rows={houseRows} canEdit={canEdit} editing={editing} draft={draft} pending={pending} onBegin={begin} onDraft={setDraft} onCancel={cancel} onSave={save} />
+        <ProfileCard title="Address" rows={addressRows} canEdit={canEdit} editing={editing} draft={draft} pending={pending} onBegin={begin} onDraft={setDraft} onCancel={cancel} onSave={save} />
+        <div className="min-w-0 lg:col-span-2">
+          <ProfileCard title="Dues" columns={2} rows={dueRows} canEdit={canEdit} editing={editing} draft={draft} pending={pending} onBegin={begin} onDraft={setDraft} onCancel={cancel} onSave={save} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type ProfileRow = {
+  key: ConfigKey | "code";
+  label: string;
+  display: string;
+  draft: string;
+  kind: "text" | "email" | "number" | "select" | "readonly";
+  required?: boolean;
+};
+
+function ProfileCard({
+  title,
+  rows,
+  columns = 1,
+  canEdit,
+  editing,
+  draft,
+  pending,
+  onBegin,
+  onDraft,
+  onCancel,
+  onSave,
+}: {
+  title: string;
+  rows: ProfileRow[];
+  columns?: 1 | 2;
+  canEdit: boolean;
+  editing: ConfigKey | null;
+  draft: string;
+  pending: boolean;
+  onBegin: (key: ConfigKey, value: string) => void;
+  onDraft: (value: string) => void;
+  onCancel: () => void;
+  onSave: (event: React.FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <section className="min-w-0 rounded-2xl border border-stone-200 bg-white">
+      <h2 className="px-3.5 pt-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">{title}</h2>
+      <div className={columns === 2 ? "grid lg:grid-cols-2 lg:gap-x-3" : undefined}>
+        {rows.map((row, index) => {
+          const open = row.kind !== "readonly" && editing === row.key;
+          const cells = canEdit ? "grid-cols-[10.25rem_minmax(0,1fr)_auto]" : "grid-cols-[10.25rem_minmax(0,1fr)]";
+          const endOfPair = columns === 2 && index + 2 >= rows.length;
+          const rowClassName = `grid items-center gap-2 border-b border-stone-100 px-3.5 py-2 ${index === rows.length - 1 ? "border-b-0" : ""} ${endOfPair ? "lg:border-b-0" : ""} ${cells}`;
+          if (!open) {
+            return (
+              <div key={row.key} className={rowClassName}>
+                <p className="whitespace-nowrap text-sm text-stone-500">{row.label}</p>
+                <p className="min-w-0 break-words text-sm font-medium text-stone-900">{row.display}</p>
+                {canEdit ? (
+                  row.kind === "readonly" ? (
+                    <span className="w-7" />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onBegin(row.key as ConfigKey, row.draft)}
+                      aria-label={`Edit ${row.label}`}
+                      title={`Edit ${row.label}`}
+                      className="flex h-7 w-7 items-center justify-center rounded-full text-stone-400 transition hover:bg-stone-100 hover:text-stone-700"
+                    >
+                      <Icon name="pencil" className="h-3.5 w-3.5" />
+                    </button>
+                  )
+                ) : null}
+              </div>
+            );
+          }
+          return (
+            <form key={row.key} onSubmit={onSave} className={rowClassName}>
+              <label htmlFor={`mess-${row.key}`} className="whitespace-nowrap text-sm text-stone-500">
+                {row.label}
+              </label>
+              {row.kind === "select" ? (
+                <select
+                  id={`mess-${row.key}`}
+                  value={draft}
+                  autoFocus
+                  onChange={(event) => onDraft(event.target.value)}
+                  className="w-full rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-sm text-stone-900 outline-none focus:border-[var(--accent)]"
+                >
+                  <option value="manager_only">Manager fund only</option>
+                  <option value="mess_and_manager">Mess fund and manager fund</option>
+                </select>
+              ) : (
+                <input
+                  id={`mess-${row.key}`}
+                  value={draft}
+                  autoFocus
+                  type={row.kind === "number" ? "number" : row.kind === "email" ? "email" : "text"}
+                  min={row.kind === "number" ? "0" : undefined}
+                  step={row.kind === "number" ? "0.01" : undefined}
+                  required={row.required}
+                  placeholder={row.key === "monthly_due_date" ? "dd-mm-yyyy" : undefined}
+                  onChange={(event) => onDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") onCancel();
+                  }}
+                  className="w-full rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-sm text-stone-900 outline-none focus:border-[var(--accent)]"
+                />
+              )}
+              <div className="flex items-center gap-2">
+                <button type="submit" disabled={pending} className="text-sm font-semibold text-[var(--brand)] disabled:opacity-60">
+                  {pending ? "Saving…" : "Save"}
+                </button>
+                <button type="button" onClick={onCancel} className="text-sm text-stone-500">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function fieldBody(key: ConfigKey, draft: string): Partial<MessWrite> | string {
+  const trimmed = draft.trim();
+  if (key === "name" || key === "address" || key === "district" || key === "pincode" || key === "contact_no") {
+    if (!trimmed) return "That field is required.";
+    return { [key]: trimmed };
+  }
+  if (key === "email") return { email: trimmed || null };
+  if (key === "fund_type") return { fund_type: trimmed === "mess_and_manager" ? "mess_and_manager" : "manager_only" };
+  if (key === "monthly_due_date") return { monthly_due_date: trimmed || null };
+  if (key === "s_deposite_amount") {
+    if (!trimmed) return { s_deposite_amount: null };
+    const amount = Number(trimmed);
+    if (!Number.isFinite(amount)) return "Enter a valid amount.";
+    return { s_deposite_amount: amount };
+  }
+  const amount = trimmed === "" ? 0 : Number(trimmed);
+  if (!Number.isFinite(amount)) return "Enter a valid amount.";
+  if (key === "monthly_due_amount") return { monthly_due_amount: amount };
+  return { late_fee_amount: amount };
+}
+
+function textOf(value: string | null | undefined) {
+  const text = String(value ?? "").trim();
+  return text || "—";
+}
+
+function moneyOf(value: string | number | null | undefined) {
+  if (value == null || value === "") return "—";
+  return inr(Number(value));
+}
+
 function MealSetup({ house, canEdit, role }: { house: House | null; canEdit: boolean; role: Role }) {
   const meals = useApi(messService.guestMeals, Boolean(house?.id) && canEdit);
   const menus = useApi(() => menuService.fetch(role), Boolean(house?.id));
@@ -247,24 +501,29 @@ function MealSetup({ house, canEdit, role }: { house: House | null; canEdit: boo
     <div className="space-y-4">
       {error || meals.error ? <Notice>{error || meals.error}</Notice> : null}
       {done ? <p className="text-sm text-emerald-800">{done}</p> : null}
-      <div className={panelCard}>
+      <div>
         <h2 className="text-sm font-semibold text-stone-900">Guest meal prices</h2>
         <p className="mt-1 text-sm text-stone-500">What a guest pays for each plate. Only the president saves these.</p>
-        <div className="mt-4 space-y-3">
+        <div className="mt-3 grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {(meals.data?.data ?? []).map((row) => (
-            <GuestMealRow key={row.id} row={row} canEdit={canEdit} onChanged={(message) => { setDone(message); setError(null); meals.reload(); }} onFailed={setError} />
+            <GuestMealCard key={row.id} row={row} canEdit={canEdit} onChanged={(message) => { setDone(message); setError(null); meals.reload(); }} onFailed={setError} />
           ))}
-          {!meals.loading && (meals.data?.data.length ?? 0) === 0 ? <p className="text-sm text-stone-500">No guest meals yet.</p> : null}
+          {!meals.loading && (meals.data?.data.length ?? 0) === 0 && !canEdit ? <p className="text-sm text-stone-500">No guest meals yet.</p> : null}
+          {canEdit ? (
+            <form onSubmit={addMeal} className="flex h-full flex-col justify-between rounded-2xl border border-dashed border-stone-300 bg-white p-4 shadow-sm shadow-stone-900/5">
+              <div className="flex items-center gap-2">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-800">
+                  <Icon name="meals" className="h-4 w-4" />
+                </span>
+                <input name="meal_name" required placeholder="Meal name" aria-label="Meal name" className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-stone-950 outline-none placeholder:font-medium placeholder:text-stone-400" />
+                <button type="submit" disabled={pending} className="shrink-0 rounded-full bg-emerald-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-900 disabled:opacity-60">
+                  {pending ? "Adding…" : "Add"}
+                </button>
+              </div>
+              <input name="price" type="number" min="0" step="0.01" required placeholder="Price" aria-label="Price" className="mt-3 w-full bg-transparent text-2xl font-semibold tracking-tight text-stone-950 outline-none placeholder:text-stone-300" />
+            </form>
+          ) : null}
         </div>
-        {canEdit ? (
-          <form onSubmit={addMeal} className="mt-4 grid gap-3 sm:grid-cols-[1fr_8rem_auto]">
-            <input name="meal_name" required placeholder="Meal name" className={fieldClass} />
-            <input name="price" type="number" min="0" step="0.01" required placeholder="Price" className={fieldClass} />
-            <button type="submit" disabled={pending} className="rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900 disabled:opacity-60">
-              Add
-            </button>
-          </form>
-        ) : null}
       </div>
       <form onSubmit={saveMenu} className={panelCard}>
         <h2 className="text-sm font-semibold text-stone-900">Menu</h2>
@@ -314,7 +573,7 @@ function MealSetup({ house, canEdit, role }: { house: House | null; canEdit: boo
   );
 }
 
-function GuestMealRow({
+function GuestMealCard({
   row,
   canEdit,
   onChanged,
@@ -326,18 +585,21 @@ function GuestMealRow({
   onFailed: (message: string) => void;
 }) {
   const [pending, setPending] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(row.meal_name);
+  const [price, setPrice] = useState(String(row.price));
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canEdit) return;
-    const data = new FormData(event.currentTarget);
     setPending(true);
     try {
       const result = await messService.saveGuestMeal({
         id: row.id,
-        meal_name: String(data.get("meal_name") ?? ""),
-        price: numberValue(data.get("price")),
+        meal_name: name.trim(),
+        price: numberValue(price),
       });
+      setEditing(false);
       onChanged(result.message);
     } catch (err) {
       onFailed(err instanceof Error ? err.message : "Could not save the guest meal.");
@@ -358,21 +620,43 @@ function GuestMealRow({
     }
   }
 
-  return (
-    <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-[1fr_8rem_auto]">
-      <input name="meal_name" defaultValue={row.meal_name} disabled={!canEdit} required className={fieldClass} />
-      <input name="price" type="number" min="0" step="0.01" defaultValue={String(row.price)} disabled={!canEdit} required className={fieldClass} />
-      {canEdit ? (
-        <div className="flex gap-2">
-          <button type="submit" disabled={pending} className="rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
-            Save
+  if (editing) {
+    return (
+      <form onSubmit={onSubmit} className="flex h-full flex-col justify-between rounded-2xl border border-[var(--accent)] bg-white p-4 shadow-sm shadow-stone-900/5">
+        <div className="flex items-center gap-1">
+          <input value={name} onChange={(event) => setName(event.target.value)} required autoFocus aria-label="Meal name" className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-stone-950 outline-none" />
+          <button type="submit" disabled={pending} className="shrink-0 text-xs font-semibold text-[var(--brand)] disabled:opacity-60">
+            {pending ? "Saving…" : "Save"}
           </button>
-          <button type="button" disabled={pending} onClick={onDelete} className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-semibold text-stone-700 disabled:opacity-60">
-            Delete
+          <button type="button" onClick={() => { setEditing(false); setName(row.meal_name); setPrice(String(row.price)); }} className="shrink-0 text-xs font-semibold text-stone-500">
+            Cancel
           </button>
         </div>
-      ) : null}
-    </form>
+        <input value={price} onChange={(event) => setPrice(event.target.value)} type="number" min="0" step="0.01" required aria-label="Price" className="mt-3 w-full bg-transparent text-2xl font-semibold tracking-tight text-stone-950 outline-none" />
+      </form>
+    );
+  }
+
+  return (
+    <article className="flex h-full flex-col justify-between rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm shadow-stone-900/5">
+      <div className="flex items-center gap-2">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-800">
+          <Icon name="meals" className="h-4 w-4" />
+        </span>
+        <h3 className="min-w-0 flex-1 truncate font-semibold tracking-tight text-stone-950">{row.meal_name}</h3>
+        {canEdit ? (
+          <div className="flex shrink-0">
+            <button type="button" onClick={() => setEditing(true)} aria-label={`Edit ${row.meal_name}`} title={`Edit ${row.meal_name}`} className="flex h-8 w-8 items-center justify-center rounded-full text-stone-500 transition hover:bg-[var(--accent-soft)] hover:text-[var(--brand)]">
+              <Icon name="pencil" className="h-3.5 w-3.5" />
+            </button>
+            <button type="button" onClick={onDelete} disabled={pending} aria-label={`Delete ${row.meal_name}`} title={`Delete ${row.meal_name}`} className="flex h-8 w-8 items-center justify-center rounded-full text-stone-500 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-60">
+              <Icon name="trash" className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : null}
+      </div>
+      <p className="mt-3 text-2xl font-semibold tracking-tight text-stone-950">{inr(Number(row.price))}</p>
+    </article>
   );
 }
 

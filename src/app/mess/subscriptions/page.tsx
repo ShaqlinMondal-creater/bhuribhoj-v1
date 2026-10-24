@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { SubscriptionDetailScreen } from "@/components/mess/SubscriptionDetailScreen";
+import { MessSubscriptionsScreen } from "@/components/subscriptions/SubscriptionsScreen";
 
 export const metadata: Metadata = { title: "Subscriptions" };
 
 export const instant = false;
 
 export default function MessSubscriptionsPage() {
-  return <SubscriptionDetailScreen />;
+  return <MessSubscriptionsScreen />;
 }
