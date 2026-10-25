@@ -85,6 +85,15 @@
   color: var(--accent-ink);
 }
 
+/* hover:bg-emerald-900 is the brand brown, which reads as black on a gold button. */
+.bg-emerald-800 {
+  transition: background-color 160ms ease;
+}
+
+.bg-emerald-800:hover {
+  background-color: var(--accent-hover);
+}
+
 .theme-preview[data-preview="black-yellow"] { background: #0c0c0c; color: #f6f3ec; }
 .theme-preview[data-preview="black-yellow"] .theme-preview-price { color: #e2b657; }
 .theme-preview[data-preview="black-yellow"] .theme-preview-pill { background: #e2b657; color: #1a1408; }

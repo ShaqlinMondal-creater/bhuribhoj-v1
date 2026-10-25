@@ -16,7 +16,7 @@ import type { Role } from "@/types/auth";
 import { inr } from "@/lib/format";
 import { authService } from "@/services/authService";
 import { dashboardService } from "@/services/dashboardService";
-import { mealService } from "@/services/mealService";
+import { mealCatalog, mealInfo, mealIsOn, mealService, servedMealSlots } from "@/services/mealService";
 import { menuService } from "@/services/menuService";
 import { messService, type GuestMealSetup, type House, type MessWrite } from "@/services/messService";
 
@@ -167,8 +167,8 @@ function MessConfig({
     <form onSubmit={onSubmit} className={panelCard}>
       <h2 className="text-sm font-semibold text-stone-900">Mess config</h2>
       <p className="mt-1 text-sm text-stone-500">Name, address, fund, and the monthly due. A manager can read this and cannot save it.</p>
+      <Flash message={done} />
       {error ? <div className="mt-4"><Notice>{error}</Notice></div> : null}
-      {done ? <p className="mt-4 text-sm text-emerald-800">{done}</p> : null}
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <Field label="Name" name="name" defaultValue={house.name} disabled={!canEdit} required />
         <Field label="Code" name="code" defaultValue={house.code} disabled />
@@ -447,7 +447,10 @@ function moneyOf(value: string | number | null | undefined) {
 
 function MealSetup({ house, canEdit, role }: { house: House | null; canEdit: boolean; role: Role }) {
   const meals = useApi(messService.guestMeals, Boolean(house?.id) && canEdit);
+  const dayMeals = useApi(() => mealService.messMeals(role), Boolean(house?.id));
   const menus = useApi(() => menuService.fetch(role), Boolean(house?.id));
+  const canChooseMeals = role === "president" || role === "manager" || role === "admin";
+  const chosen = servedMealSlots(dayMeals.data?.data ?? []);
   const menuTable = useClientPage(menus.data?.data ?? []);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
@@ -486,7 +489,7 @@ function MealSetup({ house, canEdit, role }: { house: House | null; canEdit: boo
     try {
       const result = await menuService.save(role, {
         menu_date: String(data.get("menu_date") ?? ""),
-        meal_type: String(data.get("meal_type") ?? "lunch") as "lunch" | "dinner",
+        meal_type: String(data.get("meal_type") ?? chosen[0] ?? "lunch") as (typeof mealCatalog)[number]["type"],
         dishes: String(data.get("dishes") ?? ""),
       });
       form.reset();
@@ -499,48 +502,97 @@ function MealSetup({ house, canEdit, role }: { house: House | null; canEdit: boo
     }
   }
 
+  async function chooseMeal(slot: (typeof mealCatalog)[number]["type"], turnOn: boolean) {
+    if (!canChooseMeals) return;
+    if (!turnOn && chosen.length <= 1 && chosen.includes(slot)) {
+      setError("Keep at least one meal on.");
+      setDone(null);
+      return;
+    }
+    setPending(true);
+    setError(null);
+    setDone(null);
+    try {
+      await mealService.saveMessMeal(role, { meals_type: slot, status: turnOn ? "active" : "inactive" });
+      const label = mealCatalog.find((item) => item.type === slot)?.label ?? "Meal";
+      setDone(`${label} is ${turnOn ? "on" : "off"}.`);
+      dayMeals.reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update the meals.");
+    } finally {
+      setPending(false);
+    }
+  }
+
   if (!house?.id) {
     return <Notice>Save the mess config first.</Notice>;
   }
 
   return (
     <div className="space-y-4">
-      {error || meals.error ? <Notice>{error || meals.error}</Notice> : null}
-      {done ? <p className="text-sm text-emerald-800">{done}</p> : null}
-      <div>
-        <h2 className="text-sm font-semibold text-stone-900">Guest meal prices</h2>
-        <p className="mt-1 text-sm text-stone-500">What a guest pays for each plate. Only the president saves these.</p>
-        <div className="mt-3 grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {(meals.data?.data ?? []).map((row) => (
-            <GuestMealCard key={row.id} row={row} canEdit={canEdit} onChanged={(message) => { setDone(message); setError(null); meals.reload(); }} onFailed={setError} />
-          ))}
-          {!meals.loading && (meals.data?.data.length ?? 0) === 0 && !canEdit ? <p className="text-sm text-stone-500">No guest meals yet.</p> : null}
-          {canEdit ? (
-            <form onSubmit={addMeal} className="flex h-full flex-col justify-between rounded-2xl border border-dashed border-stone-300 bg-white p-4 shadow-sm shadow-stone-900/5">
-              <div className="flex items-center gap-2">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-800">
-                  <Icon name="meals" className="h-4 w-4" />
-                </span>
-                <input name="meal_name" required placeholder="Meal name" aria-label="Meal name" className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-stone-950 outline-none placeholder:font-medium placeholder:text-stone-400" />
-                <button type="submit" disabled={pending} className="shrink-0 rounded-full bg-emerald-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-900 disabled:opacity-60">
-                  {pending ? "Adding…" : "Add"}
+      <Flash message={done} />
+      {error || meals.error || dayMeals.error ? <Notice>{error || meals.error || dayMeals.error}</Notice> : null}
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(16rem,0.8fr)]">
+        <section className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm shadow-stone-900/5">
+          <h2 className="text-sm font-semibold text-stone-900">Guest meal prices</h2>
+          <p className="mt-1 text-sm text-stone-500">What a guest pays for each plate. Only the president saves these.</p>
+          <div className="mt-3 grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2">
+            {(meals.data?.data ?? []).map((row) => (
+              <GuestMealCard key={row.id} row={row} canEdit={canEdit} onChanged={(message) => { setDone(message); setError(null); meals.reload(); }} onFailed={setError} />
+            ))}
+            {!meals.loading && (meals.data?.data.length ?? 0) === 0 && !canEdit ? <p className="text-sm text-stone-500">No guest meals yet.</p> : null}
+            {canEdit ? (
+              <form onSubmit={addMeal} className="flex h-full flex-col justify-between rounded-2xl border border-dashed border-stone-300 bg-stone-50 p-4">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-800">
+                    <Icon name="meals" className="h-4 w-4" />
+                  </span>
+                  <input name="meal_name" required placeholder="Meal name" aria-label="Meal name" className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-stone-950 outline-none placeholder:font-medium placeholder:text-stone-400" />
+                  <button type="submit" disabled={pending} className="shrink-0 rounded-full bg-emerald-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-900 disabled:opacity-60">
+                    {pending ? "Adding…" : "Add"}
+                  </button>
+                </div>
+                <input name="price" type="number" min="0" step="0.01" required placeholder="Price" aria-label="Price" className="mt-3 w-full bg-transparent text-2xl font-semibold tracking-tight text-stone-950 outline-none placeholder:text-stone-300" />
+              </form>
+            ) : null}
+          </div>
+        </section>
+        <section className="rounded-2xl bg-stone-950 p-4 text-white shadow-sm shadow-stone-900/10">
+          <h2 className="text-sm font-semibold text-[var(--accent)]">Meals for a day</h2>
+          <p className="mt-1 text-sm text-stone-400">Choose the meals this mess serves. Daily meals and the menu use this list.</p>
+          <div className="mt-3 space-y-2">
+            {mealCatalog.map((meal) => {
+              const on = mealIsOn(dayMeals.data?.data ?? [], meal.type);
+              return (
+                <button
+                  key={meal.type}
+                  type="button"
+                  disabled={!canChooseMeals || pending || dayMeals.loading}
+                  onClick={() => chooseMeal(meal.type, !on)}
+                  className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left disabled:opacity-60 ${on ? "bg-white text-stone-950" : "bg-white/10 text-white"}`}
+                >
+                  <span>
+                    <span className="block text-sm font-semibold">{meal.label}</span>
+                    <span className={`mt-0.5 block text-xs ${on ? "text-stone-500" : "text-stone-400"}`}>{meal.hours}</span>
+                  </span>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${on ? "bg-[var(--accent)] text-[var(--accent-ink)]" : "bg-white/10 text-stone-300"}`}>{on ? "On" : "Off"}</span>
                 </button>
-              </div>
-              <input name="price" type="number" min="0" step="0.01" required placeholder="Price" aria-label="Price" className="mt-3 w-full bg-transparent text-2xl font-semibold tracking-tight text-stone-950 outline-none placeholder:text-stone-300" />
-            </form>
-          ) : null}
-        </div>
+              );
+            })}
+          </div>
+        </section>
       </div>
       <form onSubmit={saveMenu} className={panelCard}>
         <h2 className="text-sm font-semibold text-stone-900">Menu</h2>
-        <p className="mt-1 text-sm text-stone-500">Lunch or dinner for a date. The president and the manager can save this.</p>
+        <p className="mt-1 text-sm text-stone-500">One of this mess&apos;s meals for a date. The president and the manager can save this.</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <Field label="Date" name="menu_date" type="date" />
           <label className="block text-sm text-stone-600">
             Meal
-            <select name="meal_type" defaultValue="lunch" className={fieldClass}>
-              <option value="lunch">Lunch</option>
-              <option value="dinner">Dinner</option>
+            <select key={chosen.join("-")} name="meal_type" defaultValue={chosen[0] ?? "lunch"} className={fieldClass}>
+              {(chosen.length ? chosen : (["lunch", "dinner"] as const)).map((slot) => (
+                <option key={slot} value={slot}>{mealInfo(slot).label}</option>
+              ))}
             </select>
           </label>
           <label className="block text-sm text-stone-600 sm:col-span-2">
@@ -569,7 +621,7 @@ function MealSetup({ house, canEdit, role }: { house: House | null; canEdit: boo
         <TableStatus colSpan={3} loading={menus.loading} empty={!menus.loading && menuTable.count === 0 ? "No meals yet." : null} />
         {menuTable.page.map((row) => (
           <tr key={row.id} className={rowClass}>
-            <td className="px-4 py-3 font-medium capitalize text-stone-950">{row.meal_type}</td>
+            <td className="px-4 py-3 font-medium text-stone-950">{mealInfo(row.meal_type).label}</td>
             <td className="px-4 py-3 text-stone-600">{row.menu_date}</td>
             <td className="px-4 py-3 text-stone-700">{row.dishes}</td>
           </tr>

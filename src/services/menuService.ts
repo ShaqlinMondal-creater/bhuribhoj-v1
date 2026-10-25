@@ -1,18 +1,19 @@
 import { apiClient } from "@/lib/api/client";
 import { doorFor } from "@/lib/api/door";
 import type { Role } from "@/types/auth";
+import type { MealSlot } from "@/services/mealService";
 
 export type MenuRow = {
   id: number;
   menu_date: string;
-  meal_type: "lunch" | "dinner";
+  meal_type: MealSlot;
   dishes: string;
   decider?: { id: number; name: string } | null;
 };
 
 export type MenuQuery = {
   search?: string;
-  meal_type?: "lunch" | "dinner";
+  meal_type?: MealSlot;
   from_date?: string;
   to_date?: string;
 };
