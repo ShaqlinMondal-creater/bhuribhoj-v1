@@ -34,7 +34,7 @@ export function SetupScreen() {
         email: optionalText(form.get("email")),
         fund_type: fund,
         monthly_due_amount: 0,
-        monthly_due_date: null,
+        monthly_due_days: null,
         late_fee_amount: 0,
         s_deposite_amount: fund === "mess_and_manager" ? (deposit ?? null) : null,
       });

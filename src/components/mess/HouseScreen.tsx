@@ -40,7 +40,7 @@ const emptyHouse = {
   fund_type: "manager_only",
   is_active: false,
   monthly_due_amount: "",
-  monthly_due_date: "",
+  monthly_due_days: null,
   late_fee_amount: "",
   s_deposite_amount: "",
 } as House;
@@ -137,7 +137,7 @@ function MessConfig({
       email: optionalText(data.get("email")),
       fund_type: fund,
       monthly_due_amount: numberValue(data.get("monthly_due_amount")),
-      monthly_due_date: optionalText(data.get("monthly_due_date")),
+      monthly_due_days: optionalDay(data.get("monthly_due_days")),
       late_fee_amount: numberValue(data.get("late_fee_amount")),
       s_deposite_amount: fund === "mess_and_manager" ? (optionalNumber(data.get("s_deposite_amount")) ?? null) : null,
     } as const;
@@ -194,7 +194,7 @@ function MessConfig({
           <Field label="Starting deposit" name="s_deposite_amount" type="number" defaultValue={house.s_deposite_amount == null ? "" : String(house.s_deposite_amount)} disabled={!canEdit} />
         ) : null}
         <Field label="Monthly due amount" name="monthly_due_amount" type="number" defaultValue={house.monthly_due_amount === "" ? "" : String(house.monthly_due_amount)} disabled={!canEdit} />
-        <Field label="Monthly due date" name="monthly_due_date" defaultValue={house.monthly_due_date ?? ""} disabled={!canEdit} placeholder="dd-mm-yyyy" />
+        <Field label="Monthly due days" name="monthly_due_days" type="number" defaultValue={house.monthly_due_days == null ? "" : String(house.monthly_due_days)} disabled={!canEdit} placeholder="1-31" min="1" max="31" step="1" />
         <Field label="Late fee" name="late_fee_amount" type="number" defaultValue={house.late_fee_amount === "" ? "" : String(house.late_fee_amount)} disabled={!canEdit} />
       </div>
       {canEdit ? (
@@ -273,7 +273,7 @@ function MessProfile({
       ? [{ key: "s_deposite_amount" as const, label: "Starting deposit", display: moneyOf(house.s_deposite_amount), draft: house.s_deposite_amount == null ? "" : String(house.s_deposite_amount), kind: "number" as const }]
       : []),
     { key: "monthly_due_amount", label: "Monthly due amount", display: moneyOf(house.monthly_due_amount), draft: house.monthly_due_amount === "" ? "" : String(house.monthly_due_amount), kind: "number" },
-    { key: "monthly_due_date", label: "Monthly due date", display: textOf(house.monthly_due_date), draft: house.monthly_due_date ?? "", kind: "text" },
+    { key: "monthly_due_days", label: "Monthly due days", display: textOf(house.monthly_due_days == null ? "" : String(house.monthly_due_days)), draft: house.monthly_due_days == null ? "" : String(house.monthly_due_days), kind: "number" },
     { key: "late_fee_amount", label: "Late fee", display: moneyOf(house.late_fee_amount), draft: house.late_fee_amount === "" ? "" : String(house.late_fee_amount), kind: "number" },
   ];
 
@@ -381,10 +381,11 @@ function ProfileCard({
                   value={draft}
                   autoFocus
                   type={row.kind === "number" ? "number" : row.kind === "email" ? "email" : "text"}
-                  min={row.kind === "number" ? "0" : undefined}
-                  step={row.kind === "number" ? "0.01" : undefined}
+                  min={row.key === "monthly_due_days" ? "1" : row.kind === "number" ? "0" : undefined}
+                  max={row.key === "monthly_due_days" ? "31" : undefined}
+                  step={row.key === "monthly_due_days" ? "1" : row.kind === "number" ? "0.01" : undefined}
                   required={row.required}
-                  placeholder={row.key === "monthly_due_date" ? "dd-mm-yyyy" : undefined}
+                  placeholder={row.key === "monthly_due_days" ? "1-31" : undefined}
                   onChange={(event) => onDraft(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === "Escape") onCancel();
@@ -416,7 +417,12 @@ function fieldBody(key: ConfigKey, draft: string): Partial<MessWrite> | string {
   }
   if (key === "email") return { email: trimmed || null };
   if (key === "fund_type") return { fund_type: trimmed === "mess_and_manager" ? "mess_and_manager" : "manager_only" };
-  if (key === "monthly_due_date") return { monthly_due_date: trimmed || null };
+  if (key === "monthly_due_days") {
+    if (!trimmed) return { monthly_due_days: null };
+    const day = Number(trimmed);
+    if (!Number.isInteger(day) || day < 1 || day > 31) return "Enter a day from 1 to 31.";
+    return { monthly_due_days: day };
+  }
   if (key === "s_deposite_amount") {
     if (!trimmed) return { s_deposite_amount: null };
     const amount = Number(trimmed);
@@ -693,6 +699,9 @@ function Field({
   disabled,
   required,
   placeholder,
+  min,
+  max,
+  step,
 }: {
   label: string;
   name: string;
@@ -701,6 +710,9 @@ function Field({
   disabled?: boolean;
   required?: boolean;
   placeholder?: string;
+  min?: string;
+  max?: string;
+  step?: string;
 }) {
   return (
     <label className="block text-sm text-stone-600">
@@ -712,8 +724,9 @@ function Field({
         disabled={disabled}
         required={required}
         placeholder={placeholder}
-        step={type === "number" ? "0.01" : undefined}
-        min={type === "number" ? "0" : undefined}
+        step={step ?? (type === "number" ? "0.01" : undefined)}
+        min={min ?? (type === "number" ? "0" : undefined)}
+        max={max}
         className={fieldClass}
       />
     </label>
@@ -723,6 +736,13 @@ function Field({
 function optionalText(value: FormDataEntryValue | null) {
   const text = String(value ?? "").trim();
   return text || null;
+}
+
+function optionalDay(value: FormDataEntryValue | null) {
+  const text = String(value ?? "").trim();
+  if (!text) return null;
+  const day = Number(text);
+  return Number.isFinite(day) ? day : null;
 }
 
 function optionalNumber(value: FormDataEntryValue | null) {

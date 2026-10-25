@@ -13,7 +13,7 @@ export function Dialog({
   title: string;
   onClose: () => void;
   children: React.ReactNode;
-  size?: "md" | "lg";
+  size?: "md" | "lg" | "xl";
   backdrop?: "black" | "stone";
   closeClassName?: string;
 }) {
@@ -34,7 +34,7 @@ export function Dialog({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`w-full rounded-2xl bg-white p-5 shadow-xl ${size === "lg" ? "max-w-lg" : "max-w-md"}`}
+        className={`w-full rounded-2xl bg-white p-5 shadow-xl ${size === "xl" ? "max-h-[90vh] max-w-5xl overflow-y-auto" : size === "lg" ? "max-w-lg" : "max-w-md"}`}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between gap-3">

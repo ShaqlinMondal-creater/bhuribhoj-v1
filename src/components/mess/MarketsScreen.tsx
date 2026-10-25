@@ -64,6 +64,7 @@ function MarketForm({ role, onCreated }: { role: Role; onCreated: () => void }) 
     const data = new FormData(form);
     const body: NewExpense = {
       title: String(data.get("title") ?? ""),
+      quantity: "1",
       amount: Number(data.get("amount")),
       spent_on: String(data.get("spent_on") ?? ""),
       category: "market",

@@ -24,7 +24,6 @@ function navGroups(role?: Role): NavGroup[] {
         { href: "/mess/meals", label: "Meals", icon: "meals" },
         { href: "/mess/daily-meals", label: "Daily Meals", icon: "calendar" },
         { href: "/mess/expenses", label: "Expense", icon: "wallet" },
-        { href: "/mess/markets", label: "Markets", icon: "market" },
       ],
     },
     { label: "Setting", items: setting },

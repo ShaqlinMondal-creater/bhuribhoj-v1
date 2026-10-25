@@ -5,7 +5,7 @@ import type { AccountSeat, Plan, Role } from "@/types/auth";
 
 export type House = MessRecord & {
   monthly_due_amount: string | number;
-  monthly_due_date: string | null;
+  monthly_due_days: number | null;
   late_fee_amount: string | number;
   s_deposite_amount: string | number | null;
 };
@@ -19,7 +19,7 @@ export type MessWrite = {
   email: string | null;
   fund_type: FundType;
   monthly_due_amount: number;
-  monthly_due_date: string | null;
+  monthly_due_days: number | null;
   s_deposite_amount: number | null;
   late_fee_amount: number;
 };
