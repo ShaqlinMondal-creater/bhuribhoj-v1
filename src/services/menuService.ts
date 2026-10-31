@@ -27,7 +27,7 @@ export const menuService = {
     if (query.to_date) body.to_date = query.to_date;
     return apiClient<{ data: MenuRow[] }>(`${doorFor(role)}/daily-menus/fetch`, { method: "POST", body });
   },
-  save(role: Role, body: { menu_date: string; meal_type: "lunch" | "dinner"; dishes: string }) {
+  save(role: Role, body: { menu_date: string; meal_type: MealSlot; dishes: string }) {
     return apiClient<{ message: string }>(`${doorFor(role)}/daily-menus/create`, { method: "POST", body });
   },
   remove(role: Role, id: number) {

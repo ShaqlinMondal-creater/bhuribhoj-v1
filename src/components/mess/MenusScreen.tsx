@@ -12,13 +12,12 @@ import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Icon } from "@/components/icons/Icon";
 import { longKolkataDate } from "@/lib/format";
+import { mealInfo, mealOrder, type MealSlot } from "@/services/mealService";
 import { menuService, type MenuRow } from "@/services/menuService";
 import IconButtonMui from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
-
-type MealType = "lunch" | "dinner";
 
 export function MenusScreen() {
   const user = useMessUser();
@@ -63,7 +62,7 @@ export function MenusScreen() {
     menuService
       .fetch(user.role, {
         search: search || undefined,
-        meal_type: meal === "lunch" || meal === "dinner" ? meal : undefined,
+        meal_type: mealOrder.includes(meal as MealSlot) ? (meal as MealSlot) : undefined,
         from_date: from ? isoFromDmy(from) : undefined,
         to_date: to ? isoFromDmy(to) : undefined,
       })
@@ -115,8 +114,7 @@ export function MenusScreen() {
           }}
           options={[
             { value: "", label: "All meals" },
-            { value: "lunch", label: "Lunch" },
-            { value: "dinner", label: "Dinner" },
+            ...mealOrder.map((slot) => ({ value: slot, label: mealInfo(slot).label })),
           ]}
         />
         <FilterDate label="From" value={fromDate} onChange={(value) => { setFromDate(value); table.setOffset(0); }} />
@@ -144,7 +142,7 @@ export function MenusScreen() {
         />
         {table.page.map((row) => (
           <tr key={row.id} className={rowClass}>
-            <td className="px-4 py-3 font-medium capitalize text-stone-950">{row.meal_type}</td>
+            <td className="px-4 py-3 font-medium text-stone-950">{mealInfo(row.meal_type).label}</td>
             <td className="px-4 py-3 text-stone-600">{longKolkataDate(row.menu_date)}</td>
             <td className="px-4 py-3 text-stone-700">{row.dishes}</td>
             <td className="px-4 py-3">
@@ -228,7 +226,7 @@ function MenuForm({
   const user = useMessUser();
   const picker = useRef<HTMLInputElement>(null);
   const [date, setDate] = useState(row ? dmyFromMenu(row.menu_date) : todayDmy());
-  const [meal, setMeal] = useState<MealType>(row?.meal_type ?? "lunch");
+  const [meal, setMeal] = useState<MealSlot>(row?.meal_type ?? "lunch");
   const [dishes, setDishes] = useState(row?.dishes ?? "");
   const [pending, setPending] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -304,9 +302,10 @@ function MenuForm({
             onChange={(event) => setDate(dmyFromIso(event.target.value))}
             className="sr-only"
           />
-          <TextField select fullWidth label="Meal" value={meal} onChange={(event) => setMeal(event.target.value as MealType)}>
-            <MenuItem value="lunch">Lunch</MenuItem>
-            <MenuItem value="dinner">Dinner</MenuItem>
+          <TextField select fullWidth label="Meal" value={meal} onChange={(event) => setMeal(event.target.value as MealSlot)}>
+            {mealOrder.map((slot) => (
+              <MenuItem key={slot} value={slot}>{mealInfo(slot).label}</MenuItem>
+            ))}
           </TextField>
           <TextField
             fullWidth
@@ -333,7 +332,7 @@ function MenuForm({
 
 function DetailDialog({ row, onClose }: { row: MenuRow; onClose: () => void }) {
   const lines: Array<[string, string]> = [
-    ["Meal", row.meal_type === "dinner" ? "Dinner" : "Lunch"],
+    ["Meal", mealInfo(row.meal_type).label],
     ["Date", longKolkataDate(row.menu_date)],
     ["Dishes", row.dishes],
     ["Saved by", row.decider?.name || "—"],

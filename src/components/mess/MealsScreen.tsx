@@ -83,7 +83,7 @@ export function MealsScreen() {
   }
 
   async function toggleMeal(memberId: number, meal: MealSlot, turnOnMeal: boolean) {
-    if (!iso) return;
+    if (!user || !iso) return;
     if (!canManage && isLocked(iso, meal)) {
       setError(`${mealMeta[meal].label} is already locked. It closed at ${mealMeta[meal].lock}.`);
       setNotice(null);
@@ -123,7 +123,7 @@ export function MealsScreen() {
   }
 
   async function markAll(which: "all" | MealSlot) {
-    if (!iso) return;
+    if (!user || !iso) return;
     const targets = which === "all" ? slots : [which];
     setBusy(true);
     setError(null);
@@ -148,6 +148,7 @@ export function MealsScreen() {
   }
 
   async function setMessMeal(slot: MealSlot, turnOn: boolean) {
+    if (!user) return;
     const activeNow = servedMealSlots(messMeals);
     if (!turnOn && activeNow.length <= 1 && activeNow.includes(slot)) {
       setError("Keep at least one meal on.");
