@@ -18,7 +18,7 @@ import { authService } from "@/services/authService";
 import { dashboardService } from "@/services/dashboardService";
 import { mealCatalog, mealInfo, mealIsOn, mealService, servedMealSlots } from "@/services/mealService";
 import { menuService } from "@/services/menuService";
-import { messService, type GuestMealSetup, type House, type MessWrite } from "@/services/messService";
+import { messService, type GuestMealSetup, type House, type HousePayload, type MessWrite } from "@/services/messService";
 
 const fieldClass = `${baseFieldClass} disabled:bg-stone-50 disabled:text-stone-500`;
 
@@ -445,13 +445,14 @@ function moneyOf(value: string | number | null | undefined) {
   return inr(Number(value));
 }
 
-function MealSetup({ house, canEdit, role }: { house: House | null; canEdit: boolean; role: Role }) {
+function MealSetup({ house, canEdit, role }: { house: HousePayload | null; canEdit: boolean; role: Role }) {
   const meals = useApi(messService.guestMeals, Boolean(house?.id) && canEdit);
   const dayMeals = useApi(() => mealService.messMeals(role), Boolean(house?.id));
   const menus = useApi(() => menuService.fetch(role), Boolean(house?.id));
   const canChooseMeals = role === "president" || role === "manager" || role === "admin";
   const chosen = servedMealSlots(dayMeals.data?.data ?? []);
   const menuTable = useClientPage(menus.data?.data ?? []);
+  const guestRows: GuestMealSetup[] = canEdit ? (meals.data?.data ?? []) : (house?.guest_meal_setups ?? []);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -535,12 +536,14 @@ function MealSetup({ house, canEdit, role }: { house: House | null; canEdit: boo
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(16rem,0.8fr)]">
         <section className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm shadow-stone-900/5">
           <h2 className="text-sm font-semibold text-stone-900">Guest meal prices</h2>
-          <p className="mt-1 text-sm text-stone-500">What a guest pays for each plate. Only the president saves these.</p>
+          <p className="mt-1 text-sm text-stone-500">
+            {canEdit ? "What a guest pays for each plate. Only the president saves these." : "What a guest pays for each plate. Ask the president to change prices."}
+          </p>
           <div className="mt-3 grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2">
-            {(meals.data?.data ?? []).map((row) => (
+            {guestRows.map((row) => (
               <GuestMealCard key={row.id} row={row} canEdit={canEdit} onChanged={(message) => { setDone(message); setError(null); meals.reload(); }} onFailed={setError} />
             ))}
-            {!meals.loading && (meals.data?.data.length ?? 0) === 0 && !canEdit ? <p className="text-sm text-stone-500">No guest meals yet.</p> : null}
+            {!meals.loading && guestRows.length === 0 ? <p className="text-sm text-stone-500">No guest meals yet.</p> : null}
             {canEdit ? (
               <form onSubmit={addMeal} className="flex h-full flex-col justify-between rounded-2xl border border-dashed border-stone-300 bg-stone-50 p-4">
                 <div className="flex items-center gap-2">

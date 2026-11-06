@@ -1,16 +1,10 @@
 import type { Metadata } from "next";
-import { SectionScreen } from "@/components/admin/SectionScreen";
+import { LogsScreen } from "@/components/admin/LogsScreen";
 
 export const metadata: Metadata = { title: "Logs" };
 
 export const instant = false;
 
 export default function AdminLogsPage() {
-  return (
-    <SectionScreen
-      title="Logs"
-      icon="logs"
-      description="A record of what changed on the platform."
-    />
-  );
+  return <LogsScreen />;
 }

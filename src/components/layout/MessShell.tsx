@@ -5,8 +5,25 @@ import { roleLabel } from "@/lib/auth/roles";
 import type { AuthUser, Role } from "@/types/auth";
 
 function navGroups(role?: Role): NavGroup[] {
+  const president = role === "president";
+  const manager = role === "manager";
+  const lead = president || manager;
+
+  const details: NavGroup["items"] = [];
+  if (lead) {
+    details.push({ href: "/mess/members", label: "Members", icon: "users" });
+  }
+  if (president) {
+    details.push({ href: "/mess/deposits", label: "Deposits", icon: "wallet" });
+  }
+  details.push(
+    { href: "/mess/meals", label: "Meals", icon: "meals" },
+    { href: "/mess/daily-meals", label: "Daily Meals", icon: "calendar" },
+    { href: "/mess/expenses", label: "Expenses", icon: "receipt" },
+  );
+
   const setting: NavGroup["items"] = [{ href: "/mess/house", label: "Mess Config", icon: "building" }];
-  if (role === "president") {
+  if (president) {
     setting.push({ href: "/mess/plans", label: "Plans", icon: "plans" });
   }
   setting.push(
@@ -16,16 +33,7 @@ function navGroups(role?: Role): NavGroup[] {
 
   return [
     { items: [{ href: "/mess", label: "Dashboard", icon: "grid" }] },
-    {
-      label: "Mess Details",
-      items: [
-        { href: "/mess/members", label: "Member", icon: "users" },
-        ...(role === "president" ? [{ href: "/mess/deposits", label: "Deposites", icon: "wallet" as const }] : []),
-        { href: "/mess/meals", label: "Meals", icon: "meals" },
-        { href: "/mess/daily-meals", label: "Daily Meals", icon: "calendar" },
-        { href: "/mess/expenses", label: "Expense", icon: "wallet" },
-      ],
-    },
+    { label: "Mess Details", items: details },
     { label: "Setting", items: setting },
   ];
 }

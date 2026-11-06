@@ -19,9 +19,9 @@ import InputAdornment from "@mui/material/InputAdornment";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 
-export function MenusScreen() {
+export function MenusScreen({ messId = null, hideHeader = false }: { messId?: number | null; hideHeader?: boolean } = {}) {
   const user = useMessUser();
-  const canSave = user?.role === "president" || user?.role === "manager";
+  const canSave = user?.role === "president" || user?.role === "manager" || user?.role === "admin";
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [meal, setMeal] = useState("");
@@ -41,6 +41,8 @@ export function MenusScreen() {
   const to = isDmy(toDate) ? toDate : "";
   const dateOrderError = from && to && compareDmy(from, to) > 0 ? "The end date must be on or after the start date." : null;
   const filtered = search !== "" || meal !== "" || from !== "" || to !== "";
+  const needsMess = user?.role === "admin";
+  const ready = Boolean(user) && (!needsMess || Boolean(messId));
 
   useEffect(() => {
     const timer = window.setTimeout(() => setSearch(searchInput.trim()), 300);
@@ -48,7 +50,7 @@ export function MenusScreen() {
   }, [searchInput]);
 
   useEffect(() => {
-    if (!user) {
+    if (!ready || !user) {
       setLoading(false);
       return;
     }
@@ -65,7 +67,7 @@ export function MenusScreen() {
         meal_type: mealOrder.includes(meal as MealSlot) ? (meal as MealSlot) : undefined,
         from_date: from ? isoFromDmy(from) : undefined,
         to_date: to ? isoFromDmy(to) : undefined,
-      })
+      }, messId)
       .then((page) => {
         if (cancelled) return;
         setRows(page.data ?? []);
@@ -80,16 +82,19 @@ export function MenusScreen() {
     return () => {
       cancelled = true;
     };
-  }, [user, search, meal, from, to, dateOrderError, reloadKey]);
+  }, [user, search, meal, from, to, dateOrderError, messId, ready, reloadKey]);
 
   const table = useClientPage(rows);
 
   if (!user) return <div className="h-40 animate-pulse rounded-2xl bg-white" />;
+  if (needsMess && !messId) {
+    return <p className="rounded-2xl border border-stone-200 bg-white p-5 text-sm text-stone-500">Choose a mess to load menus.</p>;
+  }
 
   return (
     <section className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <PageHeader eyebrow="Mess Details" title="Meals" description="Lunch and dinner menus for this mess." />
+        {hideHeader ? <div /> : <PageHeader eyebrow="Mess Details" title="Meals" description="Menus for this mess." />}
         {canSave ? (
           <button
             type="button"
@@ -158,6 +163,7 @@ export function MenusScreen() {
       {adding ? (
         <MenuForm
           title="Add menu"
+          messId={messId}
           onClose={() => setAdding(false)}
           onSaved={(message) => {
             setNotice(message);
@@ -175,6 +181,7 @@ export function MenusScreen() {
         <MenuForm
           title="Edit menu"
           row={editing}
+          messId={messId}
           onClose={() => setEditing(null)}
           onSaved={(message) => {
             setNotice(message);
@@ -192,6 +199,7 @@ export function MenusScreen() {
       {removing ? (
         <DeleteDialog
           row={removing}
+          messId={messId}
           onClose={() => setRemoving(null)}
           onDeleted={(message) => {
             setNotice(message);
@@ -213,12 +221,14 @@ export function MenusScreen() {
 function MenuForm({
   title,
   row,
+  messId = null,
   onClose,
   onSaved,
   onFailed,
 }: {
   title: string;
   row?: MenuRow;
+  messId?: number | null;
   onClose: () => void;
   onSaved: (message: string) => void;
   onFailed: (message: string) => void;
@@ -249,9 +259,9 @@ function MenuForm({
         menu_date: isoFromDmy(date),
         meal_type: meal,
         dishes: dishes.trim(),
-      });
+      }, messId);
       const moved = row && (dmyFromMenu(row.menu_date) !== date || row.meal_type !== meal);
-      if (moved) await menuService.remove(user.role, row.id);
+      if (moved) await menuService.remove(user.role, row.id, messId);
       onSaved(result.message);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Could not save the menu.";
@@ -346,11 +356,13 @@ function DetailDialog({ row, onClose }: { row: MenuRow; onClose: () => void }) {
 
 function DeleteDialog({
   row,
+  messId = null,
   onClose,
   onDeleted,
   onFailed,
 }: {
   row: MenuRow;
+  messId?: number | null;
   onClose: () => void;
   onDeleted: (message: string) => void;
   onFailed: (message: string) => void;
@@ -362,7 +374,7 @@ function DeleteDialog({
     if (!user) return;
     setPending(true);
     try {
-      const result = await menuService.remove(user.role, row.id);
+      const result = await menuService.remove(user.role, row.id, messId);
       onDeleted(result.message);
     } catch (err) {
       onFailed(err instanceof Error ? err.message : "Could not delete the menu.");

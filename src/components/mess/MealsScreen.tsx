@@ -21,7 +21,7 @@ type Tab = (typeof tabs)[number];
 
 const mealMeta = Object.fromEntries(mealCatalog.map((meal) => [meal.type, meal])) as Record<MealSlot, (typeof mealCatalog)[number]>;
 
-export function MealsScreen() {
+export function MealsScreen({ messId = null }: { messId?: number | null } = {}) {
   const user = useMessUser();
   const canManage = user?.role === "president" || user?.role === "manager" || user?.role === "admin";
   const [tab, setTab] = useState<Tab>("Daily Setup");
@@ -42,15 +42,21 @@ export function MealsScreen() {
   const [presetUserId, setPresetUserId] = useState<number | null>(null);
   const [removing, setRemoving] = useState<MealAway | null>(null);
   const iso = isDmy(mealDate) ? isoFromDmy(mealDate) : "";
+  const needsMess = user?.role === "admin";
+  const ready = Boolean(user) && Boolean(iso) && (!needsMess || Boolean(messId));
 
   useEffect(() => {
-    if (!user || !iso) {
+    if (!ready || !user || !iso) {
       setLoading(false);
       return;
     }
     let cancelled = false;
     setLoading(true);
-    Promise.all([mealService.fetch(user.role, iso), mealService.aways(user.role), mealService.messMeals(user.role)])
+    Promise.all([
+      mealService.fetch(user.role, iso, messId),
+      mealService.aways(user.role, messId),
+      mealService.messMeals(user.role, messId),
+    ])
       .then(([meals, awayPage, mealSetup]) => {
         if (cancelled) return;
         setRows(meals.data ?? []);
@@ -67,9 +73,12 @@ export function MealsScreen() {
     return () => {
       cancelled = true;
     };
-  }, [user, iso, reloadKey]);
+  }, [user, iso, messId, ready, reloadKey]);
 
   if (!user) return <div className="h-40 animate-pulse rounded-2xl bg-white" />;
+  if (needsMess && !messId) {
+    return <p className="rounded-2xl border border-stone-200 bg-white p-5 text-sm text-stone-500">Choose a mess to load daily meals.</p>;
+  }
 
   const slots = servedMealSlots(messMeals);
   const todayIso = isoFromDmy(todayDmy());
@@ -95,7 +104,7 @@ export function MealsScreen() {
       if (turnOnMeal) {
         const exact = aways.find((away) => away.user_id === memberId && isOneMeal(away, iso, meal, slots));
         if (exact) {
-          await mealService.removeAway(user.role, exact.id);
+          await mealService.removeAway(user.role, exact.id, messId);
           setNotice(mealNotice(rows, memberId, meal, true));
         } else if (aways.some((away) => away.user_id === memberId && covers(away, iso, meal))) {
           setError("This meal is inside a leave. Edit the leave to change it.");
@@ -110,7 +119,7 @@ export function MealsScreen() {
           from_meal: meal,
           to_date: next.date,
           to_meal: next.meal,
-        });
+        }, messId);
         setNotice(mealNotice(rows, memberId, meal, false));
       }
       setReloadKey((value) => value + 1);
@@ -134,7 +143,7 @@ export function MealsScreen() {
         for (const meal of targets) {
           if (mealOn(row, meal)) continue;
           const exact = aways.find((away) => away.user_id === memberId && isOneMeal(away, iso, meal, slots));
-          if (exact && (canManage || !isLocked(iso, meal))) await mealService.removeAway(user.role, exact.id);
+          if (exact && (canManage || !isLocked(iso, meal))) await mealService.removeAway(user.role, exact.id, messId);
         }
       }
       setNotice("Meals updated.");
@@ -158,7 +167,7 @@ export function MealsScreen() {
     setBusy(true);
     setError(null);
     try {
-      const result = await mealService.saveMessMeal(user.role, { meals_type: slot, status: turnOn ? "active" : "inactive" });
+      const result = await mealService.saveMessMeal(user.role, { meals_type: slot, status: turnOn ? "active" : "inactive" }, messId);
       setNotice(result.message);
       setReloadKey((value) => value + 1);
     } catch (err) {
@@ -384,6 +393,7 @@ export function MealsScreen() {
           slots={slots}
           canChooseMember={canManage}
           presetUserId={presetUserId}
+          messId={messId}
           row={editing === "new" ? undefined : editing}
           onClose={() => setEditing(null)}
           onSaved={(message) => {
@@ -402,6 +412,7 @@ export function MealsScreen() {
         <RemoveAway
           role={user.role}
           row={removing}
+          messId={messId}
           onClose={() => setRemoving(null)}
           onSaved={(message) => {
             setNotice(message);
@@ -545,6 +556,7 @@ function AwayForm({
   slots,
   canChooseMember,
   presetUserId,
+  messId = null,
   row,
   onClose,
   onSaved,
@@ -555,6 +567,7 @@ function AwayForm({
   slots: MealSlot[];
   canChooseMember: boolean;
   presetUserId?: number | null;
+  messId?: number | null;
   row?: MealAway;
   onClose: () => void;
   onSaved: (message: string) => void;
@@ -576,7 +589,7 @@ function AwayForm({
     if (!canChooseMember) return;
     let cancelled = false;
     memberService
-      .fetch(role, { status: "active", limit: 100 })
+      .fetch(role, { status: "active", limit: 100 }, messId)
       .then((page) => {
         if (!cancelled) setMembers(page.data ?? []);
       })
@@ -586,7 +599,7 @@ function AwayForm({
     return () => {
       cancelled = true;
     };
-  }, [canChooseMember, role]);
+  }, [canChooseMember, role, messId]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -613,7 +626,7 @@ function AwayForm({
         to_date: toDate ? isoFromDmy(toDate) : null,
         to_meal: toDate ? toMeal : null,
         note: note.trim() || undefined,
-      });
+      }, messId);
       onSaved(result.message);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Could not save the away.";
@@ -662,12 +675,14 @@ function AwayForm({
 function RemoveAway({
   role,
   row,
+  messId = null,
   onClose,
   onSaved,
   onFailed,
 }: {
   role: Role;
   row: MealAway;
+  messId?: number | null;
   onClose: () => void;
   onSaved: (message: string) => void;
   onFailed: (message: string) => void;
@@ -677,7 +692,7 @@ function RemoveAway({
   async function onConfirm() {
     setPending(true);
     try {
-      const result = await mealService.removeAway(role, row.id);
+      const result = await mealService.removeAway(role, row.id, messId);
       onSaved(result.message);
     } catch (err) {
       onFailed(err instanceof Error ? err.message : "Could not remove the away.");

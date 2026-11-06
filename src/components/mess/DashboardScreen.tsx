@@ -23,6 +23,8 @@ export function DashboardScreen() {
   const activity = data?.activity ?? [];
   const rangeReady = isDmy(fromDate) && isDmy(toDate);
   const canLead = user?.role === "president" || user?.role === "manager" || user?.role === "admin";
+  const canAddMember = user?.role === "president" || user?.role === "admin";
+  const canAddExpense = user?.role === "president" || user?.role === "manager" || user?.role === "admin";
 
   useEffect(() => {
     if (!user || !rangeReady) {
@@ -65,8 +67,9 @@ export function DashboardScreen() {
           <div className="mt-2 grid flex-1 grid-cols-2 gap-1.5">
             <Action href="/mess/daily-meals" title="Set today's meals" copy="Mark meals on or off" tone="amber" icon="meals" />
             <Action href="/mess/daily-meals#leave" title="Apply leave" copy="Set a date range" tone="rose" icon="calendar" />
-            {canLead ? <Action href="/mess/members" title="Add member" copy="Register a member" tone="sky" icon="user" /> : null}
-            {canLead ? <Action href="/mess/expenses" title="Add expense" copy="Record an expense" tone="violet" icon="receipt" /> : null}
+            {canAddMember ? <Action href="/mess/members" title="Add member" copy="Register a member" tone="sky" icon="user" /> : null}
+            {canLead && !canAddMember ? <Action href="/mess/members" title="Members" copy="View the mess roster" tone="sky" icon="user" /> : null}
+            {canAddExpense ? <Action href="/mess/expenses" title="Add expense" copy="Record an expense" tone="violet" icon="receipt" /> : null}
           </div>
         </section>
 

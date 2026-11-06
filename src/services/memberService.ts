@@ -1,5 +1,6 @@
 import { apiClient } from "@/lib/api/client";
 import { doorFor } from "@/lib/api/door";
+import { withMessId } from "@/lib/adminMess";
 import type { LaravelUser, Role } from "@/types/auth";
 
 export type MemberFilters = {
@@ -28,7 +29,7 @@ export type NewMember = {
 };
 
 export const memberService = {
-  fetch(role: Role, filters: MemberFilters = {}) {
+  fetch(role: Role, filters: MemberFilters = {}, messId?: number | null) {
     const body: MemberFilters = {
       limit: filters.limit ?? 10,
       offset: filters.offset ?? 0,
@@ -38,10 +39,16 @@ export const memberService = {
     if (filters.status) body.status = filters.status;
     if (filters.room_no) body.room_no = filters.room_no;
 
-    return apiClient<MembersPage>(`${doorFor(role)}/members/fetch`, { method: "POST", body });
+    return apiClient<MembersPage>(`${doorFor(role)}/members/fetch`, {
+      method: "POST",
+      body: withMessId({ ...body }, messId),
+    });
   },
-  create(role: Role, body: NewMember) {
-    return apiClient<{ message: string }>(`${doorFor(role)}/members/create`, { method: "POST", body });
+  create(role: Role, body: NewMember, messId?: number | null) {
+    return apiClient<{ message: string }>(`${doorFor(role)}/members/create`, {
+      method: "POST",
+      body: withMessId({ ...body }, messId),
+    });
   },
   update(role: Role, body: {
     user_id: number;
@@ -49,7 +56,10 @@ export const memberService = {
     mobile?: string;
     room_no?: string;
     status: "active" | "inactive";
-  }) {
-    return apiClient<{ message: string }>(`${doorFor(role)}/members/update`, { method: "POST", body });
+  }, messId?: number | null) {
+    return apiClient<{ message: string }>(`${doorFor(role)}/members/update`, {
+      method: "POST",
+      body: withMessId({ ...body }, messId),
+    });
   },
 };

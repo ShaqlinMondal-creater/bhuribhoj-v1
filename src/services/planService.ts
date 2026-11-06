@@ -2,11 +2,17 @@ import { apiClient } from "@/lib/api/client";
 import type { AccountSeat, Plan } from "@/types/auth";
 
 export type RazorpayOrder = {
-  key: string;
-  order_id: string;
+  free?: boolean;
+  key?: string;
+  order_id?: string;
   amount: number;
-  currency: string;
+  currency?: string;
   plan: Plan;
+  discount_inr?: number;
+  coupon_code?: string | null;
+  message?: string;
+  seat?: AccountSeat;
+  subscription_id?: number;
 };
 
 export type PlanInput = {
@@ -33,10 +39,13 @@ export const planService = {
   remove(id: number) {
     return apiClient<{ message: string }>(`/admin/plans/${id}/delete`, { method: "DELETE" });
   },
-  order(planId: number) {
+  order(planId: number, couponCode?: string) {
+    const body: { plan_id: number; coupon_code?: string } = { plan_id: planId };
+    const code = couponCode?.trim();
+    if (code) body.coupon_code = code;
     return apiClient<RazorpayOrder>("/president/subscriptions/order", {
       method: "POST",
-      body: { plan_id: planId },
+      body,
     });
   },
   fail(body: { razorpay_order_id: string; razorpay_payment_id?: string; failure_reason?: string }) {

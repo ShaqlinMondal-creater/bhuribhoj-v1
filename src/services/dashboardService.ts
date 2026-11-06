@@ -2,12 +2,27 @@ import { apiClient } from "@/lib/api/client";
 import { doorFor } from "@/lib/api/door";
 import type { LaravelUser, Role } from "@/types/auth";
 
+export type PlatformLog = {
+  id: number;
+  action: string;
+  message: string;
+  created_at: string;
+  actor?: string | null;
+  mess?: string | null;
+};
+
 export type DashboardPayload = {
   user: LaravelUser;
   platform?: {
     mess_count: number;
     user_count: number;
     active_mess_count: number;
+    president_count?: number;
+    manager_count?: number;
+    member_count?: number;
+    active_subscription_count?: number;
+    paid_total_inr?: number;
+    recent_logs?: PlatformLog[];
   } | null;
   mess_totals: {
     total_deposit: number;

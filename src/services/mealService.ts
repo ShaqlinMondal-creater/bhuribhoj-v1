@@ -1,5 +1,6 @@
 import { apiClient } from "@/lib/api/client";
 import { doorFor } from "@/lib/api/door";
+import { messQuery, withMessId } from "@/lib/adminMess";
 import type { Role } from "@/types/auth";
 
 export type MealSlot = "breakfast" | "morning_snack" | "lunch" | "evening_snack" | "dinner" | "late_night";
@@ -99,25 +100,40 @@ export type MealAwayInput = {
 };
 
 export const mealService = {
-  fetch(role: Role, mealDate?: string) {
+  fetch(role: Role, mealDate?: string, messId?: number | null) {
     return apiClient<MealsPayload>(`${doorFor(role)}/daily-meals/fetch`, {
       method: "POST",
-      body: mealDate ? { meal_date: mealDate } : {},
+      body: withMessId(mealDate ? { meal_date: mealDate } : {}, messId),
     });
   },
-  aways(role: Role) {
-    return apiClient<{ data: MealAway[] }>(`${doorFor(role)}/meal-aways/fetch`, { method: "POST", body: {} });
+  aways(role: Role, messId?: number | null) {
+    return apiClient<{ data: MealAway[] }>(`${doorFor(role)}/meal-aways/fetch`, {
+      method: "POST",
+      body: withMessId({}, messId),
+    });
   },
-  saveAway(role: Role, body: MealAwayInput) {
-    return apiClient<{ message: string }>(`${doorFor(role)}/meal-aways/save`, { method: "POST", body });
+  saveAway(role: Role, body: MealAwayInput, messId?: number | null) {
+    return apiClient<{ message: string }>(`${doorFor(role)}/meal-aways/save`, {
+      method: "POST",
+      body: withMessId({ ...body }, messId),
+    });
   },
-  removeAway(role: Role, id: number) {
-    return apiClient<{ message: string }>(`${doorFor(role)}/meal-aways/${id}/delete`, { method: "DELETE" });
+  removeAway(role: Role, id: number, messId?: number | null) {
+    return apiClient<{ message: string }>(`${doorFor(role)}/meal-aways/${id}/delete${messQuery(messId)}`, {
+      method: "DELETE",
+      body: withMessId({}, messId),
+    });
   },
-  messMeals(role: Role) {
-    return apiClient<{ data: MessMeal[] }>(`${doorFor(role)}/mess-meals/fetch`, { method: "POST", body: {} });
+  messMeals(role: Role, messId?: number | null) {
+    return apiClient<{ data: MessMeal[] }>(`${doorFor(role)}/mess-meals/fetch`, {
+      method: "POST",
+      body: withMessId({}, messId),
+    });
   },
-  saveMessMeal(role: Role, body: { meals_type: MealSlot; status: "active" | "inactive" }) {
-    return apiClient<{ message: string }>(`${doorFor(role)}/mess-meals/save`, { method: "POST", body });
+  saveMessMeal(role: Role, body: { meals_type: MealSlot; status: "active" | "inactive" }, messId?: number | null) {
+    return apiClient<{ message: string }>(`${doorFor(role)}/mess-meals/save`, {
+      method: "POST",
+      body: withMessId({ ...body }, messId),
+    });
   },
 };
