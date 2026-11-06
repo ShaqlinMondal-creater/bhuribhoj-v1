@@ -265,8 +265,8 @@ function CouponForm({
             <MenuItem value="active">Active</MenuItem>
             <MenuItem value="inactive">Inactive</MenuItem>
           </TextField>
-          <TextField fullWidth type="date" label="Starts on" InputLabelProps={{ shrink: true }} value={form.starts_on ?? ""} onChange={(event) => setForm({ ...form, starts_on: event.target.value || null })} />
-          <TextField fullWidth type="date" label="Ends on" InputLabelProps={{ shrink: true }} value={form.ends_on ?? ""} onChange={(event) => setForm({ ...form, ends_on: event.target.value || null })} />
+          <TextField fullWidth type="date" label="Starts on" slotProps={{ inputLabel: { shrink: true } }} value={form.starts_on ?? ""} onChange={(event) => setForm({ ...form, starts_on: event.target.value || null })} />
+          <TextField fullWidth type="date" label="Ends on" slotProps={{ inputLabel: { shrink: true } }} value={form.ends_on ?? ""} onChange={(event) => setForm({ ...form, ends_on: event.target.value || null })} />
           <TextField fullWidth type="number" label="Usage limit" value={form.usage_limit ?? ""} onChange={(event) => setForm({ ...form, usage_limit: event.target.value ? Number(event.target.value) : null })} />
           <TextField fullWidth type="number" label="Per user limit" value={form.per_user_limit ?? ""} onChange={(event) => setForm({ ...form, per_user_limit: event.target.value ? Number(event.target.value) : null })} />
           <TextField className="sm:col-span-2" fullWidth label="Note" value={form.note ?? ""} onChange={(event) => setForm({ ...form, note: event.target.value })} />
