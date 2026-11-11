@@ -4,6 +4,7 @@ import "./globals.css";
 import { PublicFrame } from "@/components/layout/PublicFrame";
 import { ThemeSync } from "@/components/theme/ThemeSync";
 import { appConfig } from "@/lib/config";
+import { getContactEmailFallback } from "@/lib/contactEmail";
 import { marketingBengali, marketingSans } from "@/lib/marketingFonts";
 
 const sans = Manrope({
@@ -32,6 +33,8 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
+  const contactEmail = getContactEmailFallback();
+
   return (
     <html
       lang="en"
@@ -45,7 +48,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
         <ThemeSync />
-        <PublicFrame fontClassName={`${marketingSans.variable} ${marketingBengali.variable}`}>
+        <PublicFrame
+          fontClassName={`${marketingSans.variable} ${marketingBengali.variable}`}
+          contactEmail={contactEmail}
+        >
           {children}
         </PublicFrame>
       </body>

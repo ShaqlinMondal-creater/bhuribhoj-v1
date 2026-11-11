@@ -31,9 +31,10 @@ type Clock = {
 
 export function CurrentSubscriptionCard({ rows, listLoading }: { rows: SubscriptionRow[]; listLoading: boolean }) {
   const house = useApi(() => messService.house("president"));
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
+    setNow(Date.now());
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
@@ -57,7 +58,7 @@ export function CurrentSubscriptionCard({ rows, listLoading }: { rows: Subscript
     );
   }
 
-  const clock = remainingClock(current.endsOn, now);
+  const clock = now == null ? null : remainingClock(current.endsOn, now);
 
   return (
     <section className="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">

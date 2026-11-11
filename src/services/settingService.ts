@@ -3,6 +3,7 @@ import type { ThemeId } from "@/lib/theme";
 
 export type PlatformSettings = {
   theme: ThemeId;
+  contact_email?: string;
 };
 
 export const settingService = {

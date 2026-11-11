@@ -47,7 +47,7 @@ export function LoginForm({ nextPath = "" }: { nextPath?: string }) {
           required
           autoComplete="email"
           placeholder="you@example.com"
-          className="mt-2 w-full rounded-2xl border border-[var(--accent)]/30 bg-black px-4 py-3 text-[#f7f1e4] outline-none focus:border-[var(--accent)]"
+          className="mt-1.5 w-full rounded-xl border border-[var(--accent)]/30 bg-black px-3.5 py-2.5 text-sm text-[#f7f1e4] outline-none focus:border-[var(--accent)]"
         />
       </div>
 
@@ -62,12 +62,12 @@ export function LoginForm({ nextPath = "" }: { nextPath?: string }) {
           required
           autoComplete="current-password"
           placeholder="••••••••"
-          className="mt-2 w-full rounded-2xl border border-[var(--accent)]/30 bg-black px-4 py-3 text-[#f7f1e4] outline-none focus:border-[var(--accent)]"
+          className="mt-1.5 w-full rounded-xl border border-[var(--accent)]/30 bg-black px-3.5 py-2.5 text-sm text-[#f7f1e4] outline-none focus:border-[var(--accent)]"
         />
       </div>
 
       {error ? (
-        <p className="rounded-2xl border border-red-400/40 bg-red-950/50 px-3 py-2 text-sm text-red-100" role="alert">
+        <p className="rounded-xl border border-red-400/40 bg-red-950/50 px-3 py-2 text-sm text-red-100" role="alert">
           {error}
         </p>
       ) : null}
@@ -75,7 +75,7 @@ export function LoginForm({ nextPath = "" }: { nextPath?: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="mt-2 w-full rounded-full bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-[var(--accent-ink)] transition hover:bg-[var(--accent-hover)] disabled:opacity-60"
+        className="mt-1 w-full rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-ink)] transition hover:bg-[var(--accent-hover)] disabled:opacity-60"
       >
         {pending ? "Signing in…" : "Sign in"}
       </button>

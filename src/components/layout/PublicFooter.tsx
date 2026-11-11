@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { PoweredByLiwaas } from "@/components/brand/PoweredByLiwaas";
+import { ContactEmailLink } from "@/components/i18n/ContactEmailLink";
 
 const columns = [
   {
@@ -20,7 +21,7 @@ const columns = [
   },
 ];
 
-export function PublicFooter() {
+export function PublicFooter({ contactEmail }: { contactEmail: string }) {
   return (
     <footer className="marketing border-t border-[var(--border)] bg-[var(--site)]">
       <div className="m-wrap grid gap-10 py-16 sm:grid-cols-2 lg:grid-cols-4">
@@ -60,7 +61,7 @@ export function PublicFooter() {
         <div className="flex flex-wrap gap-4">
           <a href="#privacy">Privacy</a>
           <a href="#terms">Terms</a>
-          <a href="mailto:hello@bhuribhoj.com">hello@bhuribhoj.com</a>
+          <ContactEmailLink fallback={contactEmail} />
         </div>
       </div>
       <div className="m-wrap grid gap-4 pb-10 text-sm leading-6 text-[var(--muted)] sm:grid-cols-2">
