@@ -133,8 +133,11 @@ export function GoogleTranslate() {
     return readStoredLang();
   });
   const langRef = useRef(lang);
-  langRef.current = lang;
   const widgetReady = useRef(false);
+
+  useEffect(() => {
+    langRef.current = lang;
+  }, [lang]);
 
   useEffect(() => {
     const preferred = lang;

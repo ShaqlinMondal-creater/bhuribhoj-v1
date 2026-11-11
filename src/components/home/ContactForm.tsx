@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { contactService } from "@/services/contactService";
 
 type Fields = {
   name: string;
@@ -11,7 +12,7 @@ type Fields = {
   message: string;
 };
 
-type Errors = Partial<Record<keyof Fields | "contact", string>>;
+type Errors = Partial<Record<keyof Fields | "contact" | "form", string>>;
 
 const empty: Fields = { name: "", mess: "", members: "", phone: "", email: "", message: "" };
 
@@ -22,6 +23,7 @@ export function ContactForm() {
   const [values, setValues] = useState<Fields>(empty);
   const [errors, setErrors] = useState<Errors>({});
   const [sent, setSent] = useState(false);
+  const [pending, setPending] = useState(false);
 
   function update(key: keyof Fields, value: string) {
     setValues((current) => ({ ...current, [key]: value }));
@@ -42,17 +44,36 @@ export function ContactForm() {
     return found;
   }
 
-  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const found = validate(values);
     setErrors(found);
-    if (Object.keys(found).length === 0) setSent(true);
+    if (Object.keys(found).length > 0) return;
+
+    setPending(true);
+    try {
+      await contactService.send({
+        name: values.name.trim(),
+        mess: values.mess.trim(),
+        members: Number(values.members),
+        phone: values.phone.trim() || undefined,
+        email: values.email.trim() || undefined,
+        message: values.message.trim(),
+      });
+      setSent(true);
+    } catch (err) {
+      setErrors({
+        form: err instanceof Error ? err.message : "Could not send the message.",
+      });
+    } finally {
+      setPending(false);
+    }
   }
 
   if (sent) {
     return (
       <p className="rounded-[var(--radius)] border border-[var(--border)] px-4 py-5 text-sm leading-7" role="status">
-        Received. This note stays on the page for now. A live inbox connects here next.
+        Received. We emailed the BhuriBhoj team and will reply soon.
       </p>
     );
   }
@@ -78,8 +99,9 @@ export function ContactForm() {
       <Field label="Message" error={errors.message}>
         <textarea name="message" rows={4} value={values.message} onChange={(event) => update("message", event.target.value)} className={fieldClass} aria-invalid={Boolean(errors.message)} required />
       </Field>
-      <button type="submit" className="m-btn m-btn-primary">
-        Send
+      {errors.form ? <p className="text-sm text-[#ffb4b4]">{errors.form}</p> : null}
+      <button type="submit" className="m-btn m-btn-primary" disabled={pending}>
+        {pending ? "Sending…" : "Send"}
       </button>
     </form>
   );

@@ -47,11 +47,13 @@ Production example:
 
 ```env
 NEXT_PUBLIC_APP_URL=https://your-frontend.com
+NEXT_PUBLIC_API_BASE=/backend
 LARAVEL_API_ORIGIN=https://bhuribhoj-api.liwaas.com
 ```
 
-- Server components call Laravel directly via `LARAVEL_API_ORIGIN` (no CORS).
-- Optional browser proxy: `/backend/*` → Laravel `/api/*` (see `next.config.ts`).
+- Browser calls `NEXT_PUBLIC_API_BASE` (default `/backend`).
+- `/backend/*` rewrites to `{LARAVEL_API_ORIGIN}/api/*` (see `next.config.ts`).
+- If the browser calls the API host directly, set that full `/api` URL in `NEXT_PUBLIC_API_BASE` and list the frontend origin in API `CORS_ALLOWED_ORIGINS`.
 
 ## Run
 

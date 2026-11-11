@@ -6,11 +6,11 @@ export const appConfig = {
   name: process.env.NEXT_PUBLIC_APP_NAME ?? "BhuriBhoj",
   url: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   /**
-   * Browser calls the Laravel API directly.
-   * Local proxy, off for now:
-   * publicApiBase: "/backend",
+   * Browser API base.
+   * Local default: `/backend` (Next rewrite → LARAVEL_API_ORIGIN/api).
+   * Production may use the same proxy, or a full API URL.
    */
-  publicApiBase: "https://bhuribhoj-api.liwaas.com/api",
+  publicApiBase: process.env.NEXT_PUBLIC_API_BASE ?? "/backend",
 } as const;
 
 export const AUTH_COOKIE = {
