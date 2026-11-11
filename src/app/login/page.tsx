@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { PoweredByLiwaas } from "@/components/brand/PoweredByLiwaas";
 import { LoginForm } from "@/components/auth/LoginForm";
@@ -21,7 +22,7 @@ export default async function LoginPage({
   return (
     <main className="mx-auto grid w-full max-w-[96rem] items-stretch gap-5 px-4 py-8 sm:px-8 sm:py-12 lg:grid-cols-2 lg:py-16">
       <section className="relative min-h-72 overflow-hidden rounded-[1.75rem] lg:min-h-[40rem]">
-        <img src="/home/hall.jpg" alt="The dining hall" className="absolute inset-0 h-full w-full object-cover" />
+        <Image src="/home/hall.jpg" alt="The dining hall" fill priority className="object-cover" sizes="(max-width: 1024px) 100vw, 50vw" />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/20" />
         <div className="relative flex h-full flex-col justify-between p-6 sm:p-8">
           <BrandLogo className="h-16 w-16 ring-2 ring-[var(--accent)]/50 sm:h-20 sm:w-20" />

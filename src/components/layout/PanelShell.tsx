@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SignOutButton } from "@/components/auth/SignOutButton";
@@ -42,13 +43,16 @@ export function PanelShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      return localStorage.getItem(storageKey) !== "closed";
+    } catch {
+      return true;
+    }
+  });
   const [menu, setMenu] = useState(false);
   const onProfile = pathname === profileHref;
-
-  useEffect(() => {
-    if (localStorage.getItem(storageKey) === "closed") setOpen(false);
-  }, [storageKey]);
 
   function toggle() {
     setOpen((value) => {
@@ -119,7 +123,7 @@ export function PanelShell({
               >
                 <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[var(--accent)] text-xs font-semibold text-[var(--accent-ink)]">
                   {user?.avatar ? (
-                    <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+                    <Image src={user.avatar} alt="" width={36} height={36} unoptimized className="h-full w-full object-cover" />
                   ) : user ? (
                     initials(user.name)
                   ) : (

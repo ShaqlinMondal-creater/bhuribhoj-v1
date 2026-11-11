@@ -13,14 +13,6 @@ export const appConfig = {
   publicApiBase: "https://bhuribhoj-api.liwaas.com/api",
 } as const;
 
-/** Absolute Laravel API base used only on the server. */
-export function getLaravelApiBase(): string {
-  // Local, off for now:
-  // const origin = process.env.LARAVEL_API_ORIGIN ?? "http://127.0.0.1:8000";
-  const origin = process.env.LARAVEL_API_ORIGIN ?? "https://bhuribhoj-api.liwaas.com";
-  return `${origin.replace(/\/$/, "")}/api`;
-}
-
 export const AUTH_COOKIE = {
   token: "bb_token",
   role: "bb_role",

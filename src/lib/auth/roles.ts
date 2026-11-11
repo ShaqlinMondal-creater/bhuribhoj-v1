@@ -1,6 +1,6 @@
 import type { Role, SeatNext } from "@/types/auth";
 
-export const MESS_ROLES: Role[] = ["president", "manager", "member"];
+const MESS_ROLES: Role[] = ["president", "manager", "member"];
 
 export function isAdmin(role: Role) {
   return role === "admin";

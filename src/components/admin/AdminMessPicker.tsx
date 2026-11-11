@@ -18,6 +18,7 @@ export function AdminMessPicker({
   const rows = normalizeMesses(messes.data).filter((mess) => mess.is_active);
 
   useEffect(() => {
+    // Keep selection in sync when the mess list finishes loading.
     if (value != null || rows.length === 0) return;
     const saved = readAdminMessId();
     if (saved && rows.some((mess) => mess.id === saved)) onChange(saved);
@@ -54,12 +55,7 @@ export function AdminMessPicker({
 }
 
 export function useAdminMessId() {
-  const [messId, setMessId] = useState<number | null>(null);
-
-  useEffect(() => {
-    setMessId(readAdminMessId());
-  }, []);
-
+  const [messId, setMessId] = useState<number | null>(() => readAdminMessId());
   return [messId, setMessId] as const;
 }
 

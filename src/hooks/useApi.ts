@@ -8,16 +8,21 @@ export function useApi<T>(load: () => Promise<T>, enabled = true) {
   const [loading, setLoading] = useState(enabled);
   const [nonce, setNonce] = useState(0);
   const loadRef = useRef(load);
-  loadRef.current = load;
+
+  useEffect(() => {
+    loadRef.current = load;
+  }, [load]);
 
   useEffect(() => {
     if (!enabled) {
-      setLoading(false);
+      queueMicrotask(() => setLoading(false));
       return;
     }
 
     let cancelled = false;
-    setLoading(true);
+    queueMicrotask(() => {
+      if (!cancelled) setLoading(true);
+    });
 
     loadRef
       .current()

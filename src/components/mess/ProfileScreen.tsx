@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import NextImage from "next/image";
 import { useMessUser, useSetMessUser } from "@/components/auth/MessSession";
 import { Icon } from "@/components/icons/Icon";
 import { PasswordInput } from "@/components/ui/PasswordInput";
@@ -137,7 +138,7 @@ function ProfileForm({ user, onUser }: { user: AuthUser; onUser: (user: AuthUser
               aria-label="Upload profile image"
             >
               {avatar ? (
-                <img src={avatar} alt="" className="h-full w-full object-cover" />
+                <NextImage src={avatar} alt="" width={96} height={96} unoptimized className="h-full w-full object-cover" />
               ) : (
                 initials(name)
               )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type MouseEvent } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useMessUser } from "@/components/auth/MessSession";
 import { FilterDate, MaterialScope } from "@/components/ui/FilterBar";
@@ -233,7 +234,7 @@ export function DashboardScreen() {
           <aside className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm shadow-stone-900/5">
             <Link href="/mess/profile" className="flex items-center gap-3 bg-stone-950 px-4 py-4 text-white">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--accent)] text-sm font-semibold text-[var(--accent-ink)]">
-                {user?.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : initials(user?.name ?? "M")}
+                {user?.avatar ? <Image src={user.avatar} alt="" width={44} height={44} unoptimized className="h-full w-full object-cover" /> : initials(user?.name ?? "M")}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold">{user?.name ?? "Member"}</span>

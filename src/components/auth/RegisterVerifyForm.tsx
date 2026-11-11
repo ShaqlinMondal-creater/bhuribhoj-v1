@@ -15,14 +15,13 @@ const fieldClass =
 export function RegisterVerifyForm({ token }: { token: string }) {
   const [email, setEmail] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    token ? null : "This verification link is missing a token.",
+  );
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
-    if (!token) {
-      setError("This verification link is missing a token.");
-      return;
-    }
+    if (!token) return;
     authService
       .registerPreview(token)
       .then((result) => {

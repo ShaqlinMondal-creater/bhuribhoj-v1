@@ -99,11 +99,13 @@ function ensureHost() {
 }
 
 export function GoogleTranslate() {
-  const [lang, setLang] = useState<LangCode>(DEFAULT_LANG);
+  const [lang, setLang] = useState<LangCode>(() => {
+    if (typeof window === "undefined") return DEFAULT_LANG;
+    return readStoredLang();
+  });
 
   useEffect(() => {
-    const preferred = readStoredLang();
-    setLang(preferred);
+    const preferred = lang;
     setTranslateCookie(preferred);
     writeStoredLang(preferred);
     ensureHost();
@@ -133,7 +135,7 @@ export function GoogleTranslate() {
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [lang]);
 
   function onChange(next: LangCode) {
     setLang(next);

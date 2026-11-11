@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 type Tone = "light" | "dark";
 
 export function PoweredByLiwaas({
@@ -18,7 +20,13 @@ export function PoweredByLiwaas({
       className={`inline-flex items-center gap-2 ${muted} ${className}`}
     >
       <span>Powered by</span>
-      <img src="/brand/liwaas.png" alt="Liwaas" className="h-5 w-5 rounded-full object-cover ring-1 ring-current/20" />
+      <Image
+        src="/brand/liwaas.png"
+        alt="Liwaas"
+        width={20}
+        height={20}
+        className="h-5 w-5 rounded-full object-cover ring-1 ring-current/20"
+      />
       <span className={`font-medium ${link}`}>liwaas.com</span>
     </a>
   );

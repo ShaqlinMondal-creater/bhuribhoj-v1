@@ -18,15 +18,16 @@ export function MessThemeSync() {
       .house(user.role)
       .then(async (payload) => {
         if (cancelled) return;
-        const theme = payload.data?.theme;
-        if (isThemeId(theme ?? null)) {
+        const theme = payload.data?.theme ?? null;
+        if (isThemeId(theme)) {
           applyTheme(theme, false);
           return;
         }
         try {
           const platform = await settingService.publicFetch();
           if (cancelled) return;
-          if (isThemeId(platform.data?.theme)) applyTheme(platform.data.theme, false);
+          const platformTheme = platform.data?.theme ?? null;
+          if (isThemeId(platformTheme)) applyTheme(platformTheme, false);
         } catch {
           if (!cancelled) applyTheme(readStoredTheme(), false);
         }
@@ -40,7 +41,8 @@ export function MessThemeSync() {
       void settingService
         .publicFetch()
         .then((result) => {
-          if (isThemeId(result.data?.theme)) applyTheme(result.data.theme);
+          const platformTheme = result.data?.theme ?? null;
+          if (isThemeId(platformTheme)) applyTheme(platformTheme);
         })
         .catch(() => undefined);
     };

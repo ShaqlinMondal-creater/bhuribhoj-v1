@@ -1,4 +1,4 @@
-export const KOLKATA_TIME_ZONE = "Asia/Kolkata";
+const KOLKATA_TIME_ZONE = "Asia/Kolkata";
 
 export function kolkataDateTime(value: string) {
   const date = new Date(value);

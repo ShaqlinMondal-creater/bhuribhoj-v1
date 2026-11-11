@@ -338,13 +338,17 @@ function MessThemePicker({
   onSaved: (message: string) => void;
   onFailed: (message: string) => void;
 }) {
-  const [current, setCurrent] = useState<ThemeId | null>(isThemeId(house.theme ?? null) ? house.theme : null);
+  const [current, setCurrent] = useState<ThemeId | null>(() => {
+    const theme = house.theme ?? null;
+    return isThemeId(theme) ? theme : null;
+  });
   const [pending, setPending] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [localDone, setLocalDone] = useState<string | null>(null);
 
   useEffect(() => {
-    setCurrent(isThemeId(house.theme ?? null) ? house.theme : null);
+    const theme = house.theme ?? null;
+    setCurrent(isThemeId(theme) ? theme : null);
   }, [house.theme]);
 
   async function choose(id: ThemeId) {
@@ -354,7 +358,8 @@ function MessThemePicker({
     setLocalDone(null);
     try {
       const result = await messService.saveTheme(role, id);
-      const next = isThemeId(result.data?.theme ?? null) ? result.data.theme : id;
+      const saved = result.data?.theme ?? null;
+      const next = isThemeId(saved) ? saved : id;
       applyTheme(next, false);
       setCurrent(next);
       setLocalDone(result.message || "Mess theme updated.");
