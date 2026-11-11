@@ -295,6 +295,53 @@ body {
   transform: scale(1.03);
 }
 
+/* Google Website Translator — hide all Google UI; our select stays */
+.google-translate-host {
+  position: absolute !important;
+  left: -10000px !important;
+  top: auto !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.goog-te-banner-frame,
+.goog-te-balloon-frame,
+iframe.goog-te-banner-frame,
+iframe.skiptranslate,
+body > .skiptranslate,
+.VIpgJd-ZVi9od-ORHb-OEVmcd,
+.VIpgJd-ZVi9od-l4eHX-hSRGPd,
+#goog-gt-tt,
+.goog-te-spinner-pos,
+.goog-tooltip,
+.goog-te-menu-value,
+.goog-te-menu-frame {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  width: 0 !important;
+  border: 0 !important;
+}
+
+html,
+body {
+  top: 0 !important;
+  position: static !important;
+}
+
+.goog-logo-link,
+.goog-te-gadget,
+.goog-te-gadget span,
+.goog-te-combo {
+  display: none !important;
+  font-size: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .marketing .m-btn,
   .marketing .m-btn:hover,

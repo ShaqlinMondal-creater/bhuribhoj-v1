@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { GoogleTranslate } from "@/components/i18n/GoogleTranslate";
 import { Icon, type IconName } from "@/components/icons/Icon";
 import { appConfig } from "@/lib/config";
 import { initials } from "@/lib/format";
@@ -102,12 +103,13 @@ export function PanelShell({
               >
                 <Icon name="menu" />
               </button>
-              <div className="min-w-0">
+              <div className="hidden min-w-0 md:block">
                 <p className="truncate text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">{eyebrow}</p>
                 <p className="truncate text-lg font-semibold tracking-tight text-stone-950">{heading}</p>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
+              <GoogleTranslate />
               <Link
                 href={profileHref}
                 aria-current={onProfile ? "page" : undefined}

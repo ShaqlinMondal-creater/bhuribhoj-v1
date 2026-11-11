@@ -1,6 +1,7 @@
 "use client";
 
 import { PanelShell, type NavGroup } from "@/components/layout/PanelShell";
+import { TodayMenuQuick } from "@/components/mess/TodayMenuQuick";
 import { roleLabel } from "@/lib/auth/roles";
 import type { AuthUser, Role } from "@/types/auth";
 
@@ -54,20 +55,23 @@ export function MessShell({
   const navRole = user?.role ?? role;
 
   return (
-    <PanelShell
-      storageKey="bhuribhoj-mess-nav"
-      groups={navGroups(navRole)}
-      homeHref="/mess"
-      brandCaption={user?.mess?.name ?? "Your mess"}
-      eyebrow={user ? `${user.mess?.name ?? "Mess"} · ${roleLabel[user.role]}` : "Mess"}
-      heading={first ? `Hello, ${first}` : "Dashboard"}
-      profileHref="/mess/profile"
-      profileLabel={user?.memberCode ?? "Profile"}
-      signOutTone="mess"
-      user={user}
-      notice={status}
-    >
-      {children}
-    </PanelShell>
+    <>
+      <PanelShell
+        storageKey="bhuribhoj-mess-nav"
+        groups={navGroups(navRole)}
+        homeHref="/mess"
+        brandCaption={user?.mess?.name ?? "Your mess"}
+        eyebrow={user ? `${user.mess?.name ?? "Mess"} · ${roleLabel[user.role]}` : "Mess"}
+        heading={first ? `Hello, ${first}` : "Dashboard"}
+        profileHref="/mess/profile"
+        profileLabel={user?.memberCode ?? "Profile"}
+        signOutTone="mess"
+        user={user}
+        notice={status}
+      >
+        {children}
+      </PanelShell>
+      <TodayMenuQuick />
+    </>
   );
 }

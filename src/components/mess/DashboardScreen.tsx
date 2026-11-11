@@ -7,13 +7,17 @@ import { FilterDate, MaterialScope } from "@/components/ui/FilterBar";
 import { Notice } from "@/components/ui/Notice";
 import { inr, initials } from "@/lib/format";
 import { dashboardService, type DashboardPayload } from "@/services/dashboardService";
-import { mealInfo, type MealSlot } from "@/services/mealService";
+import { mealInfo, mealOrder, mealService, servedMealSlots, type MealSlot } from "@/services/mealService";
+import { menuService, type MenuRow } from "@/services/menuService";
 
 export function DashboardScreen() {
   const user = useMessUser();
   const [fromDate, setFromDate] = useState(() => monthStartDmy());
   const [toDate, setToDate] = useState(() => todayDmy());
   const [data, setData] = useState<DashboardPayload | null>(null);
+  const [todayMenus, setTodayMenus] = useState<MenuRow[]>([]);
+  const [menuSlots, setMenuSlots] = useState<MealSlot[]>(["lunch", "dinner"]);
+  const [menusReady, setMenusReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(Boolean(user));
   const mine = data?.my_totals;
@@ -25,6 +29,7 @@ export function DashboardScreen() {
   const canLead = user?.role === "president" || user?.role === "manager" || user?.role === "admin";
   const canAddMember = user?.role === "president" || user?.role === "admin";
   const canAddExpense = user?.role === "president" || user?.role === "manager" || user?.role === "admin";
+  const canEditMenu = user?.role === "president" || user?.role === "manager";
 
   useEffect(() => {
     if (!user || !rangeReady) {
@@ -51,119 +56,224 @@ export function DashboardScreen() {
     };
   }, [user, fromDate, toDate, rangeReady]);
 
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const todayIso = isoFromDmy(todayDmy());
+    setMenusReady(false);
+    Promise.all([
+      mealService.messMeals(user.role),
+      menuService.fetch(user.role, { from_date: todayIso, to_date: todayIso }),
+    ])
+      .then(([meals, menus]) => {
+        if (cancelled) return;
+        const slots = servedMealSlots(meals.data ?? []);
+        const rows = [...(menus.data ?? [])].sort(
+          (a, b) => mealOrder.indexOf(a.meal_type) - mealOrder.indexOf(b.meal_type),
+        );
+        setMenuSlots(slots);
+        setTodayMenus(rows);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMenuSlots(["lunch", "dinner"]);
+          setTodayMenus([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setMenusReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const menuBySlot = Object.fromEntries(todayMenus.map((row) => [row.meal_type, row])) as Partial<Record<MealSlot, MenuRow>>;
+
+  const dailyActivity = (
+    <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm shadow-stone-900/5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-stone-950">Daily activity</h2>
+          <p className="mt-1 text-sm text-stone-500">Deposits, expenses, balance, and meals for each day.</p>
+        </div>
+        <MaterialScope>
+          <div className="flex flex-wrap gap-2">
+            <FilterDate label="From" value={fromDate} onChange={setFromDate} />
+            <FilterDate label="To" value={toDate} onChange={setToDate} />
+          </div>
+        </MaterialScope>
+      </div>
+      {!rangeReady ? <p className="mt-3 text-sm text-stone-500">Use dd-mm-yyyy for both dates.</p> : null}
+      <ActivityChart points={chart} fromDate={fromDate} />
+    </section>
+  );
+
+  const recentTransactions = (
+    <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm shadow-stone-900/5">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-stone-950">Recent transactions</h2>
+        <Link href={user?.role === "president" ? "/mess/deposits" : "/mess/expenses"} className="text-xs font-medium text-sky-700">
+          View all ›
+        </Link>
+      </div>
+      {activity.length === 0 ? (
+        <p className="mt-6 text-sm text-stone-500">No transactions yet.</p>
+      ) : (
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[28rem] text-left text-sm">
+            <thead>
+              <tr className="text-xs text-stone-400">
+                <th className="pb-2 font-medium">Date</th>
+                <th className="pb-2 font-medium">Type</th>
+                <th className="pb-2 font-medium">Description</th>
+                <th className="pb-2 text-right font-medium">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activity.map((row, index) => (
+                <tr key={`${row.kind}-${row.date}-${index}`} className="border-t border-stone-100">
+                  <td className="py-3 text-stone-600">{shortDate(row.date)}</td>
+                  <td className="py-3">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${row.kind === "deposit" ? "bg-green-100 text-green-700" : "bg-rose-100 text-rose-700"}`}>
+                      {row.kind === "deposit" ? "Deposit" : "Expense"}
+                    </span>
+                  </td>
+                  <td className="py-3 text-stone-700">{row.title}</td>
+                  <td className={`py-3 text-right font-medium ${row.kind === "deposit" ? "text-green-700" : "text-rose-600"}`}>{inr(row.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+
   return (
     <section className="space-y-5">
       {error ? <Notice>{error}</Notice> : null}
       {loading && !data ? <div className="h-24 animate-pulse rounded-2xl bg-white" /> : null}
 
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="grid h-full gap-3 sm:grid-cols-3">
-          <DashCard label="Mess deposits" value={inr(totals?.total_deposit)} tone="rose" icon="coin" change={totals?.deposit_change} series={chart.map((point) => point.deposits)} />
-          <DashCard label="Mess expenses" value={inr(totals?.total_expense)} tone="pink" icon="receipt" change={totals?.expense_change} series={chart.map((point) => point.expenses)} />
-          <DashCard label="Balance" value={inr(totals?.balance)} tone="green" icon="scale" change={totals?.balance_change} series={chart.map((point) => point.balance ?? 0)} />
+      <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-3 content-start gap-2 sm:gap-3">
+            <DashCard label="Mess deposits" shortLabel="Deposits" value={inr(totals?.total_deposit)} tone="rose" icon="coin" change={totals?.deposit_change} series={chart.map((point) => point.deposits)} />
+            <DashCard label="Mess expenses" shortLabel="Expenses" value={inr(totals?.total_expense)} tone="pink" icon="receipt" change={totals?.expense_change} series={chart.map((point) => point.expenses)} />
+            <DashCard label="Balance" value={inr(totals?.balance)} tone="green" icon="scale" change={totals?.balance_change} series={chart.map((point) => point.balance ?? 0)} />
+          </div>
+          <div className="hidden flex-col gap-4 xl:flex">
+            {dailyActivity}
+            {recentTransactions}
+          </div>
         </div>
-        <section className="flex h-full flex-col rounded-2xl border border-stone-200/80 bg-white p-3 shadow-sm shadow-stone-900/5">
-          <h2 className="text-xs font-semibold text-stone-950">Quick actions</h2>
-          <div className="mt-2 grid flex-1 grid-cols-2 gap-1.5">
-            <Action href="/mess/daily-meals" title="Set today's meals" copy="Mark meals on or off" tone="amber" icon="meals" />
-            <Action href="/mess/daily-meals#leave" title="Apply leave" copy="Set a date range" tone="rose" icon="calendar" />
-            {canAddMember ? <Action href="/mess/members" title="Add member" copy="Register a member" tone="sky" icon="user" /> : null}
-            {canLead && !canAddMember ? <Action href="/mess/members" title="Members" copy="View the mess roster" tone="sky" icon="user" /> : null}
-            {canAddExpense ? <Action href="/mess/expenses" title="Add expense" copy="Record an expense" tone="violet" icon="receipt" /> : null}
-          </div>
-        </section>
 
-        <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm shadow-stone-900/5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-semibold text-stone-950">Daily activity</h2>
-              <p className="mt-1 text-sm text-stone-500">Deposits, expenses, balance, and meals for each day.</p>
+        <div className="flex flex-col gap-3">
+          <section className="overflow-hidden rounded-2xl bg-emerald-800 shadow-lg shadow-emerald-950/25">
+            <div className="flex items-center justify-between gap-3 px-4 py-3.5">
+              <h2 className="text-lg font-extrabold tracking-tight text-white">Today&apos;s menu</h2>
+              <Link
+                href="/mess/meals"
+                className="rounded-full bg-white px-3.5 py-1.5 text-sm font-bold text-emerald-900"
+              >
+                {canEditMenu ? "Set" : "View"}
+              </Link>
             </div>
-            <MaterialScope>
-              <div className="flex flex-wrap gap-2">
-                <FilterDate label="From" value={fromDate} onChange={setFromDate} />
-                <FilterDate label="To" value={toDate} onChange={setToDate} />
+            <div className="rounded-t-2xl bg-emerald-50 px-3 pb-3 pt-3">
+              {!menusReady ? (
+                <p className="px-1 py-4 text-sm text-stone-500">Loading…</p>
+              ) : (
+                <div
+                  className="grid gap-2.5"
+                  style={{ gridTemplateColumns: `repeat(${Math.max(menuSlots.length, 1)}, minmax(0, 1fr))` }}
+                >
+                  {menuSlots.map((slot) => {
+                    const row = menuBySlot[slot];
+                    const night = slot === "dinner" || slot === "evening_snack" || slot === "late_night";
+                    return (
+                      <article
+                        key={slot}
+                        className={`min-w-0 rounded-2xl bg-white p-3 shadow-md ${
+                          night ? "ring-2 ring-violet-400" : "ring-2 ring-emerald-500"
+                        }`}
+                      >
+                        <p className={`text-sm font-extrabold uppercase tracking-wide ${night ? "text-violet-700" : "text-emerald-700"}`}>
+                          {mealInfo(slot).label}
+                        </p>
+                        <p
+                          className={`mt-2 rounded-xl px-2.5 py-2.5 text-xl font-extrabold leading-snug tracking-tight sm:text-2xl ${
+                            row
+                              ? night
+                                ? "bg-violet-100 text-violet-950"
+                                : "bg-amber-100 text-stone-950"
+                              : "bg-stone-100 text-stone-400"
+                          }`}
+                        >
+                          {row?.dishes ?? "Not set"}
+                        </p>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="flex flex-col rounded-2xl border border-stone-200/80 bg-white p-3 shadow-sm shadow-stone-900/5">
+            <h2 className="text-xs font-semibold text-stone-950">Quick actions</h2>
+            <div className="mt-2 grid grid-cols-2 gap-1.5">
+              <Action href="/mess/daily-meals" title="Set today's meals" copy="Mark meals on or off" tone="amber" icon="meals" />
+              <Action href="/mess/daily-meals#leave" title="Apply leave" copy="Set a date range" tone="rose" icon="calendar" />
+              {canAddMember ? <Action href="/mess/members" title="Add member" copy="Register a member" tone="sky" icon="user" /> : null}
+              {canLead && !canAddMember ? <Action href="/mess/members" title="Members" copy="View the mess roster" tone="sky" icon="user" /> : null}
+              {canAddExpense ? <Action href="/mess/expenses" title="Add expense" copy="Record an expense" tone="violet" icon="receipt" /> : null}
+            </div>
+          </section>
+
+          <aside className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm shadow-stone-900/5">
+            <Link href="/mess/profile" className="flex items-center gap-3 bg-stone-950 px-4 py-4 text-white">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--accent)] text-sm font-semibold text-[var(--accent-ink)]">
+                {user?.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : initials(user?.name ?? "M")}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold">{user?.name ?? "Member"}</span>
+                <span className="block truncate text-xs capitalize text-stone-400">{user?.role ?? "member"}{user?.memberCode ? ` · ${user.memberCode}` : ""}</span>
+              </span>
+              <Chevron />
+            </Link>
+            <div className="grid grid-cols-2 gap-2 p-4">
+              <MiniStat label="Total deposits" value={inr(mine?.total_deposit)} tone="gold" icon="coin" />
+              <MiniStat label="This month" value={inr(mine?.month_deposit)} tone="gold" icon="calendar" />
+              <MiniStat label="Total meals" value={String(mine?.total_meals ?? 0)} tone="green" icon="meals" />
+              <MiniStat label="This month meals" value={String(mine?.month_meals ?? 0)} tone="green" icon="meals" />
+            </div>
+            <div className="px-4 pb-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-stone-700">Today&apos;s meal status</p>
+                <Link href="/mess/daily-meals" className="text-xs font-medium text-sky-700">Manage ›</Link>
               </div>
-            </MaterialScope>
-          </div>
-          {!rangeReady ? <p className="mt-3 text-sm text-stone-500">Use dd-mm-yyyy for both dates.</p> : null}
-          <ActivityChart points={chart} fromDate={fromDate} />
-        </section>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {today.length === 0 ? <p className="text-sm font-semibold text-stone-950">—</p> : null}
+                {today.map((meal) => (
+                  <MealStatus key={meal.meal} meal={meal.meal} label={meal.label} on={meal.on} />
+                ))}
+              </div>
+            </div>
+          </aside>
+        </div>
 
-        <aside className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm shadow-stone-900/5">
-          <Link href="/mess/profile" className="flex items-center gap-3 bg-stone-950 px-4 py-4 text-white">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--accent)] text-sm font-semibold text-[var(--accent-ink)]">
-              {user?.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : initials(user?.name ?? "M")}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold">{user?.name ?? "Member"}</span>
-              <span className="block truncate text-xs capitalize text-stone-400">{user?.role ?? "member"}{user?.memberCode ? ` · ${user.memberCode}` : ""}</span>
-            </span>
-            <Chevron />
-          </Link>
-          <div className="grid grid-cols-2 gap-2 p-4">
-            <MiniStat label="Total deposits" value={inr(mine?.total_deposit)} tone="gold" icon="coin" />
-            <MiniStat label="This month" value={inr(mine?.month_deposit)} tone="gold" icon="calendar" />
-            <MiniStat label="Total meals" value={String(mine?.total_meals ?? 0)} tone="green" icon="meals" />
-            <MiniStat label="This month meals" value={String(mine?.month_meals ?? 0)} tone="green" icon="meals" />
-          </div>
-          <div className="px-4 pb-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-stone-700">Today&apos;s meal status</p>
-              <Link href="/mess/daily-meals" className="text-xs font-medium text-sky-700">Manage ›</Link>
-            </div>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {today.length === 0 ? <p className="text-sm font-semibold text-stone-950">—</p> : null}
-              {today.map((meal) => (
-                <MealStatus key={meal.meal} meal={meal.meal} label={meal.label} on={meal.on} />
-              ))}
-            </div>
-          </div>
-        </aside>
+        <div className="flex flex-col gap-4 xl:hidden">
+          {dailyActivity}
+          {recentTransactions}
+        </div>
       </div>
-
-      <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm shadow-stone-900/5">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-stone-950">Recent transactions</h2>
-            <Link href={user?.role === "president" ? "/mess/deposits" : "/mess/expenses"} className="text-xs font-medium text-sky-700">View all ›</Link>
-          </div>
-          {activity.length === 0 ? (
-            <p className="mt-6 text-sm text-stone-500">No transactions yet.</p>
-          ) : (
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[28rem] text-left text-sm">
-                <thead>
-                  <tr className="text-xs text-stone-400">
-                    <th className="pb-2 font-medium">Date</th>
-                    <th className="pb-2 font-medium">Type</th>
-                    <th className="pb-2 font-medium">Description</th>
-                    <th className="pb-2 text-right font-medium">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activity.map((row, index) => (
-                    <tr key={`${row.kind}-${row.date}-${index}`} className="border-t border-stone-100">
-                      <td className="py-3 text-stone-600">{shortDate(row.date)}</td>
-                      <td className="py-3">
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${row.kind === "deposit" ? "bg-green-100 text-green-700" : "bg-rose-100 text-rose-700"}`}>
-                          {row.kind === "deposit" ? "Deposit" : "Expense"}
-                        </span>
-                      </td>
-                      <td className="py-3 text-stone-700">{row.title}</td>
-                      <td className={`py-3 text-right font-medium ${row.kind === "deposit" ? "text-green-700" : "text-rose-600"}`}>{inr(row.amount)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-      </section>
     </section>
   );
 }
 
 function DashCard({
   label,
+  shortLabel,
   value,
   tone,
   icon,
@@ -172,6 +282,7 @@ function DashCard({
   series,
 }: {
   label: string;
+  shortLabel?: string;
   value: string;
   tone: "rose" | "pink" | "green" | "sky";
   icon: IconName;
@@ -198,19 +309,32 @@ function DashCard({
     sky: "#0284c7",
   }[tone];
   return (
-    <article className={`flex h-full flex-col rounded-2xl p-3 ${surface}`}>
-      <div className="flex items-start justify-between gap-2">
-        <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${badge}`}>
+    <article className={`min-w-0 rounded-xl p-2 sm:rounded-2xl sm:p-3 ${surface}`}>
+      <div className="flex items-start justify-between gap-1">
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg sm:h-8 sm:w-8 ${badge}`}>
           <DashIcon name={icon} />
         </span>
-        {change != null ? <ChangePill value={change} /> : null}
+        {change != null ? (
+          <span className="hidden sm:inline-flex">
+            <ChangePill value={change} />
+          </span>
+        ) : null}
       </div>
-      <p className="mt-2 text-xs text-stone-500">{label}</p>
-      <div className="mt-0.5 flex items-end justify-between gap-2">
-        <p className="text-lg font-semibold tracking-tight text-stone-950">{value}</p>
-        {href ? <Link href={href} className="mb-0.5 text-xs font-medium text-sky-700">View ›</Link> : null}
+      <p className="mt-1.5 text-[10px] leading-tight text-stone-500 sm:mt-2 sm:text-xs">
+        {shortLabel ? (
+          <>
+            <span className="sm:hidden">{shortLabel}</span>
+            <span className="hidden sm:inline">{label}</span>
+          </>
+        ) : (
+          label
+        )}
+      </p>
+      <div className="mt-0.5 flex min-w-0 items-end justify-between gap-1">
+        <p className="truncate text-sm font-semibold tracking-tight text-stone-950 sm:text-lg">{value}</p>
+        {href ? <Link href={href} className="mb-0.5 hidden text-xs font-medium text-sky-700 sm:inline">View ›</Link> : null}
       </div>
-      <div className="mt-auto">
+      <div className="mt-2">
         <Sparkline values={series} color={stroke} />
       </div>
     </article>
