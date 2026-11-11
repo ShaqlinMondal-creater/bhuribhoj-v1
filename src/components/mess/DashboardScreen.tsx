@@ -156,20 +156,15 @@ export function DashboardScreen() {
       {error ? <Notice>{error}</Notice> : null}
       {loading && !data ? <div className="h-24 animate-pulse rounded-2xl bg-white" /> : null}
 
-      <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
-        <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-3 content-start gap-2 sm:gap-3">
-            <DashCard label="Mess deposits" shortLabel="Deposits" value={inr(totals?.total_deposit)} tone="rose" icon="coin" change={totals?.deposit_change} series={chart.map((point) => point.deposits)} />
-            <DashCard label="Mess expenses" shortLabel="Expenses" value={inr(totals?.total_expense)} tone="pink" icon="receipt" change={totals?.expense_change} series={chart.map((point) => point.expenses)} />
-            <DashCard label="Balance" value={inr(totals?.balance)} tone="green" icon="scale" change={totals?.balance_change} series={chart.map((point) => point.balance ?? 0)} />
-          </div>
-          <div className="hidden flex-col gap-4 xl:flex">
-            {dailyActivity}
-            {recentTransactions}
-          </div>
+      {/* One copy of Daily / Recent; grid placement keeps mobile vs desktop order. */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
+        <div className="grid grid-cols-3 content-start gap-2 sm:gap-3 xl:col-start-1 xl:row-start-1">
+          <DashCard label="Mess deposits" shortLabel="Deposits" value={inr(totals?.total_deposit)} tone="rose" icon="coin" change={totals?.deposit_change} series={chart.map((point) => point.deposits)} />
+          <DashCard label="Mess expenses" shortLabel="Expenses" value={inr(totals?.total_expense)} tone="pink" icon="receipt" change={totals?.expense_change} series={chart.map((point) => point.expenses)} />
+          <DashCard label="Balance" value={inr(totals?.balance)} tone="green" icon="scale" change={totals?.balance_change} series={chart.map((point) => point.balance ?? 0)} />
         </div>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 xl:col-start-2 xl:row-span-3 xl:row-start-1">
           <section className="overflow-hidden rounded-2xl bg-emerald-800 shadow-lg shadow-emerald-950/25">
             <div className="flex items-center justify-between gap-3 px-4 py-3.5">
               <h2 className="text-lg font-extrabold tracking-tight text-white">Today&apos;s menu</h2>
@@ -263,10 +258,8 @@ export function DashboardScreen() {
           </aside>
         </div>
 
-        <div className="flex flex-col gap-4 xl:hidden">
-          {dailyActivity}
-          {recentTransactions}
-        </div>
+        <div className="xl:col-start-1 xl:row-start-2">{dailyActivity}</div>
+        <div className="xl:col-start-1 xl:row-start-3">{recentTransactions}</div>
       </div>
     </section>
   );

@@ -104,7 +104,7 @@ function ProfileForm({ user, onUser }: { user: AuthUser; onUser: (user: AuthUser
         name,
         email,
         mobile: mobile || undefined,
-        avatar,
+        ...(avatar?.startsWith("data:") ? { avatar } : {}),
         ...(password
           ? { password, password_confirmation: confirm }
           : {}),
@@ -281,7 +281,7 @@ function resizeAvatar(file: File) {
     const image = new Image();
     const url = URL.createObjectURL(file);
     image.onload = () => {
-      const max = 256;
+      const max = 192;
       const scale = Math.min(max / image.width, max / image.height, 1);
       const canvas = document.createElement("canvas");
       canvas.width = Math.max(1, Math.round(image.width * scale));
@@ -294,7 +294,7 @@ function resizeAvatar(file: File) {
       }
       context.drawImage(image, 0, 0, canvas.width, canvas.height);
       URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL("image/jpeg", 0.85));
+      resolve(canvas.toDataURL("image/jpeg", 0.8));
     };
     image.onerror = () => {
       URL.revokeObjectURL(url);

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 const STORAGE_KEY = "bhuribhoj-lang";
 const DEFAULT_LANG = "bn";
@@ -98,11 +99,42 @@ function ensureHost() {
   return host;
 }
 
+function findGoogleCombo(): HTMLSelectElement | null {
+  return document.querySelector<HTMLSelectElement>(".goog-te-combo");
+}
+
+/** Re-apply language after SPA route changes (Google only watches the first paint). */
+function applyGoogleLang(lang: LangCode) {
+  const combo = findGoogleCombo();
+  if (!combo) return false;
+  const target = lang === "en" ? "en" : lang;
+  if (combo.value !== target) {
+    combo.value = target;
+  }
+  combo.dispatchEvent(new Event("change"));
+  hideGoogleChrome();
+  return true;
+}
+
+function scheduleApplyLang(lang: LangCode) {
+  const delays = [0, 120, 350, 800, 1600];
+  delays.forEach((ms) => {
+    window.setTimeout(() => {
+      applyGoogleLang(lang);
+      hideGoogleChrome();
+    }, ms);
+  });
+}
+
 export function GoogleTranslate() {
+  const pathname = usePathname();
   const [lang, setLang] = useState<LangCode>(() => {
     if (typeof window === "undefined") return DEFAULT_LANG;
     return readStoredLang();
   });
+  const langRef = useRef(lang);
+  langRef.current = lang;
+  const widgetReady = useRef(false);
 
   useEffect(() => {
     const preferred = lang;
@@ -121,13 +153,17 @@ export function GoogleTranslate() {
         },
         "google_translate_element",
       );
+      widgetReady.current = true;
       hideGoogleChrome();
-      window.setTimeout(hideGoogleChrome, 300);
-      window.setTimeout(hideGoogleChrome, 1000);
+      scheduleApplyLang(langRef.current);
     };
 
     loadTranslateScript();
     hideGoogleChrome();
+
+    if (widgetReady.current || findGoogleCombo()) {
+      scheduleApplyLang(preferred);
+    }
 
     const observer = new MutationObserver(() => hideGoogleChrome());
     observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
@@ -137,10 +173,17 @@ export function GoogleTranslate() {
     };
   }, [lang]);
 
+  // After client-side navigations, force Google to re-translate new DOM.
+  useEffect(() => {
+    if (lang === "en") return;
+    scheduleApplyLang(lang);
+  }, [pathname, lang]);
+
   function onChange(next: LangCode) {
     setLang(next);
     writeStoredLang(next);
     setTranslateCookie(next);
+    // Cookie + widget need a full load to switch cleanly between languages.
     window.location.reload();
   }
 
