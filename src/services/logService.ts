@@ -26,9 +26,12 @@ export type LogQuery = {
 
 export const logService = {
   fetch(query: LogQuery) {
-    return apiClient<{ data: LogRow[]; count: number; limit: number; offset: number }>("/admin/logs/fetch", {
-      method: "POST",
-      body: query,
-    });
+    return apiClient<{ data: LogRow[]; count: number; limit: number; offset: number; actions?: string[] }>(
+      "/admin/logs/fetch",
+      {
+        method: "POST",
+        body: query,
+      },
+    );
   },
 };

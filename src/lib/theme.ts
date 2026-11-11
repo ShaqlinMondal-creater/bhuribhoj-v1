@@ -15,13 +15,24 @@ export function isThemeId(value: string | null): value is ThemeId {
   return value != null && ids.has(value);
 }
 
-export function applyTheme(id: ThemeId) {
+export function applyTheme(id: ThemeId, persist = true) {
   document.documentElement.dataset.theme = id;
-  localStorage.setItem(THEME_KEY, id);
+  if (persist) localStorage.setItem(THEME_KEY, id);
 }
 
 export function readTheme(): ThemeId {
   if (typeof document === "undefined") return "black-yellow";
   const current = document.documentElement.dataset.theme ?? null;
   return isThemeId(current) ? current : "black-yellow";
+}
+
+/** Platform theme saved in localStorage (not the temporary mess override). */
+export function readStoredTheme(): ThemeId {
+  if (typeof window === "undefined") return "black-yellow";
+  try {
+    const stored = window.localStorage.getItem(THEME_KEY);
+    return isThemeId(stored) ? stored : "black-yellow";
+  } catch {
+    return "black-yellow";
+  }
 }

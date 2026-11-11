@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { PoweredByLiwaas } from "@/components/brand/PoweredByLiwaas";
 
 const columns = [
   {
@@ -51,7 +52,11 @@ export function PublicFooter() {
         ))}
       </div>
       <div className="m-wrap flex flex-col gap-3 border-t border-[var(--border)] py-6 text-sm text-[var(--muted)] sm:flex-row sm:items-center sm:justify-between">
-        <p>© 2026 BhuriBhoj</p>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <p>© 2026 BhuriBhoj</p>
+          <span aria-hidden="true">·</span>
+          <PoweredByLiwaas />
+        </div>
         <div className="flex flex-wrap gap-4">
           <a href="#privacy">Privacy</a>
           <a href="#terms">Terms</a>

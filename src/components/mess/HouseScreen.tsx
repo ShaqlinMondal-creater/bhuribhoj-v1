@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMessUser, useSetMessSeat, useSetMessUser } from "@/components/auth/MessSession";
 import { Icon } from "@/components/icons/Icon";
 import { fieldClass as baseFieldClass, panelCard } from "@/components/ui/classes";
@@ -12,6 +12,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { useApi } from "@/hooks/useApi";
 import { isPresident } from "@/lib/auth/roles";
 import type { FundType } from "@/lib/api/mess";
+import { applyTheme, isThemeId, themes, type ThemeId } from "@/lib/theme";
 import type { Role } from "@/types/auth";
 import { inr } from "@/lib/format";
 import { authService } from "@/services/authService";
@@ -48,6 +49,7 @@ const emptyHouse = {
 export function HouseScreen() {
   const user = useMessUser();
   const president = isPresident(user?.role);
+  const canEditTheme = user?.role === "president" || user?.role === "manager";
   const house = useApi(() => messService.house(user?.role ?? "president"), Boolean(user));
   const [tab, setTab] = useState<(typeof tabs)[number]["id"]>("config");
   const current = house.data?.data ?? emptyHouse;
@@ -86,7 +88,14 @@ export function HouseScreen() {
         house.loading ? (
           <div className="h-64 animate-pulse rounded-2xl bg-white" />
         ) : (
-          <MessConfig key={current.id || "new"} house={current} canEdit={president} onSaved={house.reload} />
+          <MessConfig
+            key={current.id || "new"}
+            house={current}
+            canEdit={president}
+            canEditTheme={canEditTheme && !!current.id}
+            role={user?.role ?? "president"}
+            onSaved={house.reload}
+          />
         )
       ) : null}
       {tab === "meals" ? <MealSetup house={house.data?.data ?? null} canEdit={president && !!current.id} role={user?.role ?? "president"} /> : null}
@@ -105,10 +114,14 @@ type ConfigKey = Exclude<keyof MessWrite, never>;
 function MessConfig({
   house,
   canEdit,
+  canEditTheme,
+  role,
   onSaved,
 }: {
   house: House;
   canEdit: boolean;
+  canEditTheme: boolean;
+  role: Role;
   onSaved: () => void;
 }) {
   const setUser = useSetMessUser();
@@ -120,7 +133,7 @@ function MessConfig({
   const creating = !house.id;
 
   if (!creating) {
-    return <MessProfile house={house} canEdit={canEdit} onSaved={onSaved} />;
+    return <MessProfile house={house} canEdit={canEdit} canEditTheme={canEditTheme} role={role} onSaved={onSaved} />;
   }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -209,10 +222,14 @@ function MessConfig({
 function MessProfile({
   house,
   canEdit,
+  canEditTheme,
+  role,
   onSaved,
 }: {
   house: House;
   canEdit: boolean;
+  canEditTheme: boolean;
+  role: Role;
   onSaved: () => void;
 }) {
   const [editing, setEditing] = useState<ConfigKey | null>(null);
@@ -281,7 +298,11 @@ function MessProfile({
     <div className="space-y-4">
       <Flash message={done} />
       {error ? <Notice>{error}</Notice> : null}
-      {!canEdit ? <p className="text-sm text-stone-500">A manager can read this and cannot save it.</p> : null}
+      {!canEdit ? (
+        <p className="text-sm text-stone-500">
+          {canEditTheme ? "House details are read-only. You can still change this mess theme below." : "A member can read this and cannot save it."}
+        </p>
+      ) : null}
       <div className="grid items-start gap-3 lg:grid-cols-2">
         <ProfileCard title="House" rows={houseRows} canEdit={canEdit} editing={editing} draft={draft} pending={pending} onBegin={begin} onDraft={setDraft} onCancel={cancel} onSave={save} />
         <ProfileCard title="Address" rows={addressRows} canEdit={canEdit} editing={editing} draft={draft} pending={pending} onBegin={begin} onDraft={setDraft} onCancel={cancel} onSave={save} />
@@ -289,7 +310,103 @@ function MessProfile({
           <ProfileCard title="Dues" columns={2} rows={dueRows} canEdit={canEdit} editing={editing} draft={draft} pending={pending} onBegin={begin} onDraft={setDraft} onCancel={cancel} onSave={save} />
         </div>
       </div>
+      <MessThemePicker
+        house={house}
+        canEdit={canEditTheme}
+        role={role}
+        onSaved={(message) => {
+          setDone(message);
+          setError(null);
+          onSaved();
+        }}
+        onFailed={setError}
+      />
     </div>
+  );
+}
+
+function MessThemePicker({
+  house,
+  canEdit,
+  role,
+  onSaved,
+  onFailed,
+}: {
+  house: House;
+  canEdit: boolean;
+  role: Role;
+  onSaved: (message: string) => void;
+  onFailed: (message: string) => void;
+}) {
+  const [current, setCurrent] = useState<ThemeId | null>(isThemeId(house.theme ?? null) ? house.theme : null);
+  const [pending, setPending] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [localDone, setLocalDone] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCurrent(isThemeId(house.theme ?? null) ? house.theme : null);
+  }, [house.theme]);
+
+  async function choose(id: ThemeId) {
+    if (!canEdit || pending || id === current) return;
+    setPending(true);
+    setLocalError(null);
+    setLocalDone(null);
+    try {
+      const result = await messService.saveTheme(role, id);
+      const next = isThemeId(result.data?.theme ?? null) ? result.data.theme : id;
+      applyTheme(next, false);
+      setCurrent(next);
+      setLocalDone(result.message || "Mess theme updated.");
+      onSaved(result.message);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not save the mess theme.";
+      setLocalError(message);
+      onFailed(message);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <section className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm shadow-stone-900/5">
+      <h2 className="text-sm font-semibold text-stone-950">Mess theme</h2>
+      <p className="mt-1 text-sm text-stone-500">
+        {canEdit
+          ? "President and manager can set how this mess looks. It does not change the public or admin theme."
+          : "This mess’s look. Only the president or manager can change it."}
+      </p>
+      <Flash message={localDone} />
+      {localError ? <div className="mt-3"><Notice>{localError}</Notice></div> : null}
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        {themes.map((theme) => {
+          const selected = current === theme.id;
+          return (
+            <button
+              key={theme.id}
+              type="button"
+              disabled={!canEdit || pending}
+              onClick={() => void choose(theme.id)}
+              aria-pressed={selected}
+              className={`rounded-2xl border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                selected ? "border-[var(--accent)] shadow-sm" : "border-stone-200 hover:border-stone-300"
+              }`}
+            >
+              <span data-preview={theme.id} className="theme-preview flex h-20 flex-col justify-between rounded-xl p-3">
+                <span className="text-xs font-semibold">BhuriBhoj</span>
+                <span className="text-lg font-semibold theme-preview-price">₹99</span>
+              </span>
+              <span className="mt-3 flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold text-stone-950">{theme.name}</span>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${selected ? "bg-[var(--accent)] text-[var(--accent-ink)]" : "bg-stone-100 text-stone-500"}`}>
+                  {pending && !selected ? "…" : selected ? "In use" : canEdit ? "Use" : "—"}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

@@ -3,11 +3,12 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { MessShell } from "@/components/layout/MessShell";
+import { MessThemeSync } from "@/components/theme/MessThemeSync";
 import { clearSessionAction } from "@/app/actions/auth";
 import { clearToken } from "@/lib/auth/token";
 import { pathForSeat } from "@/lib/auth/roles";
 import { authService } from "@/services/authService";
-import type { AccountSeat, AuthUser } from "@/types/auth";
+import type { AccountSeat, AuthUser, Role } from "@/types/auth";
 
 const MessUserContext = createContext<AuthUser | null>(null);
 const SetMessUserContext = createContext<(user: AuthUser) => void>(() => {});
@@ -30,12 +31,19 @@ export function useSetMessSeat() {
   return useContext(SetMessSeatContext);
 }
 
-export function MessSession({ children }: { children: React.ReactNode }) {
+export function MessSession({
+  children,
+  initialRole,
+}: {
+  children: React.ReactNode;
+  initialRole?: Role;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [seat, setSeat] = useState<AccountSeat | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const role = user?.role ?? initialRole;
 
   useEffect(() => {
     let cancelled = false;
@@ -73,7 +81,8 @@ export function MessSession({ children }: { children: React.ReactNode }) {
       <SetMessUserContext.Provider value={setUser}>
         <MessSeatContext.Provider value={seat}>
           <SetMessSeatContext.Provider value={setSeat}>
-            <MessShell user={user} status={error}>
+            <MessShell user={user} role={role} status={error}>
+              <MessThemeSync />
               {children}
             </MessShell>
           </SetMessSeatContext.Provider>

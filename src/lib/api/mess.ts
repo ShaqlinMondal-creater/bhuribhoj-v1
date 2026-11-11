@@ -11,4 +11,5 @@ export type MessRecord = {
   email: string | null;
   fund_type: FundType;
   is_active: boolean;
+  theme?: string | null;
 };

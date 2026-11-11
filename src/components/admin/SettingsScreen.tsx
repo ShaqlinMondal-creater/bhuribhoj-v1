@@ -1,19 +1,60 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Flash } from "@/components/ui/Flash";
+import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { applyTheme, readTheme, themes, type ThemeId } from "@/lib/theme";
+import { applyTheme, isThemeId, themes, type ThemeId } from "@/lib/theme";
+import { settingService } from "@/services/settingService";
 
 export function SettingsScreen() {
   const [current, setCurrent] = useState<ThemeId>("black-yellow");
+  const [loading, setLoading] = useState(true);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    setCurrent(readTheme());
+    let cancelled = false;
+    setLoading(true);
+    settingService
+      .fetch()
+      .then((result) => {
+        if (cancelled) return;
+        const theme = result.data?.theme;
+        if (isThemeId(theme)) {
+          applyTheme(theme);
+          setCurrent(theme);
+        }
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Could not load settings.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  function choose(id: ThemeId) {
-    applyTheme(id);
-    setCurrent(id);
+  async function choose(id: ThemeId) {
+    if (pending || id === current) return;
+    setPending(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await settingService.save({ theme: id });
+      const theme = isThemeId(result.data?.theme) ? result.data.theme : id;
+      applyTheme(theme);
+      setCurrent(theme);
+      setNotice(result.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save settings.");
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
@@ -21,8 +62,11 @@ export function SettingsScreen() {
       <PageHeader
         eyebrow="Platform"
         title="Settings"
-        description="The look of the public site, the admin panel, and the mess panel. Stored on this browser until the settings API is ready."
+        description="The look of the public site, the admin panel, and the mess panel. Saved for the whole platform."
       />
+      <Flash message={notice} />
+      {error ? <Notice>{error}</Notice> : null}
+      {loading ? <div className="h-40 animate-pulse rounded-2xl bg-white" /> : null}
       <div className="grid gap-4 sm:grid-cols-2">
         {themes.map((theme) => {
           const selected = current === theme.id;
@@ -30,16 +74,14 @@ export function SettingsScreen() {
             <button
               key={theme.id}
               type="button"
-              onClick={() => choose(theme.id)}
+              disabled={pending || loading}
+              onClick={() => void choose(theme.id)}
               aria-pressed={selected}
-              className={`rounded-2xl border bg-white p-4 text-left transition ${
+              className={`rounded-2xl border bg-white p-4 text-left transition disabled:opacity-60 ${
                 selected ? "border-[var(--accent)] shadow-sm" : "border-stone-200 hover:border-stone-300"
               }`}
             >
-              <span
-                data-preview={theme.id}
-                className="theme-preview flex h-28 flex-col justify-between rounded-xl p-4"
-              >
+              <span data-preview={theme.id} className="theme-preview flex h-28 flex-col justify-between rounded-xl p-4">
                 <span className="flex items-center justify-between">
                   <span className="text-sm font-semibold">BhuriBhoj</span>
                   <span className="theme-preview-pill rounded-full px-2.5 py-1 text-[11px] font-semibold">Active</span>
@@ -56,7 +98,7 @@ export function SettingsScreen() {
                     selected ? "bg-[var(--accent)] text-[var(--accent-ink)]" : "bg-stone-100 text-stone-500"
                   }`}
                 >
-                  {selected ? "In use" : "Use"}
+                  {pending && !selected ? "…" : selected ? "In use" : "Use"}
                 </span>
               </span>
             </button>

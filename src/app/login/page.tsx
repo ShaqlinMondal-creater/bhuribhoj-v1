@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { PoweredByLiwaas } from "@/components/brand/PoweredByLiwaas";
 import { LoginForm } from "@/components/auth/LoginForm";
 
 export const metadata: Metadata = {
@@ -8,13 +9,6 @@ export const metadata: Metadata = {
 
 /** Reads ?next= at request time. */
 export const instant = false;
-
-const seats = [
-  ["Admin", "admin@bhuribhoj.local", "Admin@123"],
-  ["President", "president@paulmess.local", "President@123"],
-  ["Manager", "manager@paulmess.local", "Manager@123"],
-  ["Member", "member@paulmess.local", "Member@123"],
-];
 
 export default async function LoginPage({
   searchParams,
@@ -50,20 +44,8 @@ export default async function LoginPage({
         <div className="mt-7">
           <LoginForm nextPath={nextPath} />
         </div>
-        <div className="mt-8 rounded-[1.25rem] border border-[var(--accent)]/20 p-4">
-          <p className="text-xs uppercase tracking-[0.18em] text-[var(--accent)]">Practice seats</p>
-          <ul className="mt-3 space-y-2">
-            {seats.map(([role, email, password]) => (
-              <li key={email} className="grid gap-1 rounded-2xl bg-black/50 px-3 py-2 sm:grid-cols-[6.5rem_1fr] sm:items-center">
-                <span className="text-sm text-[#f7f1e4]">{role}</span>
-                <span className="break-all text-xs leading-5 text-[#cbbfa6]">
-                  {email}
-                  <span className="text-[var(--accent)]"> · </span>
-                  {password}
-                </span>
-              </li>
-            ))}
-          </ul>
+        <div className="mt-8 flex justify-center text-xs">
+          <PoweredByLiwaas tone="dark" />
         </div>
       </section>
     </main>

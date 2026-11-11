@@ -174,7 +174,10 @@ function PanelNav({
           ) : null}
           {group.label && !open ? <div className={`mx-2 my-2 h-px ${tone === "light" ? "bg-stone-200" : "bg-white/10"}`} /> : null}
           {group.items.map((item) => {
-            const current = item.href === homeHref ? pathname === item.href : pathname.startsWith(item.href);
+            const current =
+              item.href === homeHref
+                ? pathname === item.href
+                : pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.href}

@@ -16,5 +16,5 @@ export default async function MessLayout({
   if (!token || !role) redirect("/login");
   if (!isMessRole(role)) redirect("/admin");
 
-  return <MessSession>{children}</MessSession>;
+  return <MessSession initialRole={role}>{children}</MessSession>;
 }

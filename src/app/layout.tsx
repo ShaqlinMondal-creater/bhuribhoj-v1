@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Manrope, Outfit } from "next/font/google";
 import "./globals.css";
 import { PublicFrame } from "@/components/layout/PublicFrame";
+import { ThemeSync } from "@/components/theme/ThemeSync";
 import { appConfig } from "@/lib/config";
 import { marketingBengali, marketingSans } from "@/lib/marketingFonts";
 
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             __html: `(function(){try{var t=localStorage.getItem("bhuribhoj-theme");var ok={"black-yellow":1,"sea-green":1,"orange":1,"red":1};document.documentElement.dataset.theme=ok[t]?t:"black-yellow";}catch(e){document.documentElement.dataset.theme="black-yellow";}})();`,
           }}
         />
+        <ThemeSync />
         <PublicFrame fontClassName={`${marketingSans.variable} ${marketingBengali.variable}`}>
           {children}
         </PublicFrame>

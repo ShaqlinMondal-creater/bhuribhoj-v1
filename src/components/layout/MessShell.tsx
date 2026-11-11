@@ -20,6 +20,7 @@ function navGroups(role?: Role): NavGroup[] {
     { href: "/mess/meals", label: "Meals", icon: "meals" },
     { href: "/mess/daily-meals", label: "Daily Meals", icon: "calendar" },
     { href: "/mess/expenses", label: "Expenses", icon: "receipt" },
+    { href: "/mess/markets", label: "Markets", icon: "market" },
   );
 
   const setting: NavGroup["items"] = [{ href: "/mess/house", label: "Mess Config", icon: "building" }];
@@ -40,19 +41,22 @@ function navGroups(role?: Role): NavGroup[] {
 
 export function MessShell({
   user,
+  role,
   status,
   children,
 }: {
   user: AuthUser | null;
+  role?: Role;
   status?: string | null;
   children: React.ReactNode;
 }) {
   const first = user?.name.split(" ")[0] ?? "";
+  const navRole = user?.role ?? role;
 
   return (
     <PanelShell
       storageKey="bhuribhoj-mess-nav"
-      groups={navGroups(user?.role)}
+      groups={navGroups(navRole)}
       homeHref="/mess"
       brandCaption={user?.mess?.name ?? "Your mess"}
       eyebrow={user ? `${user.mess?.name ?? "Mess"} · ${roleLabel[user.role]}` : "Mess"}

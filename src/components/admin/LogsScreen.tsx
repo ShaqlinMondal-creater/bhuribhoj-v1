@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { rowClass, TableShell, TableStatus, thClass } from "@/components/ui/DataTable";
 import { DetailList } from "@/components/ui/DetailList";
 import { Dialog } from "@/components/ui/Dialog";
@@ -10,6 +10,44 @@ import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { kolkataDateTime } from "@/lib/format";
 import { logService, type LogRow } from "@/services/logService";
+
+const KNOWN_ACTIONS = [
+  "config.delete",
+  "config.save",
+  "coupon.create",
+  "coupon.delete",
+  "coupon.redeem",
+  "coupon.update",
+  "daily_meal.delete",
+  "daily_meal.save",
+  "deposit.create",
+  "deposit.delete",
+  "deposit.update",
+  "expense.create",
+  "expense.delete",
+  "expense.update",
+  "guest_meal.create",
+  "guest_meal.delete",
+  "guest_meal.update",
+  "member.create",
+  "member.update",
+  "menu.delete",
+  "menu.save",
+  "mess.assign",
+  "mess.create",
+  "mess.delete",
+  "mess.theme",
+  "mess.update",
+  "mess_meal.update",
+  "payment.delete",
+  "plan.create",
+  "plan.delete",
+  "plan.update",
+  "settings.save",
+  "subscription.delete",
+  "user.delete",
+  "user.update",
+] as const;
 
 export function LogsScreen() {
   const [searchInput, setSearchInput] = useState("");
@@ -21,6 +59,7 @@ export function LogsScreen() {
   const [offset, setOffset] = useState(0);
   const [rows, setRows] = useState<LogRow[]>([]);
   const [count, setCount] = useState(0);
+  const [actionsFromApi, setActionsFromApi] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<LogRow | null>(null);
@@ -51,6 +90,7 @@ export function LogsScreen() {
         if (cancelled) return;
         setRows(result.data ?? []);
         setCount(result.count ?? result.data?.length ?? 0);
+        if (Array.isArray(result.actions)) setActionsFromApi(result.actions);
         setError(null);
       })
       .catch((err: unknown) => {
@@ -64,6 +104,17 @@ export function LogsScreen() {
     };
   }, [search, action, from, to, limit, offset]);
 
+  const actionOptions = useMemo(() => {
+    const merged = new Set<string>([...KNOWN_ACTIONS, ...actionsFromApi]);
+    if (action) merged.add(action);
+    return [
+      { value: "", label: "All" },
+      ...Array.from(merged)
+        .sort((a, b) => a.localeCompare(b))
+        .map((value) => ({ value, label: value })),
+    ];
+  }, [actionsFromApi, action]);
+
   const filtered = search !== "" || action !== "" || from !== "" || to !== "";
 
   return (
@@ -71,7 +122,7 @@ export function LogsScreen() {
       <PageHeader eyebrow="Action" title="Logs" description="A record of what changed on the platform." />
       {error ? <Notice>{error}</Notice> : null}
       <FilterBar>
-        <FilterSearch value={searchInput} onChange={setSearchInput} placeholder="Message, action, or actor" />
+        <FilterSearch value={searchInput} onChange={setSearchInput} placeholder="Message, actor, or subject" />
         <FilterSelect
           label="Action"
           value={action}
@@ -79,14 +130,7 @@ export function LogsScreen() {
             setAction(value);
             setOffset(0);
           }}
-          options={[
-            { value: "", label: "All" },
-            { value: "coupon.create", label: "coupon.create" },
-            { value: "coupon.update", label: "coupon.update" },
-            { value: "coupon.delete", label: "coupon.delete" },
-            { value: "config.save", label: "config.save" },
-            { value: "user.update", label: "user.update" },
-          ]}
+          options={actionOptions}
         />
         <FilterDate label="From" value={fromDate} onChange={(value) => { setFromDate(value); setOffset(0); }} />
         <FilterDate label="To" value={toDate} onChange={(value) => { setToDate(value); setOffset(0); }} />

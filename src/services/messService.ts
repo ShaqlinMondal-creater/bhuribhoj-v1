@@ -89,6 +89,12 @@ export const messService = {
   update(body: Partial<MessWrite>) {
     return apiClient<{ message: string; data: House }>("/president/messes/update", { method: "POST", body });
   },
+  saveTheme(role: Role, theme: string | null) {
+    return apiClient<{ message: string; data: House }>(`${doorFor(role)}/messes/update`, {
+      method: "POST",
+      body: { theme },
+    });
+  },
   open(body: MessWrite) {
     return apiClient<{ message: string; seat: AccountSeat }>("/president/messes/open", { method: "POST", body });
   },
