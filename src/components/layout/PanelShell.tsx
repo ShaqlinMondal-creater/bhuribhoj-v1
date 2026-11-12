@@ -65,11 +65,11 @@ export function PanelShell({
   return (
     <div className="min-h-dvh bg-[var(--page)] text-stone-900">
       <aside
-        className={`fixed inset-y-0 left-0 z-30 hidden flex-col bg-[var(--panel)] px-3 py-5 text-[var(--panel-ink)] transition-[width] duration-200 md:flex ${
+        className={`fixed inset-y-0 left-0 z-30 hidden flex-col overflow-hidden bg-[var(--panel)] px-3 py-5 text-[var(--panel-ink)] transition-[width] duration-200 md:flex ${
           open ? "w-64" : "w-[4.75rem]"
         }`}
       >
-        <div className={`mb-6 flex ${open ? "items-center justify-between gap-2 px-1" : "flex-col items-center gap-3"}`}>
+        <div className={`mb-4 flex shrink-0 ${open ? "items-center justify-between gap-2 px-1" : "flex-col items-center gap-3"}`}>
           <div className="flex min-w-0 items-center gap-2.5">
             <BrandLogo className="h-10 w-10 shrink-0" />
             {open ? (
@@ -88,7 +88,9 @@ export function PanelShell({
             <Icon name="panel" className={`h-4 w-4 transition ${open ? "" : "rotate-180"}`} />
           </button>
         </div>
-        <PanelNav groups={groups} homeHref={homeHref} open={open} onNavigate={() => undefined} />
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <PanelNav groups={groups} homeHref={homeHref} open={open} onNavigate={() => undefined} />
+        </div>
       </aside>
 
       <div
@@ -172,11 +174,11 @@ function PanelNav({
   const labelTone = tone === "light" ? "text-stone-400" : "text-[var(--panel-muted)]";
 
   return (
-    <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
+    <nav className="flex flex-col gap-0.5 pb-2">
       {groups.map((group) => (
         <div key={group.label ?? group.items[0]?.href ?? "nav"}>
           {group.label && open ? (
-            <p className={`px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-[0.14em] ${labelTone}`}>{group.label}</p>
+            <p className={`px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.14em] ${labelTone}`}>{group.label}</p>
           ) : null}
           {group.label && !open ? <div className={`mx-2 my-2 h-px ${tone === "light" ? "bg-stone-200" : "bg-white/10"}`} /> : null}
           {group.items.map((item) => {
@@ -191,7 +193,7 @@ function PanelNav({
                 title={item.label}
                 aria-current={current ? "page" : undefined}
                 onClick={onNavigate}
-                className={`flex items-center rounded-xl py-2.5 text-sm font-medium transition ${
+                className={`flex items-center rounded-xl py-2 text-sm font-medium transition ${
                   open ? "gap-2.5 px-3" : "justify-center px-0"
                 } ${current ? active : idle}`}
               >
