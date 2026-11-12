@@ -80,7 +80,7 @@ export function PlanPreview() {
 
   return (
     <section className="marketing">
-      <div className="m-wrap py-16 md:py-24">
+      <div className="m-wrap py-16 md:py-20">
         <p className="text-sm font-medium text-[var(--accent)]">Plans</p>
         <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">One mess. One subscription.</h2>
         <p className="mt-4 max-w-xl text-base leading-7 text-[var(--muted)]">

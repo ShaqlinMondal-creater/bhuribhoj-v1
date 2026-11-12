@@ -26,7 +26,7 @@ export function Roles() {
 
   return (
     <section className="marketing">
-      <div className="m-wrap py-16 md:py-24">
+      <div className="m-wrap py-16 md:py-20">
         <Reveal>
           <p className="text-sm font-medium text-[var(--accent)]">Who sits where</p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Four doors. No shared screen.</h2>

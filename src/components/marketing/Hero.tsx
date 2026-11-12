@@ -1,129 +1,80 @@
 "use client";
 
-import { motion, useInView, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-
-function CountUp({ to }: { to: number }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true });
-  const reduced = useReducedMotion();
-  const [value, setValue] = useState(reduced ? to : 0);
-
-  useEffect(() => {
-    if (!inView) return;
-    if (reduced) {
-      setValue(to);
-      return;
-    }
-    const start = performance.now();
-    let frame = 0;
-    const tick = (now: number) => {
-      const progress = Math.min(1, (now - start) / 700);
-      setValue(Math.round(to * (1 - (1 - progress) ** 3)));
-      if (progress < 1) frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [inView, reduced, to]);
-
-  return <span ref={ref}>{value}</span>;
-}
-
-const bars = [40, 55, 48, 70, 62, 80, 58];
+import { photos } from "@/components/marketing/photos";
 
 export function Hero() {
   const reduced = useReducedMotion();
 
   return (
-    <section className="marketing relative overflow-hidden">
-      <div className="m-wrap grid items-center gap-10 py-16 md:py-24 lg:grid-cols-2">
+    <section className="marketing relative isolate min-h-[min(100dvh,44rem)] overflow-hidden md:min-h-[min(100dvh,52rem)]">
+      <motion.div
+        className="absolute inset-0"
+        initial={reduced ? false : { scale: 1.06 }}
+        animate={{ scale: 1 }}
+        transition={{ duration: reduced ? 0 : 1.4, ease: "easeOut" }}
+      >
+        <Image
+          src={photos.thali}
+          alt="A steel thali with roti, sabzi, and a home mess meal"
+          fill
+          priority
+          sizes="100vw"
+          placeholder="blur"
+          className="object-cover object-[center_35%]"
+        />
+      </motion.div>
+      <div
+        className="absolute inset-0 bg-gradient-to-r from-black/88 via-black/72 to-black/45"
+        aria-hidden="true"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/35" aria-hidden="true" />
+
+      <div className="relative m-wrap flex min-h-[min(100dvh,44rem)] flex-col justify-end pb-14 pt-28 md:min-h-[min(100dvh,52rem)] md:pb-20 md:pt-32">
         <motion.div
+          className="max-w-2xl"
           initial={reduced ? false : "hidden"}
           animate="show"
           variants={{
             hidden: {},
-            show: { transition: { staggerChildren: reduced ? 0 : 0.08 } },
+            show: { transition: { staggerChildren: reduced ? 0 : 0.1 } },
           }}
         >
           <motion.p
-            className="text-sm font-medium text-[var(--accent)]"
+            className="bn text-5xl font-semibold leading-none tracking-tight text-[var(--accent)] sm:text-6xl md:text-7xl"
             variants={fade}
           >
-            <span className="bn">ভুরিভোজ</span>
-            <span className="text-[var(--muted)]"> · the mess house</span>
+            ভুরিভোজ
+          </motion.p>
+          <motion.p className="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-3xl" variants={fade}>
+            BhuriBhoj
           </motion.p>
           <motion.h1
-            className="mt-4 max-w-xl text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl"
+            className="mt-5 max-w-xl text-xl font-medium leading-snug text-[#f6f3ec]/90 sm:text-2xl"
             variants={fade}
           >
             The kitchen, the ledger, and the people. One house.
           </motion.h1>
-          <motion.p className="mt-5 max-w-md text-base leading-7 text-[var(--muted)]" variants={fade}>
+          <motion.p className="mt-4 max-w-md text-base leading-7 text-[#f6f3ec]/72" variants={fade}>
             Meals at noon and night. Money at the end of the month. A seat for every role.
           </motion.p>
           <motion.div className="mt-8 flex flex-wrap gap-3" variants={fade}>
             <Link href="/contact" className="m-btn m-btn-primary">
               Start your mess
             </Link>
-            <Link href="/features" className="m-btn m-btn-ghost">
+            <Link href="/features" className="m-btn m-btn-ghost border-white/25 text-white hover:border-[var(--accent)]">
               See how it works
             </Link>
           </motion.div>
         </motion.div>
-
-        <div className="relative">
-          <div className="m-glow pointer-events-none absolute -inset-8 rounded-full bg-[radial-gradient(circle,var(--accent-glow),transparent_68%)]" />
-          <motion.div
-            className={reduced ? "relative" : "m-float relative"}
-            initial={reduced ? false : { opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut", delay: 0.15 }}
-          >
-            <article className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow)]">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold">Today · sample house</p>
-                <span className="rounded-full bg-[var(--surface-2)] px-3 py-1 text-xs text-[var(--muted)]">Example</span>
-              </div>
-              <div className="mt-5 grid grid-cols-2 gap-3">
-                <div className="rounded-[12px] bg-[var(--surface-2)] p-4">
-                  <p className="text-xs text-[var(--muted)]">Lunch marked</p>
-                  <p className="mt-2 text-3xl font-semibold">
-                    <CountUp to={18} />
-                  </p>
-                </div>
-                <div className="rounded-[12px] bg-[var(--surface-2)] p-4">
-                  <p className="text-xs text-[var(--muted)]">Dinner marked</p>
-                  <p className="mt-2 text-3xl font-semibold">
-                    <CountUp to={16} />
-                  </p>
-                </div>
-              </div>
-              <div className="mt-3 rounded-[12px] border border-[var(--border)] p-4">
-                <p className="text-xs text-[var(--muted)]">Pending dues · sample</p>
-                <p className="mt-1 text-2xl font-semibold text-[var(--accent)]">₹4,200</p>
-              </div>
-              <div className="mt-4">
-                <p className="text-xs text-[var(--muted)]">Meals this week</p>
-                <div className="mt-3 flex h-20 items-end gap-2" aria-hidden="true">
-                  {bars.map((height, index) => (
-                    <span
-                      key={index}
-                      className="flex-1 rounded-t-md bg-[var(--accent)]"
-                      style={{ height: `${height}%`, opacity: 0.45 + index * 0.07 }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </article>
-          </motion.div>
-        </div>
       </div>
     </section>
   );
 }
 
 const fade = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" as const } },
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" as const } },
 };

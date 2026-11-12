@@ -4,9 +4,9 @@ import { photos } from "@/components/marketing/photos";
 
 const shots: { src: StaticImageData; caption: string; alt: string; className: string }[] = [
   {
-    src: photos.thali,
-    caption: "The plate",
-    alt: "A steel thali with roti, sabzi, and small bowls of a home meal",
+    src: photos.aboutKitchen,
+    caption: "The kitchen",
+    alt: "A working kitchen with pots ready for the next mess meal",
     className: "col-span-2 aspect-[16/10] md:row-span-2 md:aspect-auto md:min-h-[28rem]",
   },
   {
@@ -38,7 +38,7 @@ const shots: { src: StaticImageData; caption: string; alt: string; className: st
 export function MessSetup() {
   return (
     <section className="marketing">
-      <div className="m-wrap py-16 md:py-24">
+        <div className="m-wrap py-16 md:py-20">
         <Reveal>
           <p className="text-sm font-medium text-[var(--accent)]">A mess, set up</p>
           <h2 className="mt-3 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">What the house already keeps on the table.</h2>
@@ -54,7 +54,7 @@ export function MessSetup() {
                   src={shot.src}
                   alt={shot.alt}
                   fill
-                  sizes={shot.caption === "The plate" ? "(max-width: 768px) 100vw, 560px" : "(max-width: 768px) 50vw, 280px"}
+                  sizes={shot.caption === "The kitchen" ? "(max-width: 768px) 100vw, 560px" : "(max-width: 768px) 50vw, 280px"}
                   placeholder="blur"
                   className="object-cover"
                 />

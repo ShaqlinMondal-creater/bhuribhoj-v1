@@ -5,8 +5,8 @@ import { photos } from "@/components/marketing/photos";
 export function CtaBand() {
   return (
     <section className="marketing">
-      <div className="m-wrap py-16 md:py-24">
-        <div className="relative min-h-[22rem] overflow-hidden rounded-2xl">
+      <div className="m-wrap py-14 md:py-16">
+        <div className="relative min-h-[20rem] overflow-hidden rounded-2xl">
           <Image
             src={photos.ctaKitchen}
             alt="A kitchen range with pots ready for the next meal"

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Bento } from "@/components/marketing/Bento";
 import { CtaBand } from "@/components/marketing/CtaBand";
-import { DayTimeline } from "@/components/marketing/DayTimeline";
 import { FaqList } from "@/components/marketing/FaqList";
 import { Hero } from "@/components/marketing/Hero";
 import { PlanPreview } from "@/components/marketing/PlanCards";
@@ -11,7 +10,9 @@ import { Reveal } from "@/components/marketing/Reveal";
 import { TrustMarquee } from "@/components/marketing/TrustMarquee";
 
 export const metadata: Metadata = {
-  title: "The mess house",
+  title: {
+    absolute: "BhuriBhoj · the mess house",
+  },
   description: "BhuriBhoj keeps meals, money, and members for a shared mess in one house.",
   openGraph: {
     title: "BhuriBhoj · the mess house",
@@ -34,11 +35,10 @@ export default function HomePage() {
       <TrustMarquee />
       <MessSetup />
       <Bento />
-      <DayTimeline />
       <Roles />
       <PlanPreview />
-      <section className="marketing">
-        <div className="m-wrap py-16 md:py-24">
+      <section className="marketing bg-[var(--surface)]">
+        <div className="m-wrap py-16 md:py-20">
           <Reveal>
             <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Questions the house asks first</h2>
           </Reveal>
