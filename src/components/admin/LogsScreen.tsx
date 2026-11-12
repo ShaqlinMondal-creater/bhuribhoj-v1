@@ -17,6 +17,7 @@ const KNOWN_ACTIONS = [
   "contact.reply",
   "contact.send",
   "contact.status",
+  "contact.update",
   "coupon.create",
   "coupon.delete",
   "coupon.redeem",

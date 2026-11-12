@@ -30,7 +30,20 @@ export const contactSupportService = {
       body,
     });
   },
-  reply(body: { id: number; message: string }) {
+  update(body: {
+    id: number;
+    name?: string;
+    mess?: string;
+    members?: number;
+    phone?: string | null;
+    email?: string | null;
+  }) {
+    return apiClient<{ message: string; data: ContactInquiry }>("/admin/contact-support/update", {
+      method: "POST",
+      body,
+    });
+  },
+  reply(body: { id: number; message: string; email?: string | null; name?: string }) {
     return apiClient<{ message: string; data: ContactInquiry }>("/admin/contact-support/reply", {
       method: "POST",
       body,
