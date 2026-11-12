@@ -64,11 +64,12 @@ export const authService = {
   },
 
   async updateProfile(body: {
-    name: string;
-    email: string;
+    name?: string;
+    email?: string;
     mobile?: string;
     password?: string;
     password_confirmation?: string;
+    /** Pass a data URL to upload, or null/"" to clear. */
     avatar?: string | null;
   }) {
     const data = await apiClient<{ user: LaravelUser; message: string }>("/authorize/auth/profile", {

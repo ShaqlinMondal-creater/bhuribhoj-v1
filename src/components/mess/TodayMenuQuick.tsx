@@ -6,6 +6,7 @@ import { Icon } from "@/components/icons/Icon";
 import { Dialog } from "@/components/ui/Dialog";
 import { MaterialScope } from "@/components/ui/FilterBar";
 import { Notice } from "@/components/ui/Notice";
+import { notifyTodayMenuSaved, onTodayMenuOpen } from "@/lib/todayMenuEvents";
 import { mealInfo, mealService, servedMealSlots, type MealSlot } from "@/services/mealService";
 import { menuService } from "@/services/menuService";
 import TextField from "@mui/material/TextField";
@@ -14,6 +15,11 @@ export function TodayMenuQuick() {
   const user = useMessUser();
   const lead = user?.role === "president" || user?.role === "manager";
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!lead) return;
+    return onTodayMenuOpen(() => setOpen(true));
+  }, [lead]);
 
   if (!lead || !user) return null;
 
@@ -28,12 +34,20 @@ export function TodayMenuQuick() {
         <Icon name="meals" className="h-4 w-4" />
         <span>Today&apos;s menu</span>
       </button>
-      {open ? <TodayMenuDialog onClose={() => setOpen(false)} /> : null}
+      {open ? (
+        <TodayMenuDialog
+          onClose={() => setOpen(false)}
+          onSaved={() => {
+            notifyTodayMenuSaved();
+            setOpen(false);
+          }}
+        />
+      ) : null}
     </>
   );
 }
 
-function TodayMenuDialog({ onClose }: { onClose: () => void }) {
+function TodayMenuDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const user = useMessUser();
   const today = todayIsoKolkata();
   const label = longTodayLabel(today);
@@ -94,7 +108,7 @@ function TodayMenuDialog({ onClose }: { onClose: () => void }) {
           dishes: item.text,
         });
       }
-      onClose();
+      onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save today's menu.");
     } finally {

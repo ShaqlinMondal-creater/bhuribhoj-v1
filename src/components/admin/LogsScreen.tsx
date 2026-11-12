@@ -14,7 +14,9 @@ import { logService, type LogRow } from "@/services/logService";
 const KNOWN_ACTIONS = [
   "config.delete",
   "config.save",
+  "contact.reply",
   "contact.send",
+  "contact.status",
   "coupon.create",
   "coupon.delete",
   "coupon.redeem",

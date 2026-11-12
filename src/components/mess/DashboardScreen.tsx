@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useState, type MouseEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useMessUser } from "@/components/auth/MessSession";
 import { FilterDate, MaterialScope } from "@/components/ui/FilterBar";
 import { Notice } from "@/components/ui/Notice";
 import { inr, initials } from "@/lib/format";
+import { onTodayMenuSaved, openTodayMenuDialog } from "@/lib/todayMenuEvents";
 import { dashboardService, type DashboardPayload } from "@/services/dashboardService";
 import { mealInfo, mealOrder, mealService, servedMealSlots, type MealSlot } from "@/services/mealService";
 import { menuService, type MenuRow } from "@/services/menuService";
@@ -57,8 +58,8 @@ export function DashboardScreen() {
     };
   }, [user, fromDate, toDate, rangeReady]);
 
-  useEffect(() => {
-    if (!user) return;
+  const loadTodayMenus = useCallback(() => {
+    if (!user) return () => undefined;
     let cancelled = false;
     const todayIso = isoFromDmy(todayDmy());
     setMenusReady(false);
@@ -88,6 +89,10 @@ export function DashboardScreen() {
       cancelled = true;
     };
   }, [user]);
+
+  useEffect(() => loadTodayMenus(), [loadTodayMenus]);
+
+  useEffect(() => onTodayMenuSaved(() => loadTodayMenus()), [loadTodayMenus]);
 
   const menuBySlot = Object.fromEntries(todayMenus.map((row) => [row.meal_type, row])) as Partial<Record<MealSlot, MenuRow>>;
 
@@ -168,12 +173,19 @@ export function DashboardScreen() {
           <section className="overflow-hidden rounded-2xl bg-emerald-800 shadow-lg shadow-emerald-950/25">
             <div className="flex items-center justify-between gap-3 px-4 py-3.5">
               <h2 className="text-lg font-extrabold tracking-tight text-white">Today&apos;s menu</h2>
-              <Link
-                href="/mess/meals"
-                className="rounded-full bg-white px-3.5 py-1.5 text-sm font-bold text-emerald-900"
-              >
-                {canEditMenu ? "Set" : "View"}
-              </Link>
+              {canEditMenu ? (
+                <button
+                  type="button"
+                  onClick={() => openTodayMenuDialog()}
+                  className="rounded-full bg-white px-3.5 py-1.5 text-sm font-bold text-emerald-900"
+                >
+                  Set
+                </button>
+              ) : (
+                <Link href="/mess/meals" className="rounded-full bg-white px-3.5 py-1.5 text-sm font-bold text-emerald-900">
+                  View
+                </Link>
+              )}
             </div>
             <div className="rounded-t-2xl bg-emerald-50 px-3 pb-3 pt-3">
               {!menusReady ? (
@@ -193,11 +205,11 @@ export function DashboardScreen() {
                           night ? "ring-2 ring-violet-400" : "ring-2 ring-emerald-500"
                         }`}
                       >
-                        <p className={`text-sm font-extrabold uppercase tracking-wide ${night ? "text-violet-700" : "text-emerald-700"}`}>
+                        <p className={`text-[11px] font-extrabold uppercase tracking-wide ${night ? "text-violet-700" : "text-emerald-700"}`}>
                           {mealInfo(slot).label}
                         </p>
                         <p
-                          className={`mt-2 rounded-xl px-2.5 py-2.5 text-xl font-extrabold leading-snug tracking-tight sm:text-2xl ${
+                          className={`mt-1.5 rounded-xl px-2 py-2 text-sm font-semibold leading-snug tracking-tight sm:text-base ${
                             row
                               ? night
                                 ? "bg-violet-100 text-violet-950"

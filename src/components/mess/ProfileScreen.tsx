@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 import NextImage from "next/image";
 import { useMessUser, useSetMessUser } from "@/components/auth/MessSession";
 import { Icon } from "@/components/icons/Icon";
+import { AvatarCropDialog } from "@/components/ui/AvatarCropDialog";
+import { Dialog } from "@/components/ui/Dialog";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { roleLabel } from "@/lib/auth/roles";
 import { initials } from "@/lib/format";
@@ -12,7 +14,6 @@ import type { AuthUser } from "@/types/auth";
 
 export function ProfileScreen() {
   const user = useMessUser();
-
   const setUser = useSetMessUser();
 
   if (!user) {
@@ -21,7 +22,7 @@ export function ProfileScreen() {
 
   return (
     <ProfileForm
-      key={`${user.name}|${user.email}|${user.mobile}|${user.avatar?.length ?? 0}`}
+      key={`${user.id}|${user.name}|${user.email}|${user.mobile}`}
       user={user}
       onUser={setUser}
     />
@@ -41,7 +42,7 @@ export function AccountProfile({
 
   return (
     <ProfileForm
-      key={`${user.name}|${user.email}|${user.mobile}|${user.avatar?.length ?? 0}`}
+      key={`${user.id}|${user.name}|${user.email}|${user.mobile}`}
       user={user}
       onUser={onUser}
     />
@@ -59,7 +60,12 @@ function ProfileForm({ user, onUser }: { user: AuthUser; onUser: (user: AuthUser
   const [avatar, setAvatar] = useState(user.avatar);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [photoDone, setPhotoDone] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [photoPending, setPhotoPending] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
 
   function reset() {
     setName(user.name);
@@ -67,25 +73,57 @@ function ProfileForm({ user, onUser }: { user: AuthUser; onUser: (user: AuthUser
     setMobile(user.mobile ?? "");
     setPassword("");
     setConfirm("");
-    setAvatar(user.avatar);
     setEditing(false);
     setError(null);
     setDone(null);
   }
 
-  async function onFile(file: File | undefined) {
+  function pickFile() {
+    setPhotoError(null);
+    fileRef.current?.click();
+  }
+
+  function onFile(file: File | undefined) {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setError("Choose a photo.");
+      setPhotoError("Choose a photo.");
       return;
     }
+    setViewOpen(false);
+    setCropFile(file);
+  }
+
+  async function saveAvatar(dataUrl: string) {
+    setPhotoPending(true);
+    setPhotoError(null);
+    setPhotoDone(null);
     try {
-      const next = await resizeAvatar(file);
-      setAvatar(next);
-      setEditing(true);
-      setError(null);
-    } catch {
-      setError("That photo could not be read.");
+      const next = await authService.updateProfile({ avatar: dataUrl });
+      onUser(next);
+      setAvatar(next.avatar);
+      setCropFile(null);
+      setPhotoDone("Photo saved.");
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : "Could not save the photo.");
+    } finally {
+      setPhotoPending(false);
+    }
+  }
+
+  async function deleteAvatar() {
+    setPhotoPending(true);
+    setPhotoError(null);
+    setPhotoDone(null);
+    try {
+      const next = await authService.updateProfile({ avatar: null });
+      onUser(next);
+      setAvatar(next.avatar);
+      setViewOpen(false);
+      setPhotoDone("Photo removed.");
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : "Could not remove the photo.");
+    } finally {
+      setPhotoPending(false);
     }
   }
 
@@ -104,12 +142,10 @@ function ProfileForm({ user, onUser }: { user: AuthUser; onUser: (user: AuthUser
         name,
         email,
         mobile: mobile || undefined,
-        ...(avatar?.startsWith("data:") ? { avatar } : {}),
-        ...(password
-          ? { password, password_confirmation: confirm }
-          : {}),
+        ...(password ? { password, password_confirmation: confirm } : {}),
       });
       onUser(next);
+      setAvatar(next.avatar);
       setPassword("");
       setConfirm("");
       setEditing(false);
@@ -133,9 +169,12 @@ function ProfileForm({ user, onUser }: { user: AuthUser; onUser: (user: AuthUser
           <div className="flex flex-col items-center text-center">
             <button
               type="button"
-              onClick={() => fileRef.current?.click()}
+              onClick={() => {
+                if (avatar) setViewOpen(true);
+                else pickFile();
+              }}
               className="group relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-emerald-800 text-2xl font-semibold ring-4 ring-emerald-700/80"
-              aria-label="Upload profile image"
+              aria-label={avatar ? "View profile photo" : "Upload profile photo"}
             >
               {avatar ? (
                 <NextImage src={avatar} alt="" width={96} height={96} unoptimized className="h-full w-full object-cover" />
@@ -143,7 +182,7 @@ function ProfileForm({ user, onUser }: { user: AuthUser; onUser: (user: AuthUser
                 initials(name)
               )}
               <span className="absolute inset-x-0 bottom-0 bg-black/45 py-1 text-[10px] font-medium tracking-wide text-white opacity-0 transition group-hover:opacity-100">
-                Upload
+                {avatar ? "View" : "Upload"}
               </span>
             </button>
             <input
@@ -161,6 +200,9 @@ function ProfileForm({ user, onUser }: { user: AuthUser; onUser: (user: AuthUser
               {roleLabel[user.role]}
             </p>
             <p className="mt-1 text-sm text-emerald-100/80">{user.memberCode ?? user.mess?.name}</p>
+            {photoError ? <p className="mt-3 text-xs text-rose-200">{photoError}</p> : null}
+            {photoDone ? <p className="mt-3 text-xs text-emerald-200">{photoDone}</p> : null}
+            {photoPending ? <p className="mt-3 text-xs text-emerald-200/80">Updating photo…</p> : null}
           </div>
           <dl className="mt-8 space-y-4 border-t border-white/10 pt-5 text-sm">
             <div>
@@ -178,7 +220,7 @@ function ProfileForm({ user, onUser }: { user: AuthUser; onUser: (user: AuthUser
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-stone-950">Account details</h2>
-              <p className="mt-1 text-sm text-stone-500">Update name, contact info, and password.</p>
+              <p className="mt-1 text-sm text-stone-500">Update name, contact info, and password. Photo saves on its own.</p>
             </div>
             <button
               type="button"
@@ -252,6 +294,42 @@ function ProfileForm({ user, onUser }: { user: AuthUser; onUser: (user: AuthUser
           </div>
         </form>
       </div>
+
+      {viewOpen && avatar ? (
+        <Dialog title="Profile photo" onClose={() => setViewOpen(false)} size="md" backdrop="stone">
+          <div className="flex flex-col items-center gap-5">
+            <div className="relative h-56 w-56 overflow-hidden rounded-full bg-stone-100 ring-4 ring-stone-200">
+              <NextImage src={avatar} alt="" width={224} height={224} unoptimized className="h-full w-full object-cover" />
+            </div>
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-center">
+              <button
+                type="button"
+                disabled={photoPending}
+                onClick={() => void deleteAvatar()}
+                className="rounded-xl border border-rose-200 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+              >
+                {photoPending ? "Working…" : "Delete photo"}
+              </button>
+              <button
+                type="button"
+                disabled={photoPending}
+                onClick={pickFile}
+                className="rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900 disabled:opacity-50"
+              >
+                Upload new
+              </button>
+            </div>
+          </div>
+        </Dialog>
+      ) : null}
+
+      {cropFile ? (
+        <AvatarCropDialog
+          file={cropFile}
+          onClose={() => setCropFile(null)}
+          onCropped={(dataUrl) => saveAvatar(dataUrl)}
+        />
+      ) : null}
     </section>
   );
 }
@@ -275,31 +353,3 @@ function Field({
 
 const fieldClass =
   "mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 outline-none focus:border-emerald-700 disabled:bg-stone-50 disabled:text-stone-600";
-
-function resizeAvatar(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const image = new Image();
-    const url = URL.createObjectURL(file);
-    image.onload = () => {
-      const max = 192;
-      const scale = Math.min(max / image.width, max / image.height, 1);
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.max(1, Math.round(image.width * scale));
-      canvas.height = Math.max(1, Math.round(image.height * scale));
-      const context = canvas.getContext("2d");
-      if (!context) {
-        URL.revokeObjectURL(url);
-        reject(new Error("Canvas unavailable"));
-        return;
-      }
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL("image/jpeg", 0.8));
-    };
-    image.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("Unreadable image"));
-    };
-    image.src = url;
-  });
-}

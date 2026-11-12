@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useMessUser } from "@/components/auth/MessSession";
-import { rowClass, TableShell, TableStatus, thClass, useClientPage } from "@/components/ui/DataTable";
+import { rowClass, useClientPage } from "@/components/ui/DataTable";
 import { DetailList } from "@/components/ui/DetailList";
 import { Dialog } from "@/components/ui/Dialog";
 import { Flash } from "@/components/ui/Flash";
@@ -12,6 +12,7 @@ import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Icon } from "@/components/icons/Icon";
 import { longKolkataDate } from "@/lib/format";
+import { notifyTodayMenuSaved } from "@/lib/todayMenuEvents";
 import { mealInfo, mealOrder, type MealSlot } from "@/services/mealService";
 import { menuService, type MenuRow } from "@/services/menuService";
 import IconButtonMui from "@mui/material/IconButton";
@@ -84,7 +85,8 @@ export function MenusScreen({ messId = null, hideHeader = false }: { messId?: nu
     };
   }, [user, search, meal, from, to, dateOrderError, messId, ready, reloadKey]);
 
-  const table = useClientPage(rows);
+  const dayGroups = groupMenusByDay(rows);
+  const table = useClientPage(dayGroups);
 
   if (!user) return <div className="h-40 animate-pulse rounded-2xl bg-white" />;
   if (needsMess && !messId) {
@@ -94,7 +96,7 @@ export function MenusScreen({ messId = null, hideHeader = false }: { messId?: nu
   return (
     <section className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        {hideHeader ? <div /> : <PageHeader eyebrow="Mess Details" title="Meals" description="Menus for this mess." />}
+        {hideHeader ? <div /> : <PageHeader eyebrow="Mess Details" title="Meals" description="Menus grouped by day for this mess." />}
         {canSave ? (
           <button
             type="button"
@@ -125,41 +127,63 @@ export function MenusScreen({ messId = null, hideHeader = false }: { messId?: nu
         <FilterDate label="From" value={fromDate} onChange={(value) => { setFromDate(value); table.setOffset(0); }} />
         <FilterDate label="To" value={toDate} onChange={(value) => { setToDate(value); table.setOffset(0); }} />
       </FilterBar>
-      <TableShell
-        count={table.count}
-        limit={table.limit}
-        offset={table.offset}
-        onLimit={table.setLimit}
-        onOffset={table.setOffset}
-        head={
-          <tr>
-            <th className={thClass()}>Meal</th>
-            <th className={thClass()}>Date</th>
-            <th className={thClass()}>Dishes</th>
-            <th className={thClass("right")}>Actions</th>
-          </tr>
-        }
-      >
-        <TableStatus
-          colSpan={4}
-          loading={loading && rows.length === 0}
-          empty={!loading && !error && table.count === 0 ? (filtered || dateOrderError ? "No meals match these filters." : "No meals yet.") : null}
-        />
-        {table.page.map((row) => (
-          <tr key={row.id} className={rowClass}>
-            <td className="px-4 py-3 font-medium text-stone-950">{mealInfo(row.meal_type).label}</td>
-            <td className="px-4 py-3 text-stone-600">{longKolkataDate(row.menu_date)}</td>
-            <td className="px-4 py-3 text-stone-700">{row.dishes}</td>
-            <td className="px-4 py-3">
-              <div className="flex justify-end">
-                <IconButton label="View detail" icon="eye" onClick={() => setViewing(row)} />
-                {canSave ? <IconButton label="Edit" icon="pencil" onClick={() => setEditing(row)} /> : null}
-                {canSave ? <IconButton label="Delete" icon="trash" onClick={() => setRemoving(row)} /> : null}
+
+      {loading && rows.length === 0 ? <div className="h-40 animate-pulse rounded-2xl bg-white" /> : null}
+      {!loading && !error && dayGroups.length === 0 ? (
+        <p className="rounded-2xl border border-stone-200 bg-white p-5 text-sm text-stone-500">
+          {filtered || dateOrderError ? "No meals match these filters." : "No meals yet."}
+        </p>
+      ) : null}
+
+      {table.page.length > 0 ? (
+        <div className="space-y-4">
+          {table.page.map((day) => (
+            <section key={day.key} className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 bg-stone-50 px-4 py-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-stone-950">{longKolkataDate(day.key)}</h2>
+                  <p className="text-xs text-stone-500">
+                    {day.rows.length} meal{day.rows.length === 1 ? "" : "s"}
+                  </p>
+                </div>
               </div>
-            </td>
-          </tr>
-        ))}
-      </TableShell>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="text-xs text-stone-400">
+                      <th className="px-4 py-2 font-medium">Meal</th>
+                      <th className="px-4 py-2 font-medium">Dishes</th>
+                      <th className="px-4 py-2 text-right font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {day.rows.map((row) => (
+                      <tr key={row.id} className={rowClass}>
+                        <td className="px-4 py-3 font-medium text-stone-950">{mealInfo(row.meal_type).label}</td>
+                        <td className="px-4 py-3 text-stone-700">{row.dishes}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end">
+                            <IconButton label="View detail" icon="eye" onClick={() => setViewing(row)} />
+                            {canSave ? <IconButton label="Edit" icon="pencil" onClick={() => setEditing(row)} /> : null}
+                            {canSave ? <IconButton label="Delete" icon="trash" onClick={() => setRemoving(row)} /> : null}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ))}
+          <DayPager
+            count={table.count}
+            limit={table.limit}
+            offset={table.offset}
+            onLimit={table.setLimit}
+            onOffset={table.setOffset}
+          />
+        </div>
+      ) : null}
       {adding ? (
         <MenuForm
           title="Add menu"
@@ -170,6 +194,7 @@ export function MenusScreen({ messId = null, hideHeader = false }: { messId?: nu
             setError(null);
             setAdding(false);
             setReloadKey((value) => value + 1);
+            notifyTodayMenuSaved();
           }}
           onFailed={(message) => {
             setError(message);
@@ -188,6 +213,7 @@ export function MenusScreen({ messId = null, hideHeader = false }: { messId?: nu
             setError(null);
             setEditing(null);
             setReloadKey((value) => value + 1);
+            notifyTodayMenuSaved();
           }}
           onFailed={(message) => {
             setError(message);
@@ -206,6 +232,7 @@ export function MenusScreen({ messId = null, hideHeader = false }: { messId?: nu
             setError(null);
             setRemoving(null);
             setReloadKey((value) => value + 1);
+            notifyTodayMenuSaved();
           }}
           onFailed={(message) => {
             setError(message);
@@ -397,6 +424,94 @@ function DeleteDialog({
         </button>
       </div>
     </Dialog>
+  );
+}
+
+type DayGroup = { key: string; rows: MenuRow[] };
+
+function groupMenusByDay(rows: MenuRow[]): DayGroup[] {
+  const map = new Map<string, MenuRow[]>();
+  for (const row of rows) {
+    const key = menuDayKey(row.menu_date);
+    const list = map.get(key) ?? [];
+    list.push(row);
+    map.set(key, list);
+  }
+  return [...map.entries()]
+    .sort((a, b) => (a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0))
+    .map(([key, list]) => ({
+      key,
+      rows: [...list].sort((a, b) => mealOrder.indexOf(a.meal_type) - mealOrder.indexOf(b.meal_type)),
+    }));
+}
+
+function menuDayKey(value: string) {
+  if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+  if (/^\d{2}-\d{2}-\d{4}$/.test(value)) {
+    const [day, month, year] = value.split("-");
+    return `${year}-${month}-${day}`;
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return dmyFromMenu(value).split("-").reverse().join("-");
+}
+
+function DayPager({
+  count,
+  limit,
+  offset,
+  onLimit,
+  onOffset,
+}: {
+  count: number;
+  limit: number;
+  offset: number;
+  onLimit: (limit: number) => void;
+  onOffset: (offset: number) => void;
+}) {
+  const start = count === 0 ? 0 : offset + 1;
+  const end = Math.min(offset + limit, count);
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-4 rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-500">
+      <label className="flex items-center gap-2">
+        Days per page
+        <select
+          value={limit}
+          aria-label="Days per page"
+          onChange={(event) => onLimit(Number(event.target.value))}
+          className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-sm text-stone-800"
+        >
+          {[5, 10, 25].map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      </label>
+      <span>
+        {start}–{end} of {count} day{count === 1 ? "" : "s"}
+      </span>
+      <div className="flex items-center">
+        <button
+          type="button"
+          aria-label="Previous page"
+          disabled={offset === 0}
+          onClick={() => onOffset(Math.max(0, offset - limit))}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-lg text-stone-600 hover:bg-stone-100 disabled:text-stone-300"
+        >
+          ‹
+        </button>
+        <button
+          type="button"
+          aria-label="Next page"
+          disabled={offset + limit >= count}
+          onClick={() => onOffset(offset + limit)}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-lg text-stone-600 hover:bg-stone-100 disabled:text-stone-300"
+        >
+          ›
+        </button>
+      </div>
+    </div>
   );
 }
 

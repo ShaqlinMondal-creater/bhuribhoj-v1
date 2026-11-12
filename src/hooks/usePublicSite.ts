@@ -27,6 +27,16 @@ const defaults: PublicSite = {
   creditUrl: "https://liwaas.com",
 };
 
+/** Admin may save "liwaas.com" — without a scheme the browser treats it as a relative path. */
+function absoluteHttpUrl(raw: string | null | undefined, fallback: string): string {
+  const value = (raw ?? "").trim() || fallback;
+  if (/^https?:\/\//i.test(value)) return value;
+  if (/^\/\//.test(value)) return `https:${value}`;
+  // Block non-http schemes; treat bare hosts as https.
+  if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return fallback;
+  return `https://${value.replace(/^\/+/, "")}`;
+}
+
 function mapSettings(data: PlatformSettings | undefined): PublicSite {
   if (!data) return defaults;
   const email = data.contact_email?.trim() ?? "";
@@ -42,7 +52,7 @@ function mapSettings(data: PlatformSettings | undefined): PublicSite {
     legalPrivacy: data.legal_privacy?.trim() || defaults.legalPrivacy,
     legalTerms: data.legal_terms?.trim() || defaults.legalTerms,
     creditName: data.credit_name?.trim() || defaults.creditName,
-    creditUrl: data.credit_url?.trim() || defaults.creditUrl,
+    creditUrl: absoluteHttpUrl(data.credit_url, defaults.creditUrl),
   };
 }
 
