@@ -11,6 +11,19 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { configService, type ConfigRow, type ConfigWrite } from "@/services/configService";
 import TextField from "@mui/material/TextField";
 
+/** Stored lowercase (API lowercases config_key on save). */
+const SITE_KEYS = [
+  "public_contact_email",
+  "public_site_name",
+  "public_site_bengali",
+  "public_footer_text",
+  "copyright_text",
+  "legal_privacy",
+  "legal_terms",
+  "credit_site_name",
+  "credit_site_url",
+] as const;
+
 export function ConfigsScreen() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -61,7 +74,11 @@ export function ConfigsScreen() {
   return (
     <section className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <PageHeader eyebrow="Action" title="Configs" description="Platform keys and values the admin can change." />
+        <PageHeader
+          eyebrow="Action"
+          title="Configs"
+          description={`Admin-only. Public site keys: ${SITE_KEYS.join(", ")}. Theme stays under Settings.`}
+        />
         <button
           type="button"
           onClick={() => setOpen({ mode: "create" })}

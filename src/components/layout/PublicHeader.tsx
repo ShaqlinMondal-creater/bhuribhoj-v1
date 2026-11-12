@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { usePublicSite } from "@/hooks/usePublicSite";
 
 const links = [
   { href: "/features", label: "Features" },
@@ -17,6 +18,7 @@ const links = [
 export function PublicHeader() {
   const pathname = usePathname();
   const reduced = useReducedMotion();
+  const { site } = usePublicSite();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -54,8 +56,8 @@ export function PublicHeader() {
         <Link href="/" className="flex min-w-0 items-center gap-2">
           <BrandLogo className="h-10 w-10 shrink-0 sm:h-11 sm:w-11" />
           <span className="truncate text-lg font-semibold tracking-tight">
-            <span className="bn">ভুরিভোজ</span>
-            <span className="ml-2 hidden text-sm font-medium text-[var(--muted)] sm:inline">BhuriBhoj</span>
+            <span className="bn">{site.siteNameBn}</span>
+            <span className="ml-2 hidden text-sm font-medium text-[var(--muted)] sm:inline">{site.siteName}</span>
           </span>
         </Link>
 

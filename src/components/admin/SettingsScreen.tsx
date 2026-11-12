@@ -62,7 +62,7 @@ export function SettingsScreen() {
       <PageHeader
         eyebrow="Platform"
         title="Settings"
-        description="The look of the public site, the admin panel, and the mess panel. Saved for the whole platform."
+        description="Theme for the public site, admin panel, and mess panel. Site text and contact email live under Configs."
       />
       <Flash message={notice} />
       {error ? <Notice>{error}</Notice> : null}

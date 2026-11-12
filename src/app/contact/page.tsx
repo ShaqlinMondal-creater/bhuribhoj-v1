@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { ContactForm } from "@/components/home/ContactForm";
 import { ContactEmailLink } from "@/components/i18n/ContactEmailLink";
-import { getContactEmailFallback } from "@/lib/contactEmail";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -13,8 +12,6 @@ export const metadata: Metadata = {
 };
 
 export default function ContactPage() {
-  const contactEmail = getContactEmailFallback();
-
   return (
     <main className="marketing">
       <section className="m-wrap grid gap-10 py-16 md:py-24 lg:grid-cols-2">
@@ -36,7 +33,7 @@ export default function ContactPage() {
             <div>
               <dt className="font-semibold text-[var(--text)]">Email</dt>
               <dd>
-                <ContactEmailLink fallback={contactEmail} className="text-[var(--accent)]" />
+                <ContactEmailLink className="text-[var(--accent)]" />
               </dd>
             </div>
           </dl>

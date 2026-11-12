@@ -8,11 +8,9 @@ import { PublicHeader } from "@/components/layout/PublicHeader";
 
 export function PublicFrame({
   fontClassName,
-  contactEmail,
   children,
 }: {
   fontClassName: string;
-  contactEmail: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -33,7 +31,7 @@ export function PublicFrame({
         <div id="content" className="flex-1">
           {children}
         </div>
-        <PublicFooter contactEmail={contactEmail} />
+        <PublicFooter />
       </div>
     </MotionConfig>
   );

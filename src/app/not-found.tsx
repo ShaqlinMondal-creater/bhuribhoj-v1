@@ -5,7 +5,6 @@ import Link from "next/link";
 import { PublicFooter } from "@/components/layout/PublicFooter";
 import { PublicHeader } from "@/components/layout/PublicHeader";
 import { PublicSplash } from "@/components/brand/PublicSplash";
-import { getContactEmailFallback } from "@/lib/contactEmail";
 import { marketingBengali, marketingSans } from "@/lib/marketingFonts";
 
 export const metadata: Metadata = {
@@ -20,8 +19,6 @@ const links = [
 ];
 
 export default function NotFound() {
-  const contactEmail = getContactEmailFallback();
-
   return (
     <div className={`${marketingSans.variable} ${marketingBengali.variable} flex min-h-dvh flex-col bg-[var(--site)] text-[#f6f3ec]`}>
       <PublicHeader />
@@ -56,7 +53,7 @@ export default function NotFound() {
           </div>
         </div>
       </main>
-      <PublicFooter contactEmail={contactEmail} />
+      <PublicFooter />
     </div>
   );
 }
