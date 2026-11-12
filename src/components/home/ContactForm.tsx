@@ -24,6 +24,7 @@ export function ContactForm() {
   const [errors, setErrors] = useState<Errors>({});
   const [sent, setSent] = useState(false);
   const [pending, setPending] = useState(false);
+  const [honeypot, setHoneypot] = useState("");
 
   function update(key: keyof Fields, value: string) {
     setValues((current) => ({ ...current, [key]: value }));
@@ -59,6 +60,7 @@ export function ContactForm() {
         phone: values.phone.trim() || undefined,
         email: values.email.trim() || undefined,
         message: values.message.trim(),
+        website: honeypot,
       });
       setSent(true);
     } catch (err) {
@@ -79,7 +81,21 @@ export function ContactForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5" noValidate>
+    <form onSubmit={onSubmit} className="relative space-y-5" noValidate>
+      {/* Honeypot — leave empty; bots that fill it are ignored server-side */}
+      <div className="absolute -left-[9999px] top-auto h-0 w-0 overflow-hidden" aria-hidden="true">
+        <label>
+          Website
+          <input
+            type="text"
+            name="website"
+            tabIndex={-1}
+            autoComplete="off"
+            value={honeypot}
+            onChange={(event) => setHoneypot(event.target.value)}
+          />
+        </label>
+      </div>
       <Field label="Name" error={errors.name}>
         <input name="name" value={values.name} onChange={(event) => update("name", event.target.value)} className={fieldClass} aria-invalid={Boolean(errors.name)} required />
       </Field>

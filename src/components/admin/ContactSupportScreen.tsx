@@ -228,7 +228,7 @@ function SupportComposePanel({
       setLocalError("Name, mess, and members are required.");
       return;
     }
-    if (email.trim() && !email.includes("@")) {
+    if (email.trim() && !isValidEmail(email.trim())) {
       setLocalError("Enter a valid email in To.");
       return;
     }
@@ -261,8 +261,12 @@ function SupportComposePanel({
       setLocalError("Add a name.");
       return;
     }
-    if (!email.trim() || !email.includes("@")) {
+    if (!email.trim() || !isValidEmail(email.trim())) {
       setLocalError("Enter a valid email in To.");
+      return;
+    }
+    if (!isNew && inquiry.status === "closed") {
+      setLocalError("Reopen this thread before sending another reply.");
       return;
     }
     setPending(true);
@@ -435,7 +439,9 @@ function SupportComposePanel({
                 </p>
               ) : (
                 <>
-                  <ChatBubble side="visitor" title={inquiry.name} body={inquiry.message} when={inquiry.created_at} />
+                  {inquiry.message !== OUTBOUND_PLACEHOLDER ? (
+                    <ChatBubble side="visitor" title={inquiry.name} body={inquiry.message} when={inquiry.created_at} />
+                  ) : null}
                   {inquiry.replies.map((reply) => (
                     <ChatBubble
                       key={reply.id}
@@ -456,9 +462,15 @@ function SupportComposePanel({
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 rows={3}
-                disabled={pending}
-                placeholder={isNew ? "Write the first email…" : "Write your reply…"}
-                className="w-full resize-none rounded-xl border border-stone-200 px-3 py-2 text-sm text-stone-900 outline-none focus:border-[var(--accent)]"
+                disabled={pending || (!isNew && inquiry.status === "closed")}
+                placeholder={
+                  !isNew && inquiry.status === "closed"
+                    ? "Reopen to reply…"
+                    : isNew
+                      ? "Write the first email…"
+                      : "Write your reply…"
+                }
+                className="w-full resize-none rounded-xl border border-stone-200 px-3 py-2 text-sm text-stone-900 outline-none focus:border-[var(--accent)] disabled:bg-stone-50"
               />
               <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex gap-1.5">
@@ -485,7 +497,7 @@ function SupportComposePanel({
                 </div>
                 <button
                   type="submit"
-                  disabled={pending || draft.trim() === ""}
+                  disabled={pending || draft.trim() === "" || (!isNew && inquiry.status === "closed")}
                   className="rounded-xl bg-[var(--accent)] px-3.5 py-2 text-xs font-semibold text-[var(--accent-ink)] disabled:opacity-50"
                 >
                   {pending ? "Sending…" : "Send"}
@@ -541,6 +553,12 @@ function ChatBubble({
       </div>
     </article>
   );
+}
+
+const OUTBOUND_PLACEHOLDER = "Outbound thread started by support.";
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 function StatusPill({ status, dark = false }: { status: ContactInquiry["status"]; dark?: boolean }) {

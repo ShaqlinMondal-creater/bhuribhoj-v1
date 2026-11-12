@@ -7,6 +7,8 @@ export type ContactPayload = {
   phone?: string;
   email?: string;
   message: string;
+  /** Honeypot — always leave empty */
+  website?: string;
 };
 
 export const contactService = {
