@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
-const laravelOrigin = process.env.LARAVEL_API_ORIGIN ?? "http://127.0.0.1:8000";
+/** Always the live API — local and Vercel both proxy here. */
+const laravelOrigin = process.env.LARAVEL_API_ORIGIN ?? "https://bhuribhoj-api.liwaas.com";
 
 const nextConfig: NextConfig = {
   cacheComponents: true,

@@ -35,8 +35,10 @@ export function PublicFooter() {
             <BrandLogo className="h-24 w-24 shrink-0 sm:h-36 sm:w-36" />
             <span className="min-w-0 pt-2 sm:pt-3">
               <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xl font-semibold leading-tight sm:text-2xl">
-                <span className="bn">{site.siteNameBn}</span>
-                <span className="text-base font-medium text-[var(--muted)] sm:text-lg">{site.siteName}</span>
+                {site.siteNameBn ? <span className="bn">{site.siteNameBn}</span> : null}
+                <span className={`font-medium ${site.siteNameBn ? "text-base text-[var(--muted)] sm:text-lg" : ""}`}>
+                  {site.siteName}
+                </span>
               </span>
               <span className="mt-3 block max-w-md text-sm leading-7 text-[var(--muted)] sm:mt-4 sm:text-[0.95rem] sm:leading-8">
                 {site.siteBlurb}

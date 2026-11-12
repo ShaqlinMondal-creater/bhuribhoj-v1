@@ -56,8 +56,10 @@ export function PublicHeader() {
         <Link href="/" className="flex min-w-0 items-center gap-2">
           <BrandLogo className="h-10 w-10 shrink-0 sm:h-11 sm:w-11" />
           <span className="truncate text-lg font-semibold tracking-tight">
-            <span className="bn">{site.siteNameBn}</span>
-            <span className="ml-2 hidden text-sm font-medium text-[var(--muted)] sm:inline">{site.siteName}</span>
+            {site.siteNameBn ? <span className="bn">{site.siteNameBn}</span> : null}
+            <span className={`font-medium text-[var(--muted)] sm:inline ${site.siteNameBn ? "ml-2 hidden text-sm" : "text-base"}`}>
+              {site.siteName}
+            </span>
           </span>
         </Link>
 

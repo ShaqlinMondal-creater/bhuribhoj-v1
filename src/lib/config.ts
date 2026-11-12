@@ -1,14 +1,13 @@
 /**
  * App + API configuration.
- * Works for local and production via env vars.
+ * Browser always calls same-origin `/backend` (no CORS).
+ * Next rewrites that to the live Laravel API.
  */
 export const appConfig = {
   name: process.env.NEXT_PUBLIC_APP_NAME ?? "BhuriBhoj",
   url: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   /**
-   * Browser API base.
-   * Local default: `/backend` (Next rewrite → LARAVEL_API_ORIGIN/api).
-   * Production may use the same proxy, or a full API URL.
+   * Same-origin proxy → live API (see next.config.ts LARAVEL_API_ORIGIN).
    */
   publicApiBase: process.env.NEXT_PUBLIC_API_BASE ?? "/backend",
 } as const;

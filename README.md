@@ -32,39 +32,25 @@ src/
   types/
 ```
 
-## Local vs live
+## API target
 
-`.env.local` / hosting env:
-
-```env
-NEXT_PUBLIC_APP_NAME=BhuriBhoj
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_API_BASE=/backend
-LARAVEL_API_ORIGIN=http://127.0.0.1:8000
-```
-
-Production example:
+Local and Vercel both use the **live** API via the `/backend` proxy (avoids CORS on localhost):
 
 ```env
-NEXT_PUBLIC_APP_URL=https://your-frontend.com
 NEXT_PUBLIC_API_BASE=/backend
 LARAVEL_API_ORIGIN=https://bhuribhoj-api.liwaas.com
 ```
 
-- Browser calls `NEXT_PUBLIC_API_BASE` (default `/backend`).
-- `/backend/*` rewrites to `{LARAVEL_API_ORIGIN}/api/*` (see `next.config.ts`).
-- If the browser calls the API host directly, set that full `/api` URL in `NEXT_PUBLIC_API_BASE` and list the frontend origin in API `CORS_ALLOWED_ORIGINS`.
+Browser → `/backend/...` → Next rewrite → `https://bhuribhoj-api.liwaas.com/api/...`
 
 ## Run
 
 ```bash
-# API
-cd ../bhuribhoj-api
-php artisan serve --host=127.0.0.1 --port=8000
-
-# Frontend
+# Frontend (talks to live API)
 npm run dev
 ```
+
+API changes: pull/deploy on the live `bhuribhoj-api.liwaas.com` server.
 
 Demo logins:
 - `admin@bhuribhoj.local` / `Admin@123` → `/admin`

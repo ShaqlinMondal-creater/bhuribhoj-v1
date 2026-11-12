@@ -78,7 +78,7 @@ export function ConfigsScreen() {
         <PageHeader
           eyebrow="Action"
           title="Configs"
-          description={`Admin-only. Public site keys: ${SITE_KEYS.join(", ")}. Theme stays under Settings.`}
+          description={`Admin-only. Public site keys: ${SITE_KEYS.join(", ")}. Blank/delete public_contact_email or public_site_bengali to hide them. Theme stays under Settings.`}
         />
         <button
           type="button"

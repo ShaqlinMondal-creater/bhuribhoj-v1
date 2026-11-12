@@ -5,7 +5,7 @@ export type PlatformSettings = {
   theme: ThemeId;
   contact_email?: string | null;
   site_name?: string;
-  site_name_bn?: string;
+  site_name_bn?: string | null;
   site_blurb?: string;
   site_copyright?: string;
   legal_privacy?: string;
