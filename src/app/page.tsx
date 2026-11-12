@@ -38,9 +38,10 @@ export default function HomePage() {
       <Roles />
       <PlanPreview />
       <section className="marketing bg-[var(--surface)]">
-        <div className="m-wrap py-16 md:py-20">
+        <div className="m-wrap py-16 md:py-24">
           <Reveal>
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Questions the house asks first</h2>
+            <p className="text-sm font-medium text-[var(--accent)]">FAQ</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Questions the house asks first</h2>
           </Reveal>
           <div className="mt-8">
             <FaqList items={questions} />

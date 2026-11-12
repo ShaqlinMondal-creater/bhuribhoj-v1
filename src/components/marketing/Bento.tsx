@@ -1,5 +1,3 @@
-"use client";
-
 import {
   CalendarClock,
   NotebookPen,
@@ -26,7 +24,7 @@ const books = [
 export function Bento() {
   return (
     <section className="marketing bg-[var(--surface)]">
-      <div className="m-wrap py-16 md:py-20">
+      <div className="m-wrap py-16 md:py-24">
         <Reveal>
           <p className="text-sm font-medium text-[var(--accent)]">What is written down</p>
           <h2 className="mt-3 max-w-xl text-3xl font-semibold tracking-tight sm:text-4xl">Eight books. One house.</h2>
@@ -34,12 +32,12 @@ export function Bento() {
             These are the records a president and a manager already keep. Each one has a place, instead of a fresh notebook every month.
           </p>
         </Reveal>
-        <div className="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-12 grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
           {books.map((book, index) => {
             const Icon = book.icon;
             return (
               <Reveal key={book.title} delay={index * 0.03}>
-                <article className="h-full border-t border-[var(--border)] pt-4">
+                <article className="h-full border-t border-[var(--border)] pt-5">
                   <div className="flex items-start gap-3">
                     <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--site)] text-[var(--accent)]">
                       <Icon size={17} aria-hidden="true" />
