@@ -13,7 +13,7 @@ const fieldClass =
   "mt-1 w-full rounded-lg border border-white/15 bg-black/30 px-2.5 py-1.5 text-xs text-[var(--panel-ink)] outline-none focus:border-[var(--accent)]";
 
 export function PlansScreen() {
-  const plans = useApi(planService.fetch);
+  const plans = useApi(planService.adminFetch);
   const rows = plans.data?.data ?? [];
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);

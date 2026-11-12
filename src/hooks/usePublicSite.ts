@@ -49,6 +49,7 @@ function mapSettings(data: PlatformSettings | undefined): PublicSite {
 export function usePublicSite() {
   const [site, setSite] = useState<PublicSite>(defaults);
   const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,10 +57,12 @@ export function usePublicSite() {
       .publicFetch()
       .then((result) => {
         if (cancelled) return;
+        setFailed(false);
         setSite(mapSettings(result.data));
       })
       .catch(() => {
         if (cancelled) return;
+        setFailed(true);
         setSite(defaults);
       })
       .finally(() => {
@@ -70,5 +73,5 @@ export function usePublicSite() {
     };
   }, []);
 
-  return { site, ready };
+  return { site, ready, failed };
 }

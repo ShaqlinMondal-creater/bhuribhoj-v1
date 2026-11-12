@@ -4,9 +4,9 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { MessShell } from "@/components/layout/MessShell";
 import { MessThemeSync } from "@/components/theme/MessThemeSync";
-import { clearSessionAction } from "@/app/actions/auth";
+import { clearSessionAction, syncSessionRoleAction } from "@/app/actions/auth";
 import { clearToken } from "@/lib/auth/token";
-import { pathForSeat } from "@/lib/auth/roles";
+import { homePathForRole, isAdmin, pathForSeat } from "@/lib/auth/roles";
 import { authService } from "@/services/authService";
 import type { AccountSeat, AuthUser, Role } from "@/types/auth";
 
@@ -50,11 +50,15 @@ export function MessSession({
 
     authService
       .currentUser()
-      .then((next) => {
-        if (!cancelled) {
-          setUser(next.user);
-          setSeat(next.seat);
+      .then(async (next) => {
+        if (cancelled) return;
+        await syncSessionRoleAction(next.user.role);
+        if (isAdmin(next.user.role)) {
+          router.replace(homePathForRole(next.user.role));
+          return;
         }
+        setUser(next.user);
+        setSeat(next.seat);
       })
       .catch(async () => {
         if (cancelled) return;

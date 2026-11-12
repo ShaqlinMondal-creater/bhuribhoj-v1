@@ -2,8 +2,9 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { clearSessionAction } from "@/app/actions/auth";
+import { clearSessionAction, syncSessionRoleAction } from "@/app/actions/auth";
 import { AdminShell } from "@/components/layout/AdminShell";
+import { homePathForRole, isAdmin } from "@/lib/auth/roles";
 import { clearToken } from "@/lib/auth/token";
 import { authService } from "@/services/authService";
 import type { AuthUser } from "@/types/auth";
@@ -28,8 +29,14 @@ export function AdminSession({ children }: { children: React.ReactNode }) {
 
     authService
       .currentUser()
-      .then((next) => {
-        if (!cancelled) setUser(next.user);
+      .then(async (next) => {
+        if (cancelled) return;
+        await syncSessionRoleAction(next.user.role);
+        if (!isAdmin(next.user.role)) {
+          router.replace(homePathForRole(next.user.role));
+          return;
+        }
+        setUser(next.user);
       })
       .catch(async () => {
         if (cancelled) return;

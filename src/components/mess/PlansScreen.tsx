@@ -47,7 +47,7 @@ export function PlansScreen() {
         setPendingId(null);
         if (order.seat) setSeat(order.seat);
         setNotice(order.message ?? "Coupon applied. Subscription is active.");
-        if (!seat?.subscription) router.push("/mess/setup");
+        if (order.seat && !order.seat.mess) router.push("/mess/setup");
         return;
       }
 
@@ -102,12 +102,11 @@ export function PlansScreen() {
 
   async function confirmPayment(response: RazorpaySuccess) {
     try {
-      const openSetup = !seat?.subscription;
       const result = await planService.verify(response);
       setPendingId(null);
       setSeat(result.seat);
       setNotice(result.message);
-      if (openSetup) router.push("/mess/setup");
+      if (!result.seat.mess) router.push("/mess/setup");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payment could not be confirmed.");
       setPendingId(null);

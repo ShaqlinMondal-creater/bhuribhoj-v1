@@ -23,11 +23,19 @@ export type PlanInput = {
 };
 
 export const planService = {
+  /** Public/marketing + president checkout — active plans only. */
   fetch() {
     return apiClient<{ data: Plan[] }>("/public/plans/fetch", {
       method: "POST",
       body: {},
       auth: false,
+    });
+  },
+  /** Admin plans screen — includes inactive. */
+  adminFetch() {
+    return apiClient<{ data: Plan[] }>("/admin/plans/fetch", {
+      method: "POST",
+      body: {},
     });
   },
   create(body: PlanInput) {
