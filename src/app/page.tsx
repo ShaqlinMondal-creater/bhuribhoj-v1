@@ -4,6 +4,7 @@ import { CtaBand } from "@/components/marketing/CtaBand";
 import { FaqList } from "@/components/marketing/FaqList";
 import { Hero } from "@/components/marketing/Hero";
 import { PlanPreview } from "@/components/marketing/PlanCards";
+import { MessFlow } from "@/components/marketing/MessFlow";
 import { MessSetup } from "@/components/marketing/MessSetup";
 import { Roles } from "@/components/marketing/Roles";
 import { Reveal } from "@/components/marketing/Reveal";
@@ -54,6 +55,7 @@ export default function HomePage() {
       <Hero />
       <TrustMarquee />
       <MessSetup />
+      <MessFlow />
       <Bento />
       <Roles />
       <PlanPreview />

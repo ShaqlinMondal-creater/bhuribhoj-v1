@@ -1,20 +1,26 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { MessFlow } from "@/components/marketing/MessFlow";
 
 export const metadata: Metadata = {
   title: "Features",
-  description: "Kitchen, ledger, and people: what a mess already keeps, written once in BhuriBhoj.",
+  description: "Meals, market duty, ledger, and roles — how BhuriBhoj runs a shared kitchen from open to month-end.",
   openGraph: {
     title: "Features · BhuriBhoj",
-    description: "Meals, market duty, deposits, dues, and a door for every role.",
+    description: "See how BhuriBhoj tracks meals, members, and money for messes and shared kitchens.",
   },
 };
 
 const groups = [
   {
     title: "Kitchen",
-    copy: "Lunch and dinner live on one daily meal. Guests, the menu, and the morning market sit beside it.",
-    points: ["Lunch and dinner, marked active, then taken", "Guest plates with a name and a price", "A menu for the day", "Market duty and the purchases"],
+    copy: "Lunch and dinner live on one daily meal. Guests, the menu, and shopping sit beside it.",
+    points: [
+      "Lunch and dinner, marked active, then taken",
+      "Guest plates with a name and a price",
+      "A menu for the day",
+      "Market duty and purchases",
+    ],
     preview: (
       <div className="space-y-3">
         <p className="text-xs text-[var(--muted)]">Today</p>
@@ -32,19 +38,38 @@ const groups = [
   {
     title: "Ledger",
     copy: "Deposits, spend, dues, and fines stay in one account so the month can close.",
-    points: ["Deposits against the mess fund", "Expenses by market, feast, and other spend", "Monthly dues for every seat", "Fines, paid or waived"],
+    points: [
+      "Deposits against the mess fund",
+      "Expenses by market, feast, and other spend",
+      "Monthly dues for every seat",
+      "Fines, paid or waived",
+    ],
     preview: (
       <div className="space-y-3 text-sm">
-        <div className="flex justify-between"><span className="text-[var(--muted)]">Deposits</span><span>₹12,400</span></div>
-        <div className="flex justify-between"><span className="text-[var(--muted)]">Expenses</span><span>₹8,150</span></div>
-        <div className="flex justify-between border-t border-[var(--border)] pt-3 font-semibold"><span>Balance</span><span className="text-[var(--accent)]">₹4,250</span></div>
+        <div className="flex justify-between">
+          <span className="text-[var(--muted)]">Deposits</span>
+          <span>₹12,400</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-[var(--muted)]">Expenses</span>
+          <span>₹8,150</span>
+        </div>
+        <div className="flex justify-between border-t border-[var(--border)] pt-3 font-semibold">
+          <span>Balance</span>
+          <span className="text-[var(--accent)]">₹4,250</span>
+        </div>
       </div>
     ),
   },
   {
     title: "People",
-    copy: "A president opens the house. Managers run the month. Members mark their meals. Admin watches the platform.",
-    points: ["A president holds the subscription", "Managers on duty for the month", "Members with a code and a room", "A platform admin over every mess"],
+    copy: "A president opens the kitchen. Managers run the month. Members mark meals. Admin watches the platform.",
+    points: [
+      "A president holds the subscription",
+      "Managers on duty for the month",
+      "Members with a code and a room",
+      "A platform admin over every mess",
+    ],
     preview: (
       <ul className="space-y-2 text-sm">
         {["President", "Manager", "Member"].map((role) => (
@@ -58,40 +83,20 @@ const groups = [
   },
 ];
 
-const steps = [
-  ["Name the house", "The president gives the mess a name. The system gives it a code."],
-  ["Pick a plan", "One month, a short term, or a year. One subscription covers that mess."],
-  ["Seat the people", "Managers for the month, then members, each with a room and a code."],
-  ["Open the month", "Meals, market, deposits, and dues start on the calendar the house already uses."],
-];
-
 export default function FeaturesPage() {
   return (
     <main className="marketing">
       <section className="m-wrap py-16 md:py-24">
-        <p className="text-sm font-medium text-[var(--accent)]">The house</p>
+        <p className="text-sm font-medium text-[var(--accent)]">Features</p>
         <h1 className="mt-3 max-w-3xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
-          What the mess already keeps, written once.
+          Everything a shared kitchen needs to run and close the month.
         </h1>
         <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--muted)]">
-          A wall list for plates and a notebook for money is how most messes still run. BhuriBhoj keeps both jobs, and keeps them apart by role.
+          Meals, shopping, money, and members — with clear roles for president, managers, and members. Built for messes and shared kitchens in India and beyond.
         </p>
       </section>
 
-      <section className="border-y border-[var(--border)] bg-[var(--surface)]">
-        <div className="m-wrap py-16">
-          <h2 className="text-2xl font-semibold tracking-tight">How a house is opened</h2>
-          <ol className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {steps.map(([title, copy], index) => (
-              <li key={title} className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] p-5">
-                <p className="text-sm font-semibold text-[var(--accent)]">{String(index + 1).padStart(2, "0")}</p>
-                <h3 className="mt-3 text-lg font-semibold">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{copy}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
+      <MessFlow />
 
       <section className="m-wrap space-y-16 py-16 md:py-24">
         {groups.map((group, index) => (
