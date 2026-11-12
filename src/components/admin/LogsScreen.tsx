@@ -16,6 +16,7 @@ const KNOWN_ACTIONS = [
   "config.save",
   "contact.reply",
   "contact.send",
+  "contact.start",
   "contact.status",
   "contact.update",
   "coupon.create",

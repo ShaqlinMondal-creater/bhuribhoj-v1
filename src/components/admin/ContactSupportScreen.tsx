@@ -25,6 +25,7 @@ export function ContactSupportScreen() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [active, setActive] = useState<ContactInquiry | null>(null);
+  const [composingNew, setComposingNew] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -66,11 +67,23 @@ export function ContactSupportScreen() {
 
   return (
     <section className="space-y-5">
-      <PageHeader
-        eyebrow="Action"
-        title="Contact support"
-        description="Public contact form messages. Open a thread in the bottom-right to update details and reply by email."
-      />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <PageHeader
+          eyebrow="Action"
+          title="Contact support"
+          description="Public contact form messages. Open a thread in the bottom-right to update details and reply by email."
+        />
+        <button
+          type="button"
+          onClick={() => {
+            setActive(null);
+            setComposingNew(true);
+          }}
+          className="rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900"
+        >
+          New chat
+        </button>
+      </div>
       <Flash message={notice} />
       {error ? <Notice>{error}</Notice> : null}
       <FilterBar>
@@ -130,19 +143,30 @@ export function ContactSupportScreen() {
             </td>
             <td className="px-4 py-3">
               <div className="flex justify-end">
-                <IconButton label="Open chat" icon="mail" onClick={() => setActive(row)} />
+                <IconButton
+                  label="Open chat"
+                  icon="mail"
+                  onClick={() => {
+                    setComposingNew(false);
+                    setActive(row);
+                  }}
+                />
               </div>
             </td>
           </tr>
         ))}
       </TableShell>
 
-      {active ? (
+      {composingNew || active ? (
         <SupportComposePanel
-          key={active.id}
+          key={active ? `inquiry-${active.id}` : "new-chat"}
           inquiry={active}
-          onClose={() => setActive(null)}
+          onClose={() => {
+            setActive(null);
+            setComposingNew(false);
+          }}
           onUpdated={(next, message) => {
+            setComposingNew(false);
             setActive(next);
             setNotice(message);
             setError(null);
@@ -164,27 +188,30 @@ function SupportComposePanel({
   onUpdated,
   onFailed,
 }: {
-  inquiry: ContactInquiry;
+  inquiry: ContactInquiry | null;
   onClose: () => void;
   onUpdated: (row: ContactInquiry, message: string) => void;
   onFailed: (message: string) => void;
 }) {
-  const [name, setName] = useState(inquiry.name);
-  const [email, setEmail] = useState(inquiry.email ?? "");
-  const [phone, setPhone] = useState(inquiry.phone ?? "");
-  const [mess, setMess] = useState(inquiry.mess);
-  const [members, setMembers] = useState(String(inquiry.members));
+  const isNew = inquiry == null;
+  const [name, setName] = useState(inquiry?.name ?? "");
+  const [email, setEmail] = useState(inquiry?.email ?? "");
+  const [phone, setPhone] = useState(inquiry?.phone ?? "");
+  const [mess, setMess] = useState(inquiry?.mess ?? "");
+  const [members, setMembers] = useState(String(inquiry?.members ?? 1));
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [minimized, setMinimized] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(isNew);
 
   const detailsDirty =
-    name.trim() !== inquiry.name ||
-    email.trim() !== (inquiry.email ?? "") ||
-    phone.trim() !== (inquiry.phone ?? "") ||
-    mess.trim() !== inquiry.mess ||
-    Number(members) !== inquiry.members;
+    !!inquiry &&
+    (name.trim() !== inquiry.name ||
+      email.trim() !== (inquiry.email ?? "") ||
+      phone.trim() !== (inquiry.phone ?? "") ||
+      mess.trim() !== inquiry.mess ||
+      Number(members) !== inquiry.members);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -195,6 +222,7 @@ function SupportComposePanel({
   }, [onClose]);
 
   async function saveDetails() {
+    if (!inquiry) return;
     const memberCount = Number(members);
     if (!name.trim() || !mess.trim() || !Number.isFinite(memberCount) || memberCount < 1) {
       setLocalError("Name, mess, and members are required.");
@@ -229,19 +257,38 @@ function SupportComposePanel({
     event.preventDefault();
     const message = draft.trim();
     if (!message) return;
-    if (email.trim() && !email.includes("@")) {
+    if (!name.trim()) {
+      setLocalError("Add a name.");
+      return;
+    }
+    if (!email.trim() || !email.includes("@")) {
       setLocalError("Enter a valid email in To.");
       return;
     }
     setPending(true);
     setLocalError(null);
     try {
+      if (isNew) {
+        const memberCount = Number(members);
+        const result = await contactSupportService.start({
+          name: name.trim(),
+          email: email.trim(),
+          phone: phone.trim() || null,
+          mess: mess.trim() || null,
+          members: Number.isFinite(memberCount) && memberCount > 0 ? memberCount : 1,
+          message,
+        });
+        setDraft("");
+        onUpdated(result.data, result.message);
+        return;
+      }
+
       if (detailsDirty) {
         const memberCount = Number(members);
         await contactSupportService.update({
           id: inquiry.id,
           name: name.trim(),
-          mess: mess.trim(),
+          mess: mess.trim() || inquiry.mess,
           members: Number.isFinite(memberCount) && memberCount > 0 ? memberCount : inquiry.members,
           phone: phone.trim() || null,
           email: email.trim() || null,
@@ -265,6 +312,7 @@ function SupportComposePanel({
   }
 
   async function setStatus(status: ContactInquiry["status"]) {
+    if (!inquiry) return;
     setPending(true);
     setLocalError(null);
     try {
@@ -285,17 +333,19 @@ function SupportComposePanel({
         role="dialog"
         aria-modal="false"
         aria-label="Contact support compose"
-        className={`pointer-events-auto flex w-full flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-2xl shadow-stone-900/20 transition-[height] md:w-[26rem] ${
-          minimized ? "h-12" : "h-[min(36rem,calc(100dvh-1.5rem))]"
+        className={`pointer-events-auto flex w-full flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-2xl shadow-stone-900/20 transition-[height] md:w-[30rem] ${
+          minimized ? "h-12" : "h-[min(38rem,calc(100dvh-1.5rem))]"
         }`}
       >
         <header className="flex shrink-0 items-center justify-between gap-2 bg-stone-950 px-3 py-2.5 text-white">
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">Reply · {name || "Visitor"}</p>
+            <p className="truncate text-sm font-semibold">
+              {isNew ? "New chat" : "Reply"} · {name || "Visitor"}
+            </p>
             <p className="truncate text-[11px] text-stone-400">{email || phone || "No recipient yet"}</p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            <StatusPill status={inquiry.status} dark />
+            {inquiry ? <StatusPill status={inquiry.status} dark /> : null}
             <button
               type="button"
               onClick={() => setMinimized((value) => !value)}
@@ -317,57 +367,87 @@ function SupportComposePanel({
 
         {!minimized ? (
           <>
-            <div className="shrink-0 space-y-2 border-b border-stone-100 px-3 py-3">
-              <FieldRow label="To">
-                <input
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="visitor@gmail.com"
-                  className={composeField}
-                />
-              </FieldRow>
-              <FieldRow label="Name">
-                <input value={name} onChange={(event) => setName(event.target.value)} className={composeField} />
-              </FieldRow>
-              <FieldRow label="Phone">
-                <input value={phone} onChange={(event) => setPhone(event.target.value)} className={composeField} />
-              </FieldRow>
-              <FieldRow label="Mess">
-                <input value={mess} onChange={(event) => setMess(event.target.value)} className={composeField} />
-              </FieldRow>
-              <FieldRow label="Members">
-                <input
-                  type="number"
-                  min={1}
-                  value={members}
-                  onChange={(event) => setMembers(event.target.value)}
-                  className={composeField}
-                />
-              </FieldRow>
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  disabled={!detailsDirty || pending}
-                  onClick={() => void saveDetails()}
-                  className="rounded-lg border border-stone-200 px-2.5 py-1 text-[11px] font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-40"
-                >
-                  Save details
-                </button>
-              </div>
+            <div className="shrink-0 border-b border-stone-100">
+              <button
+                type="button"
+                onClick={() => setDetailsOpen((value) => !value)}
+                className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-stone-50"
+                aria-expanded={detailsOpen}
+              >
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400">Visitor details</p>
+                  {!detailsOpen ? (
+                    <p className="mt-0.5 truncate text-xs text-stone-600">
+                      {email || "No email"}
+                      {name ? ` · ${name}` : ""}
+                      {phone ? ` · ${phone}` : ""}
+                    </p>
+                  ) : null}
+                </div>
+                <span className="shrink-0 text-xs font-semibold text-stone-500">{detailsOpen ? "Hide" : "Edit"}</span>
+              </button>
+              {detailsOpen ? (
+                <div className="space-y-2 px-3 pb-3">
+                  <FieldRow label="To">
+                    <input
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      placeholder="visitor@gmail.com"
+                      className={composeField}
+                    />
+                  </FieldRow>
+                  <FieldRow label="Name">
+                    <input value={name} onChange={(event) => setName(event.target.value)} className={composeField} />
+                  </FieldRow>
+                  <FieldRow label="Phone">
+                    <input value={phone} onChange={(event) => setPhone(event.target.value)} className={composeField} />
+                  </FieldRow>
+                  <FieldRow label="Mess">
+                    <input value={mess} onChange={(event) => setMess(event.target.value)} className={composeField} />
+                  </FieldRow>
+                  <FieldRow label="Members">
+                    <input
+                      type="number"
+                      min={1}
+                      value={members}
+                      onChange={(event) => setMembers(event.target.value)}
+                      className={composeField}
+                    />
+                  </FieldRow>
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      disabled={!detailsDirty || pending}
+                      onClick={() => void saveDetails()}
+                      className="rounded-lg border border-stone-200 px-2.5 py-1 text-[11px] font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-40"
+                    >
+                      Save details
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto bg-stone-50 px-3 py-3">
-              <ChatBubble side="visitor" title={inquiry.name} body={inquiry.message} when={inquiry.created_at} />
-              {inquiry.replies.map((reply) => (
-                <ChatBubble
-                  key={reply.id}
-                  side="support"
-                  title={reply.sender?.name ?? "Support"}
-                  body={reply.body}
-                  when={reply.created_at}
-                  meta={reply.emailed_to ? `Emailed to ${reply.emailed_to}` : undefined}
-                />
-              ))}
+              {isNew ? (
+                <p className="rounded-xl border border-dashed border-stone-300 bg-white px-3 py-4 text-center text-xs text-stone-500">
+                  Fill To + Name, write a message, then Send to email someone new.
+                </p>
+              ) : (
+                <>
+                  <ChatBubble side="visitor" title={inquiry.name} body={inquiry.message} when={inquiry.created_at} />
+                  {inquiry.replies.map((reply) => (
+                    <ChatBubble
+                      key={reply.id}
+                      side="support"
+                      title={reply.sender?.name ?? "Support"}
+                      body={reply.body}
+                      when={reply.created_at}
+                      meta={reply.emailed_to ? `Emailed to ${reply.emailed_to}` : undefined}
+                    />
+                  ))}
+                </>
+              )}
             </div>
 
             <form onSubmit={sendReply} className="shrink-0 border-t border-stone-100 bg-white px-3 py-3">
@@ -377,21 +457,22 @@ function SupportComposePanel({
                 onChange={(event) => setDraft(event.target.value)}
                 rows={3}
                 disabled={pending}
-                placeholder="Write your reply…"
+                placeholder={isNew ? "Write the first email…" : "Write your reply…"}
                 className="w-full resize-none rounded-xl border border-stone-200 px-3 py-2 text-sm text-stone-900 outline-none focus:border-[var(--accent)]"
               />
               <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex gap-1.5">
-                  {inquiry.status !== "closed" ? (
+                  {inquiry && inquiry.status !== "closed" ? (
                     <button
                       type="button"
                       disabled={pending}
                       onClick={() => void setStatus("closed")}
-                      className="rounded-lg border border-stone-200 px-2.5 py-1.5 text-[11px] font-semibold text-stone-600 hover:bg-stone-50 disabled:opacity-50"
+                      className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-[11px] font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
                     >
                       Mark closed
                     </button>
-                  ) : (
+                  ) : null}
+                  {inquiry && inquiry.status === "closed" ? (
                     <button
                       type="button"
                       disabled={pending}
@@ -400,7 +481,7 @@ function SupportComposePanel({
                     >
                       Reopen
                     </button>
-                  )}
+                  ) : null}
                 </div>
                 <button
                   type="submit"
