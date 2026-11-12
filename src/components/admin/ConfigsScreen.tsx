@@ -8,6 +8,7 @@ import { FilterBar, FilterSearch, MaterialScope } from "@/components/ui/FilterBa
 import { IconButton } from "@/components/ui/IconButton";
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { parseLegalContent } from "@/lib/legalContent";
 import { configService, type ConfigRow, type ConfigWrite } from "@/services/configService";
 import TextField from "@mui/material/TextField";
 
@@ -186,6 +187,9 @@ function ConfigForm({
     config_value: row?.config_value ?? "",
     note: row?.note ?? "",
   });
+  const key = form.config_key.trim().toLowerCase();
+  const legal = key.startsWith("legal_");
+  const preview = legal ? parseLegalContent(form.config_value ?? "") : [];
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -205,26 +209,53 @@ function ConfigForm({
   }
 
   return (
-    <Dialog title={title} onClose={onClose}>
+    <Dialog title={title} onClose={onClose} size={legal ? "xl" : "lg"}>
       <MaterialScope>
-        <form onSubmit={onSubmit} className="grid gap-3">
+        <form onSubmit={onSubmit} className="grid gap-4">
           <TextField
             required
             fullWidth
             label="Key"
             value={form.config_key}
             disabled={Boolean(row)}
-            helperText="Letters, numbers, dots, dashes, underscores"
+            helperText="Letters, numbers, dots, dashes, underscores (saved lowercase)"
             onChange={(event) => setForm({ ...form, config_key: event.target.value })}
           />
           <TextField
             fullWidth
             multiline
-            minRows={3}
+            minRows={legal ? 12 : 4}
             label="Value"
             value={form.config_value ?? ""}
+            helperText={
+              legal
+                ? "Write # Heading on its own line, then the paragraph. Blank line before the next heading. The preview below is how the public page will look."
+                : undefined
+            }
             onChange={(event) => setForm({ ...form, config_value: event.target.value })}
           />
+          {legal ? (
+            <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">Page preview</p>
+              <div className="mt-3 space-y-4">
+                {preview.length === 0 ? (
+                  <p className="text-sm text-stone-500">Add a # heading and paragraph to preview.</p>
+                ) : (
+                  preview.map((block, index) =>
+                    block.type === "heading" ? (
+                      <h3 key={`${block.type}-${index}`} className="text-base font-semibold text-stone-950">
+                        {block.text}
+                      </h3>
+                    ) : (
+                      <p key={`${block.type}-${index}`} className="text-sm leading-6 text-stone-600">
+                        {block.text}
+                      </p>
+                    ),
+                  )
+                )}
+              </div>
+            </div>
+          ) : null}
           <TextField fullWidth label="Note" value={form.note ?? ""} onChange={(event) => setForm({ ...form, note: event.target.value })} />
           <button type="submit" disabled={pending} className="mt-1 w-full rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-ink)] disabled:opacity-60">
             {pending ? "Saving…" : "Save"}
