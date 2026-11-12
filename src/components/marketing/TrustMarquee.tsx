@@ -1,9 +1,10 @@
 const tags = [
-  "Built for hostels",
-  "Paying-guest kitchens",
-  "College dining halls",
-  "One pot, one ledger",
-  "Lunch and dinner",
+  "Hostels & PGs",
+  "Student housing",
+  "Shared kitchens",
+  "Boarding houses",
+  "Community dining",
+  "India & worldwide",
 ];
 
 export function TrustMarquee() {

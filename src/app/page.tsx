@@ -11,21 +11,41 @@ import { TrustMarquee } from "@/components/marketing/TrustMarquee";
 
 export const metadata: Metadata = {
   title: {
-    absolute: "BhuriBhoj · the mess house",
+    absolute: "BhuriBhoj — mess & shared kitchen management",
   },
-  description: "BhuriBhoj keeps meals, money, and members for a shared mess in one house.",
+  description:
+    "BhuriBhoj helps hostels, PGs, and shared kitchens track meals, members, and money — across India and worldwide.",
   openGraph: {
-    title: "BhuriBhoj · the mess house",
-    description: "Meals at noon and night. Money at the end of the month. A seat for every role.",
+    title: "BhuriBhoj — mess & shared kitchen management",
+    description: "Meals, members, and money in one place. Built for shared kitchens in India and beyond.",
   },
 };
 
 const questions = [
-  { q: "Who is this for?", a: "A hostel kitchen, a paying-guest mess, or a college dining hall that already shares one pot and one fund." },
-  { q: "Does every person see the same screen?", a: "No. Admin, president, manager, and member each enter their own area." },
-  { q: "What happens at month end?", a: "Dues, deposits, expenses, and fines sit in one ledger so the house can close the month." },
-  { q: "Can a guest eat?", a: "Yes. A guest meal is its own record, with a name and a price set by the house." },
-  { q: "How long is a subscription?", a: "A mess picks a plan for one month, a short term, or a full year. The president opens it." },
+  {
+    q: "Who is this for?",
+    a: "Hostels, paying-guest houses, student housing, boarding kitchens, and any group that cooks and eats together — in India or abroad.",
+  },
+  {
+    q: "What does “mess” mean here?",
+    a: "In India, a mess is a shared kitchen. BhuriBhoj works the same idea for shared kitchens and community dining anywhere.",
+  },
+  {
+    q: "Does everyone see the same screen?",
+    a: "No. Platform admin, president, manager, and member each get their own area with the right permissions.",
+  },
+  {
+    q: "What happens at month end?",
+    a: "Deposits, expenses, dues, and fines sit in one ledger so you can close the month cleanly.",
+  },
+  {
+    q: "Can guests eat?",
+    a: "Yes. Guest meals are their own records, with a name and a price your kitchen sets.",
+  },
+  {
+    q: "How long is a subscription?",
+    a: "Pick a plan for one month, a short term, or a full year. The president opens it for one kitchen.",
+  },
 ];
 
 export default function HomePage() {
@@ -41,7 +61,7 @@ export default function HomePage() {
         <div className="m-wrap py-16 md:py-24">
           <Reveal>
             <p className="text-sm font-medium text-[var(--accent)]">FAQ</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Questions the house asks first</h2>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Common questions</h2>
           </Reveal>
           <div className="mt-8">
             <FaqList items={questions} />

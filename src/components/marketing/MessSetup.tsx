@@ -5,32 +5,32 @@ import { photos } from "@/components/marketing/photos";
 const shots: { src: StaticImageData; caption: string; alt: string; className: string }[] = [
   {
     src: photos.aboutKitchen,
-    caption: "The kitchen",
-    alt: "A working kitchen with pots ready for the next mess meal",
+    caption: "Kitchen",
+    alt: "A working shared kitchen ready for the next meal",
     className: "col-span-2 md:row-span-2",
   },
   {
     src: photos.fish,
-    caption: "The catch",
-    alt: "Fish curry with potato and green chili in a white bowl",
+    caption: "Meals",
+    alt: "A cooked meal served in a bowl",
     className: "",
   },
   {
     src: photos.market,
-    caption: "Morning market",
-    alt: "A market stall piled with vegetables, fruit, and a hanging scale",
+    caption: "Shopping",
+    alt: "Fresh produce at a market stall",
     className: "",
   },
   {
     src: photos.spices,
-    caption: "The store",
-    alt: "Chili, turmeric, cumin, and other dry spices laid out for the kitchen",
+    caption: "Stores",
+    alt: "Spices and dry goods laid out for cooking",
     className: "",
   },
   {
     src: photos.pot,
-    caption: "Dry dal",
-    alt: "Wooden bowls of uncooked lentils, peas, and grains",
+    caption: "Provisions",
+    alt: "Lentils, peas, and grains ready for the kitchen",
     className: "",
   },
 ];
@@ -40,12 +40,12 @@ export function MessSetup() {
     <section className="marketing">
       <div className="m-wrap py-16 md:py-24">
         <Reveal>
-          <p className="text-sm font-medium text-[var(--accent)]">A mess, set up</p>
+          <p className="text-sm font-medium text-[var(--accent)]">The product</p>
           <h2 className="mt-3 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
-            What the house already keeps on the table.
+            Built for how a shared kitchen already runs.
           </h2>
           <p className="mt-4 max-w-xl text-base leading-7 text-[var(--muted)]">
-            Dal in the store, vegetables from the morning market, and a plate for lunch. The books come after the food.
+            In India a “mess” is a kitchen people share — shopping, cooking, and eating together. BhuriBhoj keeps that daily work and the monthly accounts in one system, wherever your house is.
           </p>
         </Reveal>
 
@@ -55,7 +55,7 @@ export function MessSetup() {
               <figure className="flex h-full flex-col">
                 <div
                   className={`m-photo relative overflow-hidden ${
-                    shot.caption === "The kitchen"
+                    shot.caption === "Kitchen"
                       ? "aspect-[16/10] min-h-[14rem] md:h-full md:min-h-[28rem] md:aspect-auto"
                       : "aspect-[4/3]"
                   }`}
@@ -65,7 +65,7 @@ export function MessSetup() {
                     alt={shot.alt}
                     fill
                     sizes={
-                      shot.caption === "The kitchen"
+                      shot.caption === "Kitchen"
                         ? "(max-width: 768px) 100vw, 560px"
                         : "(max-width: 768px) 50vw, 280px"
                     }

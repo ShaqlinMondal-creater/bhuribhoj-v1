@@ -3,10 +3,12 @@
 import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { usePublicSite } from "@/hooks/usePublicSite";
 import { photos } from "@/components/marketing/photos";
 
 export function Hero() {
   const reduced = useReducedMotion();
+  const { site } = usePublicSite();
 
   return (
     <section className="marketing relative isolate min-h-[100dvh] overflow-hidden">
@@ -18,7 +20,7 @@ export function Hero() {
       >
         <Image
           src={photos.thali}
-          alt="A steel thali with roti, sabzi, and a home mess meal"
+          alt="A shared meal served on a steel plate"
           fill
           priority
           sizes="100vw"
@@ -47,28 +49,28 @@ export function Hero() {
           }}
         >
           <motion.div variants={fade}>
-            <p className="bn text-[clamp(2.75rem,8vw,5.25rem)] font-semibold leading-[0.92] tracking-tight text-[var(--accent)]">
-              ভুরিভোজ
+            <p className="font-display text-[clamp(2.5rem,7vw,4.75rem)] font-semibold leading-[0.95] tracking-tight text-white">
+              {site.siteName || "BhuriBhoj"}
             </p>
-            <p className="font-display mt-3 text-[clamp(1.75rem,4vw,2.75rem)] font-semibold leading-none tracking-tight text-white">
-              BhuriBhoj
-            </p>
+            {site.siteNameBn ? (
+              <p className="bn mt-2 text-lg font-medium text-[var(--accent)] sm:text-xl">{site.siteNameBn}</p>
+            ) : null}
           </motion.div>
 
           <motion.h1
-            className="mt-7 max-w-md text-[1.15rem] font-medium leading-relaxed text-white/88 sm:text-xl sm:leading-relaxed"
+            className="mt-6 max-w-lg text-[1.35rem] font-semibold leading-snug text-white sm:text-2xl sm:leading-snug"
             variants={fade}
           >
-            The kitchen, the ledger, and the people. One house.
+            Mess and shared-kitchen management — for India and beyond.
           </motion.h1>
 
-          <motion.p className="mt-4 max-w-sm text-[0.95rem] leading-7 text-white/65" variants={fade}>
-            Meals at noon and night. Money at the end of the month. A seat for every role.
+          <motion.p className="mt-4 max-w-md text-[0.95rem] leading-7 text-white/70" variants={fade}>
+            Track meals, members, and money in one place. Built for hostels, PGs, student houses, and any kitchen that cooks together.
           </motion.p>
 
           <motion.div className="mt-9 flex flex-wrap items-center gap-x-5 gap-y-3" variants={fade}>
             <Link href="/contact" className="m-btn m-btn-primary">
-              Start your mess
+              Get started
             </Link>
             <Link
               href="/features"

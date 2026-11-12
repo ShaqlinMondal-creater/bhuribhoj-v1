@@ -2,10 +2,10 @@ import { Crown, Shield, UserRound, Utensils } from "lucide-react";
 import { Reveal } from "@/components/marketing/Reveal";
 
 const roles = [
-  { title: "Platform admin", copy: "Sees every mess, every plan, and every invitation. Does not cook.", icon: Shield },
-  { title: "President", copy: "Opens the house, buys the plan, and invites the first managers.", icon: Crown },
-  { title: "Manager", copy: "Runs the month on duty: meals, market, money, and members.", icon: Utensils },
-  { title: "Member", copy: "Marks meals, sees the house they belong to, and pays what is due.", icon: UserRound },
+  { title: "Platform admin", copy: "Manages every kitchen on the platform, plans, and access. Not day-to-day cooking.", icon: Shield },
+  { title: "President", copy: "Opens the kitchen, chooses a plan, and invites managers.", icon: Crown },
+  { title: "Manager", copy: "Runs the month: meals, shopping, money, and members.", icon: Utensils },
+  { title: "Member", copy: "Marks meals, sees their house, and pays what is due.", icon: UserRound },
 ];
 
 export function Roles() {
@@ -13,8 +13,13 @@ export function Roles() {
     <section className="marketing">
       <div className="m-wrap py-16 md:py-24">
         <Reveal>
-          <p className="text-sm font-medium text-[var(--accent)]">Who sits where</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Four doors. No shared screen.</h2>
+          <p className="text-sm font-medium text-[var(--accent)]">Roles</p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+            Four roles. Clear permissions.
+          </h2>
+          <p className="mt-4 max-w-xl text-base leading-7 text-[var(--muted)]">
+            Everyone enters their own area. No shared admin screen for the whole house.
+          </p>
         </Reveal>
         <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
           {roles.map((role, index) => {

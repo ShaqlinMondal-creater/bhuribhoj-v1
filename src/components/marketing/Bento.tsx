@@ -11,14 +11,14 @@ import {
 import { Reveal } from "@/components/marketing/Reveal";
 
 const books = [
-  { title: "Daily meals", copy: "Lunch and dinner, active and taken, for each member.", icon: UtensilsCrossed },
-  { title: "Guest meals", copy: "A visitor’s plate, priced the way the house agreed.", icon: UserPlus },
-  { title: "Market duty", copy: "Who shops, and what they bought that morning.", icon: ShoppingBasket },
-  { title: "Menus", copy: "What the kitchen is cooking, written for the day.", icon: NotebookPen },
-  { title: "Deposits", copy: "Money a member puts into the mess fund.", icon: Wallet },
-  { title: "Expenses", copy: "Market, feast, and other spend, with a note.", icon: Receipt },
-  { title: "Monthly dues", copy: "The share each seat owes when the month closes.", icon: CalendarClock },
-  { title: "Fines", copy: "A broken rule, an amount, and whether it was paid or waived.", icon: Scale },
+  { title: "Daily meals", copy: "Mark lunch and dinner for every member — who eats, who skips.", icon: UtensilsCrossed },
+  { title: "Guest meals", copy: "Record visitor plates with a price your kitchen sets.", icon: UserPlus },
+  { title: "Market duty", copy: "Who shops, and what was bought for the day.", icon: ShoppingBasket },
+  { title: "Menus", copy: "Publish what the kitchen is cooking.", icon: NotebookPen },
+  { title: "Deposits", copy: "Track money members put into the shared fund.", icon: Wallet },
+  { title: "Expenses", copy: "Log shopping and other spend with clear notes.", icon: Receipt },
+  { title: "Monthly dues", copy: "Close the month and show each seat what they owe.", icon: CalendarClock },
+  { title: "Fines", copy: "Record rule breaks, amounts, and whether they were paid or waived.", icon: Scale },
 ];
 
 export function Bento() {
@@ -26,10 +26,12 @@ export function Bento() {
     <section className="marketing bg-[var(--surface)]">
       <div className="m-wrap py-16 md:py-24">
         <Reveal>
-          <p className="text-sm font-medium text-[var(--accent)]">What is written down</p>
-          <h2 className="mt-3 max-w-xl text-3xl font-semibold tracking-tight sm:text-4xl">Eight books. One house.</h2>
+          <p className="text-sm font-medium text-[var(--accent)]">Features</p>
+          <h2 className="mt-3 max-w-xl text-3xl font-semibold tracking-tight sm:text-4xl">
+            Eight modules. One kitchen system.
+          </h2>
           <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--muted)]">
-            These are the records a president and a manager already keep. Each one has a place, instead of a fresh notebook every month.
+            Everything a president and manager already track — meals, shopping, money, and members — without a new notebook every month.
           </p>
         </Reveal>
         <div className="mt-12 grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">

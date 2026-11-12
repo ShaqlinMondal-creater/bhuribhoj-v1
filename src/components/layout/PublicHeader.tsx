@@ -108,7 +108,7 @@ export function PublicHeader() {
             Sign in
           </Link>
           <Link href="/contact" className="m-btn m-btn-primary px-4 py-2">
-            Start your mess
+            Get started
           </Link>
         </div>
 
@@ -146,7 +146,7 @@ export function PublicHeader() {
               Sign in
             </Link>
             <Link href="/contact" className="m-btn m-btn-primary">
-              Start your mess
+              Get started
             </Link>
           </motion.nav>
         ) : null}

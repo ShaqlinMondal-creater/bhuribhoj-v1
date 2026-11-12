@@ -19,7 +19,7 @@ const defaults: PublicSite = {
   contactEmail: null,
   siteName: "BhuriBhoj",
   siteNameBn: null,
-  siteBlurb: "A private ledger and kitchen book for the mess. Meals, money, and members, held in one house.",
+  siteBlurb: "Mess and shared-kitchen management. Meals, members, and money — in one place.",
   siteCopyright: "© 2026 BhuriBhoj",
   legalPrivacy: "Privacy. A mess ledger is visible to the people of that house, and to the platform admin who keeps the subscriptions.",
   legalTerms: "Terms. One subscription covers one mess, for a month, a semester, or a year. The president opens it.",

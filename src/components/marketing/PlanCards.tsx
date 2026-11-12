@@ -7,11 +7,11 @@ import { planService } from "@/services/planService";
 import type { Plan } from "@/types/auth";
 
 export const planFeatures = [
-  "Lunch and dinner for every member",
-  "Market duty and the day’s purchases",
+  "Lunch and dinner tracking for every member",
+  "Shopping duty and daily purchases",
   "Deposits, expenses, dues, and fines",
-  "Guest plates, priced by the house",
-  "President, managers, and members",
+  "Guest meals with your own pricing",
+  "Roles for president, managers, and members",
 ];
 
 export function planLabel(plan: Plan) {
@@ -65,7 +65,7 @@ export function PlanGrid({
               ))}
             </ul>
             <Link href="/contact" className={`m-btn mt-8 ${active ? "m-btn-primary" : "m-btn-ghost"}`}>
-              Start your mess
+              Get started
             </Link>
           </article>
         );
@@ -82,9 +82,9 @@ export function PlanPreview() {
     <section className="marketing">
       <div className="m-wrap py-16 md:py-24">
         <p className="text-sm font-medium text-[var(--accent)]">Plans</p>
-        <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">One mess. One subscription.</h2>
+        <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">One kitchen. One subscription.</h2>
         <p className="mt-4 max-w-xl text-base leading-7 text-[var(--muted)]">
-          A month, a semester, or a full year. The president opens the house, then managers and members take their seats.
+          Choose a month, a short term, or a full year. Your president opens the kitchen; managers and members join their roles.
         </p>
         {error ? (
           <p className="mt-6 text-sm text-[var(--muted)]">Plans are unavailable right now. Try again in a moment.</p>
