@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMessUser } from "@/components/auth/MessSession";
 import { rowClass, useClientPage } from "@/components/ui/DataTable";
 import { DetailList } from "@/components/ui/DetailList";
@@ -11,6 +11,7 @@ import { IconButton } from "@/components/ui/IconButton";
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Icon } from "@/components/icons/Icon";
+import { downloadExcelCsv, downloadPdfTable } from "@/lib/exportTable";
 import { longKolkataDate } from "@/lib/format";
 import { notifyTodayMenuSaved } from "@/lib/todayMenuEvents";
 import { mealInfo, mealOrder, type MealSlot } from "@/services/mealService";
@@ -37,6 +38,11 @@ export function MenusScreen({ messId = null, hideHeader = false }: { messId?: nu
   const [editing, setEditing] = useState<MenuRow | null>(null);
   const [viewing, setViewing] = useState<MenuRow | null>(null);
   const [removing, setRemoving] = useState<MenuRow | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(() => new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkDelete, setBulkDelete] = useState(false);
+  const [bulkPending, setBulkPending] = useState(false);
+  const bulkMenuRef = useRef<HTMLDivElement>(null);
 
   const from = isDmy(fromDate) ? fromDate : "";
   const to = isDmy(toDate) ? toDate : "";
@@ -72,6 +78,7 @@ export function MenusScreen({ messId = null, hideHeader = false }: { messId?: nu
       .then((page) => {
         if (cancelled) return;
         setRows(page.data ?? []);
+        setSelected(new Set());
         setError(null);
       })
       .catch((err: unknown) => {
@@ -87,6 +94,81 @@ export function MenusScreen({ messId = null, hideHeader = false }: { messId?: nu
 
   const dayGroups = groupMenusByDay(rows);
   const table = useClientPage(dayGroups);
+  const pageIds = useMemo(
+    () => table.page.flatMap((day) => day.rows.map((row) => row.id)),
+    [table.page],
+  );
+  const selectedOnPage = pageIds.filter((id) => selected.has(id));
+  const allPageSelected = pageIds.length > 0 && selectedOnPage.length === pageIds.length;
+  const somePageSelected = selectedOnPage.length > 0 && !allPageSelected;
+  const selectedRows = useMemo(() => rows.filter((row) => selected.has(row.id)), [rows, selected]);
+
+  function toggleOne(id: number) {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function togglePage() {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (allPageSelected) {
+        for (const id of pageIds) next.delete(id);
+      } else {
+        for (const id of pageIds) next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function exportSelected(kind: "excel" | "pdf") {
+    if (selectedRows.length === 0) return;
+    const headers = ["Date", "Meal", "Dishes", "Saved by"];
+    const data = selectedRows.map((row) => [
+      longKolkataDate(row.menu_date),
+      mealInfo(row.meal_type).label,
+      row.dishes,
+      row.decider?.name || "",
+    ]);
+    try {
+      if (kind === "excel") {
+        downloadExcelCsv(`bhuribhoj-meals-${selectedRows.length}`, headers, data);
+        setNotice(`Exported ${selectedRows.length} meal${selectedRows.length === 1 ? "" : "s"} to Excel.`);
+      } else {
+        downloadPdfTable("BhuriBhoj meals", headers, data);
+        setNotice(`Opened PDF print view for ${selectedRows.length} meal${selectedRows.length === 1 ? "" : "s"}.`);
+      }
+      setError(null);
+      setBulkOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not export meals.");
+      setNotice(null);
+      setBulkOpen(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!bulkOpen) return;
+    function onPointer(event: MouseEvent) {
+      if (!bulkMenuRef.current?.contains(event.target as Node)) setBulkOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setBulkOpen(false);
+    }
+    document.addEventListener("mousedown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [bulkOpen]);
+
+  useEffect(() => {
+    if (selected.size === 0) setBulkOpen(false);
+  }, [selected.size]);
 
   if (!user) return <div className="h-40 animate-pulse rounded-2xl bg-white" />;
   if (needsMess && !messId) {
@@ -97,15 +179,80 @@ export function MenusScreen({ messId = null, hideHeader = false }: { messId?: nu
     <section className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         {hideHeader ? <div /> : <PageHeader eyebrow="Mess Details" title="Meals" description="Menus grouped by day for this mess." />}
-        {canSave ? (
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            className="rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900"
-          >
-            Add menu
-          </button>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative" ref={bulkMenuRef}>
+            <button
+              type="button"
+              disabled={selected.size === 0 || bulkPending}
+              onClick={() => setBulkOpen((open) => !open)}
+              aria-haspopup="menu"
+              aria-expanded={bulkOpen}
+              className="rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm font-semibold text-stone-800 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              Bulk actions{selected.size > 0 ? ` (${selected.size})` : ""}
+            </button>
+            {bulkOpen && selected.size > 0 ? (
+              <div
+                role="menu"
+                className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-xl border border-stone-200 bg-white py-1 shadow-lg shadow-stone-900/10"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={bulkPending}
+                  onClick={() => exportSelected("excel")}
+                  className="block w-full px-3.5 py-2 text-left text-sm font-medium text-stone-800 hover:bg-stone-50 disabled:opacity-50"
+                >
+                  Export Excel
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={bulkPending}
+                  onClick={() => exportSelected("pdf")}
+                  className="block w-full px-3.5 py-2 text-left text-sm font-medium text-stone-800 hover:bg-stone-50 disabled:opacity-50"
+                >
+                  Export PDF
+                </button>
+                {canSave ? (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={bulkPending}
+                    onClick={() => {
+                      setBulkOpen(false);
+                      setBulkDelete(true);
+                    }}
+                    className="block w-full px-3.5 py-2 text-left text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    Delete selected
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={bulkPending}
+                  onClick={() => {
+                    setSelected(new Set());
+                    setBulkOpen(false);
+                  }}
+                  className="block w-full px-3.5 py-2 text-left text-sm font-medium text-stone-500 hover:bg-stone-50 disabled:opacity-50"
+                >
+                  Clear selection
+                </button>
+              </div>
+            ) : null}
+          </div>
+          {canSave ? (
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className="rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900"
+            >
+              Add menu
+            </button>
+          ) : null}
+        </div>
       </div>
       <Flash message={notice} />
       {error ? <Notice>{error}</Notice> : null}
@@ -137,44 +284,90 @@ export function MenusScreen({ messId = null, hideHeader = false }: { messId?: nu
 
       {table.page.length > 0 ? (
         <div className="space-y-4">
-          {table.page.map((day) => (
-            <section key={day.key} className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 bg-stone-50 px-4 py-3">
-                <div>
-                  <h2 className="text-sm font-semibold text-stone-950">{longKolkataDate(day.key)}</h2>
-                  <p className="text-xs text-stone-500">
-                    {day.rows.length} meal{day.rows.length === 1 ? "" : "s"}
-                  </p>
-                </div>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr className="text-xs text-stone-400">
-                      <th className="px-4 py-2 font-medium">Meal</th>
-                      <th className="px-4 py-2 font-medium">Dishes</th>
-                      <th className="px-4 py-2 text-right font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-stone-200 bg-white px-4 py-2.5">
+            <label className="flex items-center gap-2 text-sm text-stone-700">
+              <input
+                type="checkbox"
+                checked={allPageSelected}
+                ref={(el) => {
+                  if (el) el.indeterminate = somePageSelected;
+                }}
+                onChange={togglePage}
+                className="h-4 w-4 rounded border-stone-300"
+              />
+              Select page ({selectedOnPage.length}/{pageIds.length})
+            </label>
+            {selected.size > 0 ? (
+              <p className="text-xs text-stone-500">{selected.size} selected across filters</p>
+            ) : null}
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {table.page.map((day) => {
+              const dayIds = day.rows.map((row) => row.id);
+              const daySelected = dayIds.filter((id) => selected.has(id));
+              const dayAll = dayIds.length > 0 && daySelected.length === dayIds.length;
+              const daySome = daySelected.length > 0 && !dayAll;
+              return (
+                <section key={day.key} className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-900/5">
+                  <div className="flex items-start gap-2 border-b border-stone-100 bg-stone-50 px-3 py-2.5">
+                    <input
+                      type="checkbox"
+                      checked={dayAll}
+                      ref={(el) => {
+                        if (el) el.indeterminate = daySome;
+                      }}
+                      onChange={() => {
+                        setSelected((current) => {
+                          const next = new Set(current);
+                          if (dayAll) {
+                            for (const id of dayIds) next.delete(id);
+                          } else {
+                            for (const id of dayIds) next.add(id);
+                          }
+                          return next;
+                        });
+                      }}
+                      className="mt-0.5 h-4 w-4 shrink-0 rounded border-stone-300"
+                      aria-label={`Select all meals on ${longKolkataDate(day.key)}`}
+                    />
+                    <div className="min-w-0">
+                      <h2 className="text-sm font-semibold leading-snug text-stone-950">{longKolkataDate(day.key)}</h2>
+                      <p className="text-xs text-stone-500">
+                        {day.rows.length} meal{day.rows.length === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                  </div>
+                  <ul className="divide-y divide-stone-100">
                     {day.rows.map((row) => (
-                      <tr key={row.id} className={rowClass}>
-                        <td className="px-4 py-3 font-medium text-stone-950">{mealInfo(row.meal_type).label}</td>
-                        <td className="px-4 py-3 text-stone-700">{row.dishes}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end">
-                            <IconButton label="View detail" icon="eye" onClick={() => setViewing(row)} />
-                            {canSave ? <IconButton label="Edit" icon="pencil" onClick={() => setEditing(row)} /> : null}
-                            {canSave ? <IconButton label="Delete" icon="trash" onClick={() => setRemoving(row)} /> : null}
+                      <li key={row.id} className={`px-3 py-2.5 ${rowClass}`}>
+                        <div className="flex items-start gap-2">
+                          <input
+                            type="checkbox"
+                            checked={selected.has(row.id)}
+                            onChange={() => toggleOne(row.id)}
+                            className="mt-0.5 h-4 w-4 shrink-0 rounded border-stone-300"
+                            aria-label={`Select ${mealInfo(row.meal_type).label}`}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-sm font-medium text-stone-950">{mealInfo(row.meal_type).label}</p>
+                              <div className="flex shrink-0">
+                                <IconButton label="View detail" icon="eye" onClick={() => setViewing(row)} />
+                                {canSave ? <IconButton label="Edit" icon="pencil" onClick={() => setEditing(row)} /> : null}
+                                {canSave ? <IconButton label="Delete" icon="trash" onClick={() => setRemoving(row)} /> : null}
+                              </div>
+                            </div>
+                            <p className="mt-0.5 line-clamp-3 text-sm text-stone-600">{row.dishes}</p>
                           </div>
-                        </td>
-                      </tr>
+                        </div>
+                      </li>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          ))}
+                  </ul>
+                </section>
+              );
+            })}
+          </div>
           <DayPager
             count={table.count}
             limit={table.limit}
@@ -238,6 +431,29 @@ export function MenusScreen({ messId = null, hideHeader = false }: { messId?: nu
             setError(message);
             setNotice(null);
             setRemoving(null);
+          }}
+        />
+      ) : null}
+      {bulkDelete && user ? (
+        <BulkDeleteMenusDialog
+          rows={selectedRows}
+          messId={messId}
+          role={user.role}
+          pending={bulkPending}
+          setPending={setBulkPending}
+          onClose={() => setBulkDelete(false)}
+          onDeleted={(message) => {
+            setBulkDelete(false);
+            setSelected(new Set());
+            setNotice(message);
+            setError(null);
+            setReloadKey((value) => value + 1);
+            notifyTodayMenuSaved();
+          }}
+          onFailed={(message) => {
+            setBulkDelete(false);
+            setError(message);
+            setNotice(null);
           }}
         />
       ) : null}
@@ -353,7 +569,7 @@ function MenuForm({
             onChange={(event) => setDishes(event.target.value)}
           />
           {formError ? <p className="text-sm text-red-700">{formError}</p> : null}
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <button type="button" onClick={onClose} className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-700">
               Cancel
             </button>
@@ -415,11 +631,61 @@ function DeleteDialog({
       <p className="text-sm text-stone-600">
         Delete the {row.meal_type} menu for {longKolkataDate(row.menu_date)}?
       </p>
-      <div className="mt-5 flex gap-2">
+      <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row">
         <button type="button" onClick={onClose} className="flex-1 rounded-full border border-stone-200 px-4 py-2.5 text-sm font-semibold text-stone-700">
           Cancel
         </button>
         <button type="button" onClick={onDelete} disabled={pending} className="flex-1 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-ink)] disabled:opacity-60">
+          {pending ? "Deleting…" : "Delete"}
+        </button>
+      </div>
+    </Dialog>
+  );
+}
+
+function BulkDeleteMenusDialog({
+  rows,
+  messId = null,
+  role,
+  pending,
+  setPending,
+  onClose,
+  onDeleted,
+  onFailed,
+}: {
+  rows: MenuRow[];
+  messId?: number | null;
+  role: "admin" | "president" | "manager" | "member";
+  pending: boolean;
+  setPending: (value: boolean) => void;
+  onClose: () => void;
+  onDeleted: (message: string) => void;
+  onFailed: (message: string) => void;
+}) {
+  async function onDelete() {
+    setPending(true);
+    try {
+      for (const row of rows) {
+        await menuService.remove(role, row.id, messId);
+      }
+      onDeleted(`Deleted ${rows.length} meal${rows.length === 1 ? "" : "s"}.`);
+    } catch (err) {
+      onFailed(err instanceof Error ? err.message : "Could not delete the selected meals.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <Dialog title="Delete selected meals" onClose={onClose}>
+      <p className="text-sm text-stone-600">
+        Delete {rows.length} selected meal{rows.length === 1 ? "" : "s"}? This cannot be undone.
+      </p>
+      <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row">
+        <button type="button" onClick={onClose} disabled={pending} className="flex-1 rounded-full border border-stone-200 px-4 py-2.5 text-sm font-semibold text-stone-700 disabled:opacity-60">
+          Cancel
+        </button>
+        <button type="button" onClick={() => void onDelete()} disabled={pending} className="flex-1 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-ink)] disabled:opacity-60">
           {pending ? "Deleting…" : "Delete"}
         </button>
       </div>
