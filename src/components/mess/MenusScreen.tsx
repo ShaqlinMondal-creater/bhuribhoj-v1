@@ -21,6 +21,9 @@ import InputAdornment from "@mui/material/InputAdornment";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 
+const mealCheckClass =
+  "h-4 w-4 shrink-0 rounded border border-stone-300 bg-white text-emerald-800 accent-emerald-800 checked:border-emerald-800 [color-scheme:light]";
+
 export function MenusScreen({ messId = null, hideHeader = false }: { messId?: number | null; hideHeader?: boolean } = {}) {
   const user = useMessUser();
   const canSave = user?.role === "president" || user?.role === "manager" || user?.role === "admin";
@@ -293,7 +296,7 @@ export function MenusScreen({ messId = null, hideHeader = false }: { messId?: nu
                   if (el) el.indeterminate = somePageSelected;
                 }}
                 onChange={togglePage}
-                className="h-4 w-4 rounded border-stone-300"
+                className={mealCheckClass}
               />
               Select page ({selectedOnPage.length}/{pageIds.length})
             </label>
@@ -302,7 +305,7 @@ export function MenusScreen({ messId = null, hideHeader = false }: { messId?: nu
             ) : null}
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {table.page.map((day) => {
               const dayIds = day.rows.map((row) => row.id);
               const daySelected = dayIds.filter((id) => selected.has(id));
@@ -328,7 +331,7 @@ export function MenusScreen({ messId = null, hideHeader = false }: { messId?: nu
                           return next;
                         });
                       }}
-                      className="mt-0.5 h-4 w-4 shrink-0 rounded border-stone-300"
+                      className={`mt-0.5 ${mealCheckClass}`}
                       aria-label={`Select all meals on ${longKolkataDate(day.key)}`}
                     />
                     <div className="min-w-0">
@@ -346,7 +349,7 @@ export function MenusScreen({ messId = null, hideHeader = false }: { messId?: nu
                             type="checkbox"
                             checked={selected.has(row.id)}
                             onChange={() => toggleOne(row.id)}
-                            className="mt-0.5 h-4 w-4 shrink-0 rounded border-stone-300"
+                            className={`mt-0.5 ${mealCheckClass}`}
                             aria-label={`Select ${mealInfo(row.meal_type).label}`}
                           />
                           <div className="min-w-0 flex-1">

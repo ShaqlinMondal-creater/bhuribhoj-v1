@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 const STORAGE_KEY = "bhuribhoj-lang";
-const DEFAULT_LANG = "bn";
+const DEFAULT_LANG = "en";
 
 const LANGS = [
   { code: "bn", label: "বাংলা" },
