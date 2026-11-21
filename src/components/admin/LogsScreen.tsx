@@ -38,6 +38,7 @@ const KNOWN_ACTIONS = [
   "meal_away.save",
   "meal_away.update",
   "member.create",
+  "member.delete",
   "member.update",
   "menu.delete",
   "menu.save",

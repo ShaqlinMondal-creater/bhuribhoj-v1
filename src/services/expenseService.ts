@@ -38,4 +38,7 @@ export const expenseService = {
   update(role: Role, body: NewExpense & { id: number }) {
     return apiClient<{ message: string }>(`${doorFor(role)}/expenses/update`, { method: "POST", body });
   },
+  remove(role: Role, id: number) {
+    return apiClient<{ message: string }>(`${doorFor(role)}/expenses/${id}/delete`, { method: "DELETE" });
+  },
 };

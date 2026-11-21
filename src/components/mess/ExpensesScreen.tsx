@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMessUser } from "@/components/auth/MessSession";
 import { Icon } from "@/components/icons/Icon";
 import { rowClass, TableShell, TableStatus, thClass, useClientPage } from "@/components/ui/DataTable";
@@ -11,6 +11,7 @@ import { FilterBar, FilterDate, FilterSearch, FilterSelect, MaterialScope } from
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useApi } from "@/hooks/useApi";
+import { downloadExcelCsv, downloadPdfTable } from "@/lib/exportTable";
 import { inr, longKolkataDate } from "@/lib/format";
 import { expenseService, type ExpenseRow, type NewExpense } from "@/services/expenseService";
 import { messService } from "@/services/messService";
@@ -18,6 +19,7 @@ import IconButtonMui from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
+import type { Role } from "@/types/auth";
 
 const expenseField = {
   "& .MuiInputBase-root": {
@@ -66,6 +68,10 @@ export function ExpensesScreen() {
   const [reloadKey, setReloadKey] = useState(0);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<ExpenseRow | null>(null);
+  const [removing, setRemoving] = useState<ExpenseRow | null>(null);
+  const [bulkDelete, setBulkDelete] = useState(false);
+  const [selected, setSelected] = useState<Set<number>>(() => new Set());
+  const [bulkPending, setBulkPending] = useState(false);
 
   const from = isDmy(fromDate) ? fromDate : "";
   const to = isDmy(toDate) ? toDate : "";
@@ -103,6 +109,7 @@ export function ExpensesScreen() {
         setRows(page.data ?? []);
         setTotal(page.total_amount ?? 0);
         setError(null);
+        setSelected(new Set());
       })
       .catch((err: unknown) => {
         if (!cancelled) setError(err instanceof Error ? err.message : "Could not load expenses.");
@@ -116,6 +123,59 @@ export function ExpensesScreen() {
   }, [user, search, category, fund, from, to, dateOrderError, reloadKey]);
 
   const table = useClientPage(rows);
+  const pageIds = useMemo(() => table.page.map((row) => row.id), [table.page]);
+  const selectedOnPage = pageIds.filter((id) => selected.has(id));
+  const allPageSelected = pageIds.length > 0 && selectedOnPage.length === pageIds.length;
+  const somePageSelected = selectedOnPage.length > 0 && !allPageSelected;
+  const selectedRows = useMemo(() => rows.filter((row) => selected.has(row.id)), [rows, selected]);
+
+  function toggleOne(id: number) {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function togglePage() {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (allPageSelected) {
+        for (const id of pageIds) next.delete(id);
+      } else {
+        for (const id of pageIds) next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function exportSelected(kind: "excel" | "pdf") {
+    if (selectedRows.length === 0) return;
+    const headers = ["Title", "Quantity", "Category", "Fund", "Date", "Amount", "Note"];
+    const data = selectedRows.map((row) => [
+      row.title,
+      quantityText(row.quantity),
+      categoryLabel(row.category),
+      row.fund_type === "mess_fund" ? "Mess fund" : "Manager fund",
+      longKolkataDate(row.spent_on),
+      Number(row.amount),
+      row.note ?? "",
+    ]);
+    try {
+      if (kind === "excel") {
+        downloadExcelCsv(`bhuribhoj-expenses-${selectedRows.length}`, headers, data);
+        setNotice(`Exported ${selectedRows.length} expense${selectedRows.length === 1 ? "" : "s"} to Excel.`);
+      } else {
+        downloadPdfTable("BhuriBhoj expenses", headers, data);
+        setNotice(`Opened PDF print view for ${selectedRows.length} expense${selectedRows.length === 1 ? "" : "s"}.`);
+      }
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not export expenses.");
+      setNotice(null);
+    }
+  }
 
   if (!user) return <div className="h-40 animate-pulse rounded-2xl bg-white" />;
 
@@ -168,6 +228,47 @@ export function ExpensesScreen() {
         <FilterDate label="From" value={fromDate} onChange={(value) => { setFromDate(value); table.setOffset(0); }} />
         <FilterDate label="To" value={toDate} onChange={(value) => { setToDate(value); table.setOffset(0); }} />
       </FilterBar>
+      {canRecord && selected.size > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3">
+          <p className="text-sm font-medium text-stone-800">
+            {selected.size} selected
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={bulkPending}
+              onClick={() => exportSelected("excel")}
+              className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+            >
+              Export Excel
+            </button>
+            <button
+              type="button"
+              disabled={bulkPending}
+              onClick={() => exportSelected("pdf")}
+              className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+            >
+              Export PDF
+            </button>
+            <button
+              type="button"
+              disabled={bulkPending}
+              onClick={() => setBulkDelete(true)}
+              className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+            >
+              Delete selected
+            </button>
+            <button
+              type="button"
+              disabled={bulkPending}
+              onClick={() => setSelected(new Set())}
+              className="rounded-lg px-3 py-1.5 text-xs font-semibold text-stone-500 hover:text-stone-800 disabled:opacity-50"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      ) : null}
       <TableShell
         count={table.count}
         limit={table.limit}
@@ -176,6 +277,20 @@ export function ExpensesScreen() {
         onOffset={table.setOffset}
         head={
           <tr>
+            {canRecord ? (
+              <th className={thClass()}>
+                <input
+                  type="checkbox"
+                  checked={allPageSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = somePageSelected;
+                  }}
+                  onChange={togglePage}
+                  aria-label="Select all expenses on this page"
+                  className="h-4 w-4 rounded border-stone-300"
+                />
+              </th>
+            ) : null}
             <th className={thClass()}>Title</th>
             <th className={thClass()}>Quantity</th>
             <th className={thClass()}>Category</th>
@@ -187,12 +302,23 @@ export function ExpensesScreen() {
         }
       >
         <TableStatus
-          colSpan={canRecord ? 7 : 6}
+          colSpan={canRecord ? 8 : 6}
           loading={loading && rows.length === 0}
           empty={!loading && !error && table.count === 0 ? (filtered || dateOrderError ? "No expenses match these filters." : "No expenses yet.") : null}
         />
         {table.page.map((row) => (
           <tr key={row.id} className={rowClass}>
+            {canRecord ? (
+              <td className="px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={selected.has(row.id)}
+                  onChange={() => toggleOne(row.id)}
+                  aria-label={`Select ${row.title}`}
+                  className="h-4 w-4 rounded border-stone-300"
+                />
+              </td>
+            ) : null}
             <td className="px-4 py-3 font-medium text-stone-950">{row.title}</td>
             <td className="px-4 py-3 text-stone-600">{quantityText(row.quantity)}</td>
             <td className="px-4 py-3 text-stone-600">{categoryLabel(row.category)}</td>
@@ -203,6 +329,7 @@ export function ExpensesScreen() {
               <td className="px-4 py-3">
                 <div className="flex justify-end">
                   <IconButton label={`Edit ${row.title}`} icon="pencil" onClick={() => setEditing(row)} />
+                  <IconButton label={`Delete ${row.title}`} icon="trash" onClick={() => setRemoving(row)} />
                 </div>
               </td>
             ) : null}
@@ -249,7 +376,151 @@ export function ExpensesScreen() {
           }}
         />
       ) : null}
+      {removing && user ? (
+        <DeleteExpenseDialog
+          role={user.role}
+          row={removing}
+          onClose={() => setRemoving(null)}
+          onDeleted={(message) => {
+            setRemoving(null);
+            setNotice(message);
+            setError(null);
+            setReloadKey((value) => value + 1);
+          }}
+          onFailed={(message) => {
+            setError(message);
+            setNotice(null);
+            setRemoving(null);
+          }}
+        />
+      ) : null}
+      {bulkDelete && user ? (
+        <BulkDeleteExpensesDialog
+          role={user.role}
+          count={selected.size}
+          ids={[...selected]}
+          pending={bulkPending}
+          setPending={setBulkPending}
+          onClose={() => setBulkDelete(false)}
+          onDeleted={(message) => {
+            setBulkDelete(false);
+            setSelected(new Set());
+            setNotice(message);
+            setError(null);
+            setReloadKey((value) => value + 1);
+          }}
+          onFailed={(message) => {
+            setError(message);
+            setNotice(null);
+            setBulkDelete(false);
+          }}
+        />
+      ) : null}
     </section>
+  );
+}
+
+function DeleteExpenseDialog({
+  role,
+  row,
+  onClose,
+  onDeleted,
+  onFailed,
+}: {
+  role: Role;
+  row: ExpenseRow;
+  onClose: () => void;
+  onDeleted: (message: string) => void;
+  onFailed: (message: string) => void;
+}) {
+  const [pending, setPending] = useState(false);
+
+  async function onDelete() {
+    setPending(true);
+    try {
+      const result = await expenseService.remove(role, row.id);
+      onDeleted(result.message);
+    } catch (err) {
+      onFailed(err instanceof Error ? err.message : "Could not delete the expense.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <Dialog title="Delete expense" onClose={onClose}>
+      <p className="text-sm text-stone-600">
+        Delete <span className="font-semibold text-stone-900">{row.title}</span> ({inr(Number(row.amount))})?
+      </p>
+      <div className="mt-5 flex gap-2">
+        <button type="button" onClick={onClose} className="flex-1 rounded-full border border-stone-200 px-4 py-2.5 text-sm font-semibold text-stone-700">
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={() => void onDelete()}
+          disabled={pending}
+          className="flex-1 rounded-full bg-red-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          {pending ? "Deleting…" : "Delete"}
+        </button>
+      </div>
+    </Dialog>
+  );
+}
+
+function BulkDeleteExpensesDialog({
+  role,
+  count,
+  ids,
+  pending,
+  setPending,
+  onClose,
+  onDeleted,
+  onFailed,
+}: {
+  role: Role;
+  count: number;
+  ids: number[];
+  pending: boolean;
+  setPending: (value: boolean) => void;
+  onClose: () => void;
+  onDeleted: (message: string) => void;
+  onFailed: (message: string) => void;
+}) {
+  async function onDelete() {
+    setPending(true);
+    try {
+      for (const id of ids) {
+        await expenseService.remove(role, id);
+      }
+      onDeleted(`Deleted ${count} expense${count === 1 ? "" : "s"}.`);
+    } catch (err) {
+      onFailed(err instanceof Error ? err.message : "Could not delete the selected expenses.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <Dialog title="Delete selected expenses" onClose={onClose}>
+      <p className="text-sm text-stone-600">
+        Delete {count} selected expense{count === 1 ? "" : "s"}? This cannot be undone.
+      </p>
+      <div className="mt-5 flex gap-2">
+        <button type="button" onClick={onClose} disabled={pending} className="flex-1 rounded-full border border-stone-200 px-4 py-2.5 text-sm font-semibold text-stone-700 disabled:opacity-60">
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={() => void onDelete()}
+          disabled={pending}
+          className="flex-1 rounded-full bg-red-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          {pending ? "Deleting…" : "Delete"}
+        </button>
+      </div>
+    </Dialog>
   );
 }
 

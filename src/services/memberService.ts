@@ -62,4 +62,10 @@ export const memberService = {
       body: withMessId({ ...body }, messId),
     });
   },
+  remove(role: Role, id: number, messId?: number | null) {
+    const query = messId ? `?mess_id=${messId}` : "";
+    return apiClient<{ message: string }>(`${doorFor(role)}/members/${id}/delete${query}`, {
+      method: "DELETE",
+    });
+  },
 };

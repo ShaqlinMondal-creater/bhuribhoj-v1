@@ -6,6 +6,7 @@ import { FilterAutocomplete, FilterBar, FilterSearch, FilterSelect, MaterialScop
 import { rowClass, TableShell, TableStatus, thClass } from "@/components/ui/DataTable";
 import { DetailList } from "@/components/ui/DetailList";
 import { Dialog } from "@/components/ui/Dialog";
+import { Flash } from "@/components/ui/Flash";
 import { IconButton } from "@/components/ui/IconButton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import IconButtonMui from "@mui/material/IconButton";
@@ -51,6 +52,8 @@ export function MembersScreen() {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<LaravelUser | null>(null);
   const [viewing, setViewing] = useState<LaravelUser | null>(null);
+  const [removing, setRemoving] = useState<LaravelUser | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (!allowed || !user) {
@@ -131,6 +134,7 @@ export function MembersScreen() {
           </button>
         ) : null}
       </div>
+      <Flash message={notice} />
       <MemberFiltersBar
         filters={filters}
         rooms={list?.rooms ?? []}
@@ -201,6 +205,9 @@ export function MembersScreen() {
                 {president ? (
                   <IconButton label={`Edit ${row.name}`} icon="pencil" iconClassName="h-3.5 w-3.5" onClick={() => setEditing(row)} />
                 ) : null}
+                {president && String(row.id) !== user.id && row.role !== "president" ? (
+                  <IconButton label={`Delete ${row.name}`} icon="trash" iconClassName="h-3.5 w-3.5" onClick={() => setRemoving(row)} />
+                ) : null}
               </div>
             </td>
           </tr>
@@ -233,6 +240,23 @@ export function MembersScreen() {
           onSaved={() => {
             setEditing(null);
             setRefreshKey((value) => value + 1);
+          }}
+        />
+      ) : null}
+      {removing ? (
+        <DeleteMemberDialog
+          member={removing}
+          onClose={() => setRemoving(null)}
+          onDeleted={(message) => {
+            setRemoving(null);
+            setNotice(message);
+            setListError(null);
+            setRefreshKey((value) => value + 1);
+          }}
+          onFailed={(message) => {
+            setListError(message);
+            setNotice(null);
+            setRemoving(null);
           }}
         />
       ) : null}
@@ -359,6 +383,54 @@ function EditMemberDialog({
         </div>
       </form>
       </MaterialScope>
+    </Dialog>
+  );
+}
+
+function DeleteMemberDialog({
+  member,
+  onClose,
+  onDeleted,
+  onFailed,
+}: {
+  member: LaravelUser;
+  onClose: () => void;
+  onDeleted: (message: string) => void;
+  onFailed: (message: string) => void;
+}) {
+  const [pending, setPending] = useState(false);
+
+  async function onDelete() {
+    setPending(true);
+    try {
+      const result = await memberService.remove("president", Number(member.id));
+      onDeleted(result.message);
+    } catch (err) {
+      onFailed(err instanceof Error ? err.message : "Could not delete the member.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <Dialog title="Delete member" onClose={onClose}>
+      <p className="text-sm text-stone-600">
+        Delete <span className="font-semibold text-stone-900">{member.name}</span>
+        {member.member_code ? ` (${member.member_code})` : ""}? Their meals and deposits for this mess will also be removed.
+      </p>
+      <div className="mt-5 flex gap-2">
+        <button type="button" onClick={onClose} className="flex-1 rounded-full border border-stone-200 px-4 py-2.5 text-sm font-semibold text-stone-700">
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={() => void onDelete()}
+          disabled={pending}
+          className="flex-1 rounded-full bg-red-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          {pending ? "Deleting…" : "Delete"}
+        </button>
+      </div>
     </Dialog>
   );
 }
