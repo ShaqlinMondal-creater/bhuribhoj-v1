@@ -7,7 +7,7 @@ import { Icon } from "@/components/icons/Icon";
 import { AvatarCropDialog } from "@/components/ui/AvatarCropDialog";
 import { Dialog } from "@/components/ui/Dialog";
 import { PasswordInput } from "@/components/ui/PasswordInput";
-import { roleLabel } from "@/lib/auth/roles";
+import { roleLabel, seatsLabel } from "@/lib/auth/roles";
 import { initials } from "@/lib/format";
 import { authService } from "@/services/authService";
 import type { AuthUser } from "@/types/auth";
@@ -197,7 +197,7 @@ function ProfileForm({ user, onUser }: { user: AuthUser; onUser: (user: AuthUser
             />
             <h2 className="mt-4 text-xl font-semibold">{name}</h2>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-200/80">
-              {roleLabel[user.role]}
+              {seatsLabel(user.seats) ?? roleLabel[user.role]}
             </p>
             <p className="mt-1 text-sm text-emerald-100/80">{user.memberCode ?? user.mess?.name}</p>
             {photoError ? <p className="mt-3 text-xs text-rose-200">{photoError}</p> : null}

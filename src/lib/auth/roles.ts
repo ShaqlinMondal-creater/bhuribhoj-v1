@@ -41,3 +41,12 @@ export const roleLabel: Record<Role, string> = {
   manager: "Manager",
   member: "Member",
 };
+
+export function seatsLabel(seats?: { president?: boolean; manager?: boolean; member?: boolean } | null) {
+  if (!seats) return null;
+  const parts: string[] = [];
+  if (seats.president) parts.push("President");
+  if (seats.manager) parts.push("Manager");
+  if (seats.member || parts.length === 0) parts.push("Member");
+  return parts.join(" · ");
+}

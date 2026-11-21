@@ -538,6 +538,7 @@ function AssignDialog({
     <Dialog title="Assign seat" onClose={onClose}>
       <p className="mb-3 text-sm text-stone-600">
         Assign a person who already belongs to <span className="font-medium text-stone-900">{mess.name}</span>.
+        President seat is unique; manager seats allow up to 3 (president can also be a manager).
       </p>
       {loadError ? <Notice>{loadError}</Notice> : null}
       <MaterialScope>

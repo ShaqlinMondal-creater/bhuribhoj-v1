@@ -12,12 +12,20 @@ export type MemberFilters = {
   offset?: number;
 };
 
+export type MemberSeats = {
+  president: boolean;
+  manager: boolean;
+  member: boolean;
+};
+
 export type MembersPage = {
-  data: LaravelUser[];
+  data: Array<LaravelUser & { seats?: MemberSeats }>;
   count: number;
   limit: number;
   offset: number;
   rooms: string[];
+  manager_count?: number;
+  manager_limit?: number;
 };
 
 export type NewMember = {
@@ -26,6 +34,7 @@ export type NewMember = {
   password: string;
   mobile?: string;
   room_no?: string;
+  manager?: boolean;
 };
 
 export const memberService = {
@@ -67,5 +76,18 @@ export const memberService = {
     return apiClient<{ message: string }>(`${doorFor(role)}/members/${id}/delete${query}`, {
       method: "DELETE",
     });
+  },
+  seats(
+    role: Role,
+    body: { user_id: number; president?: boolean; manager?: boolean },
+    messId?: number | null,
+  ) {
+    return apiClient<{ message: string; data: LaravelUser & { seats?: MemberSeats } }>(
+      `${doorFor(role)}/members/seats`,
+      {
+        method: "POST",
+        body: withMessId({ ...body }, messId),
+      },
+    );
   },
 };

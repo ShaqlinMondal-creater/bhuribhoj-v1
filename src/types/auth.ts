@@ -10,6 +10,12 @@ export type AccountSeat = {
   plan_id: number | null;
 };
 
+export type MessSeats = {
+  president: boolean;
+  manager: boolean;
+  member: boolean;
+};
+
 export type AuthUser = {
   id: string;
   name: string;
@@ -22,6 +28,7 @@ export type AuthUser = {
   avatar: string | null;
   messId: string | null;
   mess: { id: string; name: string; code: string } | null;
+  seats: MessSeats | null;
 };
 
 export type LaravelUser = {
@@ -36,6 +43,7 @@ export type LaravelUser = {
   status?: string;
   avatar?: string | null;
   mess?: { id: number | string; name: string; code: string } | null;
+  seats?: MessSeats | null;
 };
 
 export type Plan = {
@@ -64,6 +72,13 @@ export function mapLaravelUser(user: LaravelUser): AuthUser {
           id: String(user.mess.id),
           name: user.mess.name,
           code: user.mess.code,
+        }
+      : null,
+    seats: user.seats
+      ? {
+          president: Boolean(user.seats.president),
+          manager: Boolean(user.seats.manager),
+          member: Boolean(user.seats.member),
         }
       : null,
   };

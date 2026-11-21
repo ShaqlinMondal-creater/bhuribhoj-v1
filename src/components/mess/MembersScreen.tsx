@@ -16,12 +16,14 @@ import TextField from "@mui/material/TextField";
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useApi } from "@/hooks/useApi";
-import { isPresident, roleLabel } from "@/lib/auth/roles";
+import { isPresident, roleLabel, seatsLabel } from "@/lib/auth/roles";
 import { inr, initials } from "@/lib/format";
 import { depositService, type DepositRow } from "@/services/depositService";
-import { memberService, type MemberFilters, type MembersPage } from "@/services/memberService";
+import { memberService, type MemberFilters, type MemberSeats, type MembersPage } from "@/services/memberService";
 import { messService } from "@/services/messService";
 import type { LaravelUser, Role } from "@/types/auth";
+
+type MemberRow = LaravelUser & { seats?: MemberSeats };
 
 export function MembersScreen() {
   const user = useMessUser();
@@ -50,10 +52,12 @@ export function MembersScreen() {
     depositsByUser.set(deposit.user_id, bucket);
   }
   const [adding, setAdding] = useState(false);
-  const [editing, setEditing] = useState<LaravelUser | null>(null);
-  const [viewing, setViewing] = useState<LaravelUser | null>(null);
-  const [removing, setRemoving] = useState<LaravelUser | null>(null);
+  const [editing, setEditing] = useState<MemberRow | null>(null);
+  const [viewing, setViewing] = useState<MemberRow | null>(null);
+  const [removing, setRemoving] = useState<MemberRow | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const managerCount = list?.manager_count ?? 0;
+  const managerLimit = list?.manager_limit ?? 3;
 
   useEffect(() => {
     if (!allowed || !user) {
@@ -187,7 +191,7 @@ export function MembersScreen() {
             <td className="px-4 py-3 align-top text-stone-600">{row.room_no ?? "—"}</td>
             <td className="px-4 py-3 align-top">
               <span className="inline-flex rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-700">
-                {roleLabel[row.role as Role] ?? row.role}
+                {seatsLabel(row.seats) ?? roleLabel[row.role as Role] ?? row.role}
               </span>
             </td>
             <td className="px-4 py-3 align-top">
@@ -205,7 +209,7 @@ export function MembersScreen() {
                 {president ? (
                   <IconButton label={`Edit ${row.name}`} icon="pencil" iconClassName="h-3.5 w-3.5" onClick={() => setEditing(row)} />
                 ) : null}
-                {president && String(row.id) !== user.id && row.role !== "president" ? (
+                {president && String(row.id) !== user.id && !row.seats?.president ? (
                   <IconButton label={`Delete ${row.name}`} icon="trash" iconClassName="h-3.5 w-3.5" onClick={() => setRemoving(row)} />
                 ) : null}
               </div>
@@ -217,6 +221,8 @@ export function MembersScreen() {
 
       {adding ? (
         <AddMemberDialog
+          managerCount={managerCount}
+          managerLimit={managerLimit}
           onClose={() => setAdding(false)}
           onCreated={() => {
             setAdding(false);
@@ -236,9 +242,12 @@ export function MembersScreen() {
         <EditMemberDialog
           member={editing}
           self={String(editing.id) === user.id}
+          managerCount={managerCount}
+          managerLimit={managerLimit}
           onClose={() => setEditing(null)}
-          onSaved={() => {
+          onSaved={(message) => {
             setEditing(null);
+            if (message) setNotice(message);
             setRefreshKey((value) => value + 1);
           }}
         />
@@ -264,10 +273,22 @@ export function MembersScreen() {
   );
 }
 
-function AddMemberDialog({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+function AddMemberDialog({
+  onClose,
+  onCreated,
+  managerCount,
+  managerLimit,
+}: {
+  onClose: () => void;
+  onCreated: () => void;
+  managerCount: number;
+  managerLimit: number;
+}) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [asManager, setAsManager] = useState(false);
+  const managerSlotsFull = managerCount >= managerLimit;
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -281,6 +302,7 @@ function AddMemberDialog({ onClose, onCreated }: { onClose: () => void; onCreate
         password: String(data.get("password") ?? ""),
         mobile: String(data.get("mobile") ?? "") || undefined,
         room_no: String(data.get("room_no") ?? "") || undefined,
+        manager: asManager,
       });
       onCreated();
     } catch (err) {
@@ -312,6 +334,19 @@ function AddMemberDialog({ onClose, onCreated }: { onClose: () => void; onCreate
         />
         <TextField name="mobile" label="Mobile" fullWidth />
         <TextField name="room_no" label="Room" fullWidth className="sm:col-span-2" />
+        <label className="flex items-center gap-2 text-sm text-stone-800 sm:col-span-2">
+          <input
+            type="checkbox"
+            checked={asManager}
+            disabled={pending || managerSlotsFull}
+            onChange={(event) => setAsManager(event.target.checked)}
+          />
+          Also give manager seat
+          <span className="text-xs text-stone-500">({managerCount}/{managerLimit} used)</span>
+        </label>
+        {managerSlotsFull ? (
+          <p className="text-xs text-amber-700 sm:col-span-2">Manager limit reached. Add as member only.</p>
+        ) : null}
         {error ? <p className="text-sm text-red-700 sm:col-span-2">{error}</p> : null}
         <div className="flex justify-end gap-2 sm:col-span-2">
           <button type="button" onClick={onClose} className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-700">
@@ -330,16 +365,23 @@ function AddMemberDialog({ onClose, onCreated }: { onClose: () => void; onCreate
 function EditMemberDialog({
   member,
   self,
+  managerCount,
+  managerLimit,
   onClose,
   onSaved,
 }: {
-  member: LaravelUser;
+  member: MemberRow;
   self: boolean;
+  managerCount: number;
+  managerLimit: number;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (message?: string) => void;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [isManager, setIsManager] = useState(Boolean(member.seats?.manager));
+  const isPresidentSeat = Boolean(member.seats?.president);
+  const managerSlotsFull = !isManager && managerCount >= managerLimit;
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -354,9 +396,33 @@ function EditMemberDialog({
         room_no: String(data.get("room_no") ?? "") || undefined,
         status: String(data.get("status") ?? "active") === "inactive" ? "inactive" : "active",
       });
-      onSaved();
+
+      const wasManager = Boolean(member.seats?.manager);
+      if (isManager !== wasManager) {
+        await memberService.seats("president", {
+          user_id: Number(member.id),
+          manager: isManager,
+        });
+      }
+
+      onSaved("Member updated.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not update the member.");
+      setPending(false);
+    }
+  }
+
+  async function makePresident() {
+    setPending(true);
+    setError(null);
+    try {
+      await memberService.seats("president", {
+        user_id: Number(member.id),
+        president: true,
+      });
+      onSaved(`${member.name} is now president.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not transfer the president seat.");
       setPending(false);
     }
   }
@@ -372,6 +438,43 @@ function EditMemberDialog({
           <MenuItem value="active">Active</MenuItem>
           <MenuItem value="inactive">Inactive</MenuItem>
         </TextField>
+
+        <div className="rounded-xl border border-stone-200 bg-stone-50 px-3 py-3 sm:col-span-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Seats</p>
+          <p className="mt-1 text-sm text-stone-700">
+            {seatsLabel(member.seats) ?? roleLabel[member.role as Role]}
+          </p>
+          <label className="mt-3 flex items-center gap-2 text-sm text-stone-800">
+            <input
+              type="checkbox"
+              checked={isManager}
+              disabled={pending || managerSlotsFull}
+              onChange={(event) => setIsManager(event.target.checked)}
+            />
+            Manager seat
+            <span className="text-xs text-stone-500">
+              ({managerCount}/{managerLimit} used)
+            </span>
+          </label>
+          {managerSlotsFull ? (
+            <p className="mt-1 text-xs text-amber-700">Manager limit reached. Remove a manager first.</p>
+          ) : null}
+          {!isPresidentSeat ? (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => void makePresident()}
+              className="mt-3 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-800 hover:bg-stone-100 disabled:opacity-60"
+            >
+              Make president (transfer seat)
+            </button>
+          ) : (
+            <p className="mt-3 text-xs text-stone-500">
+              To step down, transfer president to another member with “Make president”.
+            </p>
+          )}
+        </div>
+
         {error ? <p className="text-sm text-red-700 sm:col-span-2">{error}</p> : null}
         <div className="flex justify-end gap-2 sm:col-span-2">
           <button type="button" onClick={onClose} className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-700">
@@ -503,7 +606,7 @@ function MemberDetailDialog({
     ["Mobile", member.mobile || "—"],
     ["Code", member.member_code || "—"],
     ["Room", member.room_no || "—"],
-    ["Role", roleLabel[member.role as Role] ?? member.role],
+    ["Role", seatsLabel(member.seats) ?? roleLabel[member.role as Role] ?? member.role],
     ["Status", member.status ?? "active"],
     ["Mess fund", inr(fundSum(deposits, "mess_fund"))],
     ["Manager fund", inr(fundSum(deposits, "manager_fund"))],
