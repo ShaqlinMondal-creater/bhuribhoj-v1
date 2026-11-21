@@ -79,7 +79,7 @@ export const memberService = {
   },
   seats(
     role: Role,
-    body: { user_id: number; president?: boolean; manager?: boolean },
+    body: { user_id: number; manager: boolean },
     messId?: number | null,
   ) {
     return apiClient<{ message: string; data: LaravelUser & { seats?: MemberSeats } }>(

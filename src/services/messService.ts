@@ -107,14 +107,21 @@ export const messService = {
       body: withMessId({ ...body }, messId),
     });
   },
+  assign(
+    role: Role,
+    body: { user_id: number; seat: "president" | "manager"; from_date: string; to_date?: string | null },
+    messId?: number | null,
+  ) {
+    return apiClient<{ message: string; data: HousePayload | AdminMess }>(`${doorFor(role)}/messes/assign`, {
+      method: "POST",
+      body: withMessId({ ...body }, messId),
+    });
+  },
   adminAssign(
     messId: number,
     body: { user_id: number; seat: "president" | "manager"; from_date: string; to_date?: string | null },
   ) {
-    return apiClient<{ message: string; data: AdminMess }>("/admin/messes/assign", {
-      method: "POST",
-      body: withMessId({ ...body }, messId),
-    });
+    return this.assign("admin", body, messId);
   },
   adminRemove(messId: number) {
     return apiClient<{ message: string }>(`/admin/messes/${messId}/delete${messQuery(messId)}`, {

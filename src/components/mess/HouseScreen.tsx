@@ -1,23 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import MenuItem from "@mui/material/MenuItem";
+import TextField from "@mui/material/TextField";
+import { syncSessionRoleAction } from "@/app/actions/auth";
 import { useMessUser, useSetMessSeat, useSetMessUser } from "@/components/auth/MessSession";
 import { Icon } from "@/components/icons/Icon";
 import { fieldClass as baseFieldClass, panelCard } from "@/components/ui/classes";
 import { Flash } from "@/components/ui/Flash";
 import { rowClass, TableShell, TableStatus, thClass, useClientPage } from "@/components/ui/DataTable";
+import { MaterialScope } from "@/components/ui/FilterBar";
 import { Notice } from "@/components/ui/Notice";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { useApi } from "@/hooks/useApi";
-import { isPresident } from "@/lib/auth/roles";
+import { homePathForRole, isPresident } from "@/lib/auth/roles";
 import type { FundType } from "@/lib/api/mess";
 import { applyTheme, isThemeId, themes, type ThemeId } from "@/lib/theme";
 import type { Role } from "@/types/auth";
 import { inr } from "@/lib/format";
 import { authService } from "@/services/authService";
+import { useRouter } from "next/navigation";
 import { dashboardService } from "@/services/dashboardService";
 import { mealCatalog, mealInfo, mealIsOn, mealService, servedMealSlots } from "@/services/mealService";
+import { memberService } from "@/services/memberService";
 import { menuService } from "@/services/menuService";
 import { messService, type GuestMealSetup, type House, type HousePayload, type MessWrite } from "@/services/messService";
 
@@ -118,7 +124,7 @@ function MessConfig({
   role,
   onSaved,
 }: {
-  house: House;
+  house: HousePayload;
   canEdit: boolean;
   canEditTheme: boolean;
   role: Role;
@@ -226,7 +232,7 @@ function MessProfile({
   role,
   onSaved,
 }: {
-  house: House;
+  house: HousePayload;
   canEdit: boolean;
   canEditTheme: boolean;
   role: Role;
@@ -310,6 +316,17 @@ function MessProfile({
           <ProfileCard title="Dues" columns={2} rows={dueRows} canEdit={canEdit} editing={editing} draft={draft} pending={pending} onBegin={begin} onDraft={setDraft} onCancel={cancel} onSave={save} />
         </div>
       </div>
+      <PresidentSeatCard
+        house={house}
+        canEdit={canEdit}
+        role={role}
+        onSaved={(message) => {
+          setDone(message);
+          setError(null);
+          onSaved();
+        }}
+        onFailed={setError}
+      />
       <MessThemePicker
         house={house}
         canEdit={canEditTheme}
@@ -323,6 +340,140 @@ function MessProfile({
       />
     </div>
   );
+}
+
+function PresidentSeatCard({
+  house,
+  canEdit,
+  role,
+  onSaved,
+  onFailed,
+}: {
+  house: HousePayload;
+  canEdit: boolean;
+  role: Role;
+  onSaved: (message: string) => void;
+  onFailed: (message: string) => void;
+}) {
+  const router = useRouter();
+  const setUser = useSetMessUser();
+  const setSeat = useSetMessSeat();
+  const [members, setMembers] = useState<Array<{ id: number; name: string; role: string }>>([]);
+  const [userId, setUserId] = useState("");
+  const [pending, setPending] = useState(false);
+  const [loading, setLoading] = useState(canEdit);
+  const currentId = house.president_user?.id ? String(house.president_user.id) : "";
+
+  useEffect(() => {
+    if (!canEdit || !house.id) return;
+    let cancelled = false;
+    setLoading(true);
+    memberService
+      .fetch(role, { status: "active", limit: 100, offset: 0 })
+      .then((result) => {
+        if (cancelled) return;
+        setMembers(
+          (result.data ?? []).map((user) => ({
+            id: Number(user.id),
+            name: user.name,
+            role: user.role,
+          })),
+        );
+        setUserId(currentId);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) onFailed(err instanceof Error ? err.message : "Could not load members.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canEdit, role, currentId, house.id, onFailed]);
+
+  async function transfer() {
+    if (!userId || userId === currentId) return;
+    setPending(true);
+    try {
+      const result = await messService.assign(role, {
+        user_id: Number(userId),
+        seat: "president",
+        from_date: todayDmy(),
+      });
+      const next = await authService.currentUser();
+      await syncSessionRoleAction(next.user.role);
+      setUser(next.user);
+      setSeat(next.seat);
+      onSaved(result.message);
+      if (next.user.role !== "president") {
+        router.replace(homePathForRole(next.user.role));
+      }
+    } catch (err) {
+      onFailed(err instanceof Error ? err.message : "Could not transfer the president seat.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className={panelCard}>
+      <h2 className="text-sm font-semibold text-stone-900">President seat</h2>
+      <p className="mt-1 text-sm text-stone-500">
+        Only one president per mess. Transfer the seat here — not from Members edit.
+      </p>
+      <p className="mt-3 text-sm text-stone-700">
+        Current: <span className="font-medium text-stone-900">{house.president_user?.name ?? "—"}</span>
+      </p>
+      {canEdit ? (
+        <MaterialScope>
+          <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto]">
+            <TextField
+              select
+              fullWidth
+              label="New president"
+              value={userId}
+              disabled={loading || pending}
+              onChange={(event) => setUserId(event.target.value)}
+            >
+              <MenuItem value="" disabled>
+                Choose a member
+              </MenuItem>
+              {members.map((user) => (
+                <MenuItem key={user.id} value={String(user.id)}>
+                  {user.name} · {user.role}
+                </MenuItem>
+              ))}
+            </TextField>
+            <button
+              type="button"
+              disabled={pending || loading || !userId || userId === currentId}
+              onClick={() => void transfer()}
+              className="rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900 disabled:opacity-60 sm:self-stretch"
+            >
+              {pending ? "Transferring…" : "Transfer"}
+            </button>
+          </div>
+        </MaterialScope>
+      ) : (
+        <p className="mt-2 text-sm text-stone-500">Only the president can transfer this seat.</p>
+      )}
+    </div>
+  );
+}
+
+function todayDmy() {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).formatToParts(now);
+  const day = parts.find((part) => part.type === "day")?.value ?? "01";
+  const month = parts.find((part) => part.type === "month")?.value ?? "01";
+  const year = parts.find((part) => part.type === "year")?.value ?? "1970";
+  return `${day}-${month}-${year}`;
 }
 
 function MessThemePicker({

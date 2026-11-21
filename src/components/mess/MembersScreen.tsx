@@ -9,8 +9,10 @@ import { Dialog } from "@/components/ui/Dialog";
 import { Flash } from "@/components/ui/Flash";
 import { IconButton } from "@/components/ui/IconButton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import Checkbox from "@mui/material/Checkbox";
 import IconButtonMui from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
+import ListItemText from "@mui/material/ListItemText";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import { Notice } from "@/components/ui/Notice";
@@ -379,8 +381,13 @@ function EditMemberDialog({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [isManager, setIsManager] = useState(Boolean(member.seats?.manager));
+  const [seatRoles, setSeatRoles] = useState<Array<"manager" | "member">>(() => {
+    const next: Array<"manager" | "member"> = ["member"];
+    if (member.seats?.manager) next.unshift("manager");
+    return next;
+  });
   const isPresidentSeat = Boolean(member.seats?.president);
+  const isManager = seatRoles.includes("manager");
   const managerSlotsFull = !isManager && managerCount >= managerLimit;
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -412,71 +419,65 @@ function EditMemberDialog({
     }
   }
 
-  async function makePresident() {
-    setPending(true);
-    setError(null);
-    try {
-      await memberService.seats("president", {
-        user_id: Number(member.id),
-        president: true,
-      });
-      onSaved(`${member.name} is now president.`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not transfer the president seat.");
-      setPending(false);
-    }
-  }
+  const roleLabelValue = [
+    ...(isPresidentSeat ? ["President"] : []),
+    ...seatRoles.map((seat) => (seat === "manager" ? "Manager" : "Member")),
+  ].join(" · ");
 
   return (
     <Dialog title="Edit member" onClose={onClose} size="lg" backdrop="stone" closeClassName="text-sm font-medium text-stone-500 hover:text-stone-800">
       <MaterialScope>
-      <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2">
-        <TextField name="name" label="Name" required fullWidth defaultValue={member.name} className="sm:col-span-2" />
-        <TextField name="mobile" label="Mobile" fullWidth defaultValue={member.mobile ?? ""} />
-        <TextField name="room_no" label="Room" fullWidth defaultValue={member.room_no ?? ""} />
-        <TextField name="status" label="Status" select fullWidth defaultValue={member.status ?? "active"} disabled={self} className="sm:col-span-2">
-          <MenuItem value="active">Active</MenuItem>
-          <MenuItem value="inactive">Inactive</MenuItem>
-        </TextField>
-
-        <div className="rounded-xl border border-stone-200 bg-stone-50 px-3 py-3 sm:col-span-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Seats</p>
-          <p className="mt-1 text-sm text-stone-700">
-            {seatsLabel(member.seats) ?? roleLabel[member.role as Role]}
-          </p>
-          <label className="mt-3 flex items-center gap-2 text-sm text-stone-800">
-            <input
-              type="checkbox"
-              checked={isManager}
-              disabled={pending || managerSlotsFull}
-              onChange={(event) => setIsManager(event.target.checked)}
-            />
-            Manager seat
-            <span className="text-xs text-stone-500">
-              ({managerCount}/{managerLimit} used)
-            </span>
-          </label>
-          {managerSlotsFull ? (
-            <p className="mt-1 text-xs text-amber-700">Manager limit reached. Remove a manager first.</p>
-          ) : null}
-          {!isPresidentSeat ? (
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => void makePresident()}
-              className="mt-3 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-800 hover:bg-stone-100 disabled:opacity-60"
-            >
-              Make president (transfer seat)
-            </button>
-          ) : (
-            <p className="mt-3 text-xs text-stone-500">
-              To step down, transfer president to another member with “Make president”.
-            </p>
-          )}
+      <form onSubmit={onSubmit} className="grid gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <TextField name="name" label="Name" required fullWidth defaultValue={member.name} />
+          <TextField name="mobile" label="Mobile" fullWidth defaultValue={member.mobile ?? ""} />
+        </div>
+        <TextField name="email" label="Email" type="email" fullWidth value={member.email} disabled />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <TextField name="room_no" label="Room" fullWidth defaultValue={member.room_no ?? ""} />
+          <TextField name="status" label="Status" select fullWidth defaultValue={member.status ?? "active"} disabled={self}>
+            <MenuItem value="active">Active</MenuItem>
+            <MenuItem value="inactive">Inactive</MenuItem>
+          </TextField>
+          <TextField
+            select
+            fullWidth
+            label="Role"
+            value={seatRoles}
+            onChange={(event) => {
+              const raw = event.target.value;
+              const values = (typeof raw === "string" ? raw.split(",") : raw) as Array<"manager" | "member">;
+              const next: Array<"manager" | "member"> = ["member"];
+              if (values.includes("manager") && !(managerSlotsFull && !isManager)) next.unshift("manager");
+              setSeatRoles(next);
+            }}
+            helperText={
+              isPresidentSeat
+                ? "President seat is set from Mess config only."
+                : managerSlotsFull
+                  ? `Manager limit reached (${managerCount}/${managerLimit}).`
+                  : `Manager seats used: ${managerCount}/${managerLimit}`
+            }
+            slotProps={{
+              select: {
+                multiple: true,
+                renderValue: () => roleLabelValue,
+              },
+            }}
+          >
+            <MenuItem value="manager" disabled={pending || (managerSlotsFull && !isManager)}>
+              <Checkbox checked={isManager} size="small" />
+              <ListItemText primary="Manager" />
+            </MenuItem>
+            <MenuItem value="member" disabled>
+              <Checkbox checked size="small" />
+              <ListItemText primary="Member" />
+            </MenuItem>
+          </TextField>
         </div>
 
-        {error ? <p className="text-sm text-red-700 sm:col-span-2">{error}</p> : null}
-        <div className="flex justify-end gap-2 sm:col-span-2">
+        {error ? <p className="text-sm text-red-700">{error}</p> : null}
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button type="button" onClick={onClose} className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-700">
             Cancel
           </button>
