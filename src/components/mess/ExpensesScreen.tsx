@@ -70,8 +70,10 @@ export function ExpensesScreen() {
   const [editing, setEditing] = useState<ExpenseRow | null>(null);
   const [removing, setRemoving] = useState<ExpenseRow | null>(null);
   const [bulkDelete, setBulkDelete] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(() => new Set());
   const [bulkPending, setBulkPending] = useState(false);
+  const bulkMenuRef = useRef<HTMLDivElement>(null);
 
   const from = isDmy(fromDate) ? fromDate : "";
   const to = isDmy(toDate) ? toDate : "";
@@ -171,11 +173,33 @@ export function ExpensesScreen() {
         setNotice(`Opened PDF print view for ${selectedRows.length} expense${selectedRows.length === 1 ? "" : "s"}.`);
       }
       setError(null);
+      setBulkOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not export expenses.");
       setNotice(null);
+      setBulkOpen(false);
     }
   }
+
+  useEffect(() => {
+    if (!bulkOpen) return;
+    function onPointer(event: MouseEvent) {
+      if (!bulkMenuRef.current?.contains(event.target as Node)) setBulkOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setBulkOpen(false);
+    }
+    document.addEventListener("mousedown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [bulkOpen]);
+
+  useEffect(() => {
+    if (selected.size === 0) setBulkOpen(false);
+  }, [selected.size]);
 
   if (!user) return <div className="h-40 animate-pulse rounded-2xl bg-white" />;
 
@@ -188,13 +212,76 @@ export function ExpensesScreen() {
           description={total != null ? `Recorded total ${inr(total)}` : "Market, constant, feast, and tour spending."}
         />
         {canRecord ? (
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            className="rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900"
-          >
-            Add expense
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative" ref={bulkMenuRef}>
+              <button
+                type="button"
+                disabled={selected.size === 0 || bulkPending}
+                onClick={() => setBulkOpen((open) => !open)}
+                aria-haspopup="menu"
+                aria-expanded={bulkOpen}
+                className="rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm font-semibold text-stone-800 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                Bulk actions{selected.size > 0 ? ` (${selected.size})` : ""}
+              </button>
+              {bulkOpen && selected.size > 0 ? (
+                <div
+                  role="menu"
+                  className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-xl border border-stone-200 bg-white py-1 shadow-lg shadow-stone-900/10"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={bulkPending}
+                    onClick={() => exportSelected("excel")}
+                    className="block w-full px-3.5 py-2 text-left text-sm font-medium text-stone-800 hover:bg-stone-50 disabled:opacity-50"
+                  >
+                    Export Excel
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={bulkPending}
+                    onClick={() => exportSelected("pdf")}
+                    className="block w-full px-3.5 py-2 text-left text-sm font-medium text-stone-800 hover:bg-stone-50 disabled:opacity-50"
+                  >
+                    Export PDF
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={bulkPending}
+                    onClick={() => {
+                      setBulkOpen(false);
+                      setBulkDelete(true);
+                    }}
+                    className="block w-full px-3.5 py-2 text-left text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    Delete selected
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={bulkPending}
+                    onClick={() => {
+                      setSelected(new Set());
+                      setBulkOpen(false);
+                    }}
+                    className="block w-full px-3.5 py-2 text-left text-sm font-medium text-stone-500 hover:bg-stone-50 disabled:opacity-50"
+                  >
+                    Clear selection
+                  </button>
+                </div>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className="rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900"
+            >
+              Add expense
+            </button>
+          </div>
         ) : null}
       </div>
       <Flash message={notice} />
@@ -228,47 +315,6 @@ export function ExpensesScreen() {
         <FilterDate label="From" value={fromDate} onChange={(value) => { setFromDate(value); table.setOffset(0); }} />
         <FilterDate label="To" value={toDate} onChange={(value) => { setToDate(value); table.setOffset(0); }} />
       </FilterBar>
-      {canRecord && selected.size > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3">
-          <p className="text-sm font-medium text-stone-800">
-            {selected.size} selected
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={bulkPending}
-              onClick={() => exportSelected("excel")}
-              className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-50"
-            >
-              Export Excel
-            </button>
-            <button
-              type="button"
-              disabled={bulkPending}
-              onClick={() => exportSelected("pdf")}
-              className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-50"
-            >
-              Export PDF
-            </button>
-            <button
-              type="button"
-              disabled={bulkPending}
-              onClick={() => setBulkDelete(true)}
-              className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
-            >
-              Delete selected
-            </button>
-            <button
-              type="button"
-              disabled={bulkPending}
-              onClick={() => setSelected(new Set())}
-              className="rounded-lg px-3 py-1.5 text-xs font-semibold text-stone-500 hover:text-stone-800 disabled:opacity-50"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-      ) : null}
       <TableShell
         count={table.count}
         limit={table.limit}
